@@ -1,0 +1,20 @@
+-- CreateEnum
+CREATE TYPE "VerificationTier" AS ENUM ('UNVERIFIED', 'TIER_1', 'TIER_2', 'TIER_3');
+
+-- CreateTable
+CREATE TABLE "users" (
+    "id" TEXT NOT NULL,
+    "email" TEXT NOT NULL,
+    "passwordHash" TEXT NOT NULL,
+    "displayName" TEXT NOT NULL,
+    "city" TEXT,
+    "verificationTier" "VerificationTier" NOT NULL DEFAULT 'UNVERIFIED',
+    "verifiedAt" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "users_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateIndex
+CREATE UNIQUE INDEX "users_email_key" ON "users"("email");

@@ -1,0 +1,82 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum VerificationTier {
+  UNVERIFIED
+  TIER_1 // Basic (ID verified)
+  TIER_2 // Advanced (Bank/Address verified)
+  TIER_3 // Premium (Background check)
+}
+
+model User {
+  id               String           @id @default(uuid())
+  email            String           @unique
+  passwordHash     String
+  displayName      String
+  city             String?
+  verificationTier VerificationTier @default(UNVERIFIED)
+  verifiedAt       DateTime?
+  tools            Tool[]
+  bookings         Booking[]        @relation("RenterBookings")
+  receivedBookings Booking[]        @relation("OwnerBookings")
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  @@map("users")
+}
+
+model Tool {
+  id          String    @id @default(uuid())
+  name        String
+  description String
+  category    String
+  pricePerDay Float
+  owner       User      @relation(fields: [ownerId], references: [id])
+  ownerId     String
+  latitude    Float?
+  longitude   Float?
+  images      String[]  @default([])
+  isAvailable Boolean   @default(true)
+  bookings    Booking[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@map("tools")
+}
+
+enum BookingStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+  COMPLETED
+}
+
+model Booking {
+  id         String        @id @default(uuid())
+  tool       Tool          @relation(fields: [toolId], references: [id])
+  toolId     String
+  renter     User          @relation("RenterBookings", fields: [renterId], references: [id])
+  renterId   String
+  owner      User          @relation("OwnerBookings", fields: [ownerId], references: [id])
+  ownerId    String
+  startDate  DateTime
+  endDate    DateTime
+  totalPrice Float
+  status     BookingStatus @default(PENDING)
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  @@map("bookings")
+}
+
+

@@ -1,0 +1,14 @@
+{
+    "name": "rent-a-tool-monorepo",
+    "version": "1.0.0",
+    "private": true,
+    "workspaces": [
+        "backend",
+        "mobile"
+    ],
+    "scripts": {
+        "backend:dev": "npm run start:dev --workspace=backend",
+        "mobile:start": "npm run start --workspace=mobile",
+        "install:all": "npm install"
+    }
+}
