@@ -5,8 +5,7 @@ services:
     runtime: node
     plan: free
     # Point to the backend folder
-    rootData:
-      dir: backend
+    rootDir: backend
     buildCommand: npm install && npm run build && npx prisma generate
     startCommand: npm run start:prod
     envVars:
