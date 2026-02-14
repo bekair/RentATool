@@ -18,9 +18,10 @@ I have added a special file `render.yaml` to your repository. This file tells th
 ## Phase 2: The Mobile App (Connecting the Dots)
 Now we need to tell the mobile app where the backend lives.
 
-1.  **Update Config**:
-    *   Open `mobile/src/api/client.js`.
-    *   Replace `API_URL` with your **new Render Backend URL**.
+1.  **Update Config (Environment Variable)**:
+    *   Good catch! It's better to keep config out of the code.
+    *   Open `mobile/eas.json`.
+    *   Find `"EXPO_PUBLIC_API_URL"` and replace the placeholder text with your **new Render Backend URL** (e.g. `https://rent-a-tool-backend.onrender.com`).
     *   Push this change to GitHub.
 
 2.  **Build the App (Using EAS)**:
