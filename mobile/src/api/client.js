@@ -1,7 +1,8 @@
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 
-const API_URL = 'https://strong-paws-admire.loca.lt';
+// Use environment variable for API URL (set in .env or EAS Build)
+const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
 
 const api = axios.create({
     baseURL: API_URL,
