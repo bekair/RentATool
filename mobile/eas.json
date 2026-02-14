@@ -11,12 +11,12 @@
                 "simulator": true
             },
             "env": {
-                "EXPO_PUBLIC_API_URL": "Your Render Backend URL Here (e.g. https://rent-a-tool-backend.onrender.com)"
+                "EXPO_PUBLIC_API_URL": "https://rent-a-tool-backend.onrender.com"
             }
         },
         "production": {
             "env": {
-                "EXPO_PUBLIC_API_URL": "Your Render Backend URL Here"
+                "EXPO_PUBLIC_API_URL": "https://rent-a-tool-backend.onrender.com"
             }
         }
     },
