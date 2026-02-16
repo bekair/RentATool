@@ -123,6 +123,10 @@ function TabNavigator({ navigation }) {
                 }}
             />
             <Tab.Screen name="Bookings" component={BookingsScreen} />
+            import MapScreen from '../screens/MapScreen';
+
+            // ... (in Tab.Navigator)
+            <Tab.Screen name="Map" component={MapScreen} />
             <Tab.Screen name="Profile" component={HomeScreen} />
         </Tab.Navigator>
     );
