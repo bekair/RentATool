@@ -11,6 +11,7 @@ import SignupScreen from '../screens/SignupScreen';
 import HomeScreen from '../screens/HomeScreen';
 import BrowseToolsScreen from '../screens/BrowseToolsScreen';
 import MyToolsScreen from '../screens/MyToolsScreen';
+import MapScreen from '../screens/MapScreen';
 import AddToolScreen from '../screens/AddToolScreen';
 import ToolDetailsScreen from '../screens/ToolDetailsScreen';
 import BookingsScreen from '../screens/BookingsScreen';
