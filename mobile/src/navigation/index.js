@@ -76,6 +76,8 @@ function TabNavigator({ navigation }) {
                         iconName = focused ? 'calendar' : 'calendar-outline';
                     } else if (route.name === 'Profile') {
                         iconName = focused ? 'person' : 'person-outline';
+                    } else if (route.name === 'Map') {
+                        iconName = focused ? 'map' : 'map-outline';
                     }
 
                     return <Ionicons name={iconName} size={24} color={color} />;
@@ -124,9 +126,6 @@ function TabNavigator({ navigation }) {
                 }}
             />
             <Tab.Screen name="Bookings" component={BookingsScreen} />
-            import MapScreen from '../screens/MapScreen';
-
-            // ... (in Tab.Navigator)
             <Tab.Screen name="Map" component={MapScreen} />
             <Tab.Screen name="Profile" component={HomeScreen} />
         </Tab.Navigator>
