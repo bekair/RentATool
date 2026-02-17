@@ -19,6 +19,8 @@ const BookingsScreen = ({ navigation }) => {
 
     const fetchBookings = async () => {
         setLoading(true);
+        // Clear bookings immediately to avoid rendering mismatched data
+        // setBookings([]); // Wait, this might cause flash. Better to just use safe access in render.
         try {
             const endpoint = viewMode === 'rentals' ? '/bookings/renter' : '/bookings/owner';
             const response = await api.get(endpoint);
@@ -33,9 +35,11 @@ const BookingsScreen = ({ navigation }) => {
     };
 
     useEffect(() => {
+        setBookings([]); // Clear list on mode switch to prevent crash
         const unsubscribe = navigation.addListener('focus', () => {
             fetchBookings();
         });
+        fetchBookings(); // Fetch immediately when viewMode changes
         return unsubscribe;
     }, [navigation, viewMode]);
 
@@ -60,68 +64,112 @@ const BookingsScreen = ({ navigation }) => {
         }
     };
 
-    const renderBookingItem = ({ item }) => (
-        <View style={styles.card}>
-            <View style={styles.cardHeader}>
-                <Text style={styles.toolName}>{item.tool.name}</Text>
-                <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) + '20' }]}>
-                    <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>{item.status}</Text>
+    const renderBookingItem = ({ item }) => {
+        const isRenting = viewMode === 'rentals';
+        const otherPartyName = isRenting
+            ? item.owner?.displayName || 'Unknown Owner'
+            : item.renter?.displayName || 'Unknown Renter';
+
+        return (
+            <View style={styles.card}>
+                <View style={styles.cardHeader}>
+                    <View style={styles.toolIcon}>
+                        <Text style={{ fontSize: 24 }}>🛠️</Text>
+                    </View>
+                    <View style={styles.headerInfo}>
+                        <Text style={styles.toolName}>{item.tool.name}</Text>
+                        <Text style={styles.otherParty}>
+                            {isRenting ? 'From: ' : 'To: '}{otherPartyName}
+                        </Text>
+                    </View>
+                    <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) + '20' }]}>
+                        <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>
+                            {item.status}
+                        </Text>
+                    </View>
                 </View>
-            </View>
 
-            <View style={styles.details}>
-                <Text style={styles.detailText}>
-                    📅 {new Date(item.startDate).toLocaleDateString()} - {new Date(item.endDate).toLocaleDateString()}
-                </Text>
-                <Text style={styles.detailText}>
-                    👤 {viewMode === 'rentals' ? `Owner: ${item.owner.displayName}` : `Renter: ${item.renter.displayName}`}
-                </Text>
-                <Text style={styles.price}>Total: €{item.totalPrice}</Text>
-            </View>
+                <View style={styles.divider} />
 
-            {viewMode === 'requests' && item.status === 'PENDING' && (
-                <View style={styles.actions}>
-                    <TouchableOpacity
-                        style={[styles.actionButton, styles.approveButton]}
-                        onPress={() => handleUpdateStatus(item.id, 'APPROVED')}
-                    >
-                        <Text style={styles.approveButtonText}>Approve</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        style={[styles.actionButton, styles.rejectButton]}
-                        onPress={() => handleUpdateStatus(item.id, 'REJECTED')}
-                    >
-                        <Text style={styles.rejectButtonText}>Reject</Text>
-                    </TouchableOpacity>
+                <View style={styles.detailsRow}>
+                    <View style={styles.dateInfo}>
+                        <Text style={styles.dateLabel}>Start</Text>
+                        <Text style={styles.dateValue}>{new Date(item.startDate).toLocaleDateString()}</Text>
+                    </View>
+                    <View style={styles.dateArrow}>
+                        <Text style={{ color: '#666' }}>→</Text>
+                    </View>
+                    <View style={styles.dateInfo}>
+                        <Text style={styles.dateLabel}>End</Text>
+                        <Text style={styles.dateValue}>{new Date(item.endDate).toLocaleDateString()}</Text>
+                    </View>
+                    <View style={styles.priceInfo}>
+                        <Text style={styles.priceLabel}>Total</Text>
+                        <Text style={styles.priceValue}>€{item.totalPrice}</Text>
+                    </View>
                 </View>
-            )}
 
-            {item.status === 'PENDING' && viewMode === 'rentals' && (
-                <TouchableOpacity
-                    style={styles.cancelButton}
-                    onPress={() => handleUpdateStatus(item.id, 'CANCELLED')}
-                >
-                    <Text style={styles.cancelButtonText}>Cancel Request</Text>
-                </TouchableOpacity>
-            )}
-        </View>
-    );
+                {!isRenting && item.status === 'PENDING' && (
+                    <View style={styles.actions}>
+                        <TouchableOpacity
+                            style={[styles.actionButton, styles.rejectButton]}
+                            onPress={() => handleUpdateStatus(item.id, 'REJECTED')}
+                        >
+                            <Text style={styles.rejectButtonText}>Decline</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={[styles.actionButton, styles.approveButton]}
+                            onPress={() => handleUpdateStatus(item.id, 'APPROVED')}
+                        >
+                            <Text style={styles.approveButtonText}>Approve</Text>
+                        </TouchableOpacity>
+                    </View>
+                )}
+
+                {isRenting && item.status === 'PENDING' && (
+                    <TouchableOpacity
+                        style={styles.cancelLink}
+                        onPress={() => handleUpdateStatus(item.id, 'CANCELLED')}
+                    >
+                        <Text style={styles.cancelLinkText}>Cancel Request</Text>
+                    </TouchableOpacity>
+                )}
+            </View>
+        );
+    };
 
     return (
         <SafeAreaView style={styles.container}>
-            <View style={styles.tabHeader}>
-                <TouchableOpacity
-                    style={[styles.tab, viewMode === 'rentals' && styles.activeTab]}
-                    onPress={() => setViewMode('rentals')}
-                >
-                    <Text style={[styles.tabText, viewMode === 'rentals' && styles.activeTabText]}>My Rentals</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                    style={[styles.tab, viewMode === 'requests' && styles.activeTab]}
-                    onPress={() => setViewMode('requests')}
-                >
-                    <Text style={[styles.tabText, viewMode === 'requests' && styles.activeTabText]}>Requests</Text>
-                </TouchableOpacity>
+            <View style={styles.headerContainer}>
+                <Text style={styles.screenTitle}>Bookings</Text>
+                <View style={styles.segmentedControl}>
+                    <TouchableOpacity
+                        style={[styles.segment, viewMode === 'rentals' && styles.activeSegment]}
+                        onPress={() => {
+                            if (viewMode !== 'rentals') {
+                                setBookings([]);
+                                setViewMode('rentals');
+                            }
+                        }}
+                    >
+                        <Text style={[styles.segmentText, viewMode === 'rentals' && styles.activeSegmentText]}>
+                            I'm Renting
+                        </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        style={[styles.segment, viewMode === 'requests' && styles.activeSegment]}
+                        onPress={() => {
+                            if (viewMode !== 'requests') {
+                                setBookings([]);
+                                setViewMode('requests');
+                            }
+                        }}
+                    >
+                        <Text style={[styles.segmentText, viewMode === 'requests' && styles.activeSegmentText]}>
+                            My Tools
+                        </Text>
+                    </TouchableOpacity>
+                </View>
             </View>
 
             <FlatList
@@ -133,7 +181,17 @@ const BookingsScreen = ({ navigation }) => {
                 refreshing={refreshing}
                 ListEmptyComponent={
                     <View style={styles.emptyContainer}>
-                        <Text style={styles.emptyText}>No {viewMode} found.</Text>
+                        <Text style={{ fontSize: 40, marginBottom: 10 }}>
+                            {viewMode === 'rentals' ? '🤷‍♂️' : '📦'}
+                        </Text>
+                        <Text style={styles.emptyTitle}>
+                            {viewMode === 'rentals' ? 'No Active Rentals' : 'No Booking Requests'}
+                        </Text>
+                        <Text style={styles.emptyText}>
+                            {viewMode === 'rentals'
+                                ? "You haven't rented any tools yet."
+                                : "No one has requested your tools yet."}
+                        </Text>
                     </View>
                 }
             />
@@ -146,50 +204,79 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: '#0a0a0a',
     },
-    tabHeader: {
-        flexDirection: 'row',
-        padding: 15,
-        backgroundColor: '#1a1a1a',
+    headerContainer: {
+        padding: 20,
+        paddingBottom: 10,
     },
-    tab: {
-        flex: 1,
-        paddingVertical: 10,
-        alignItems: 'center',
-        borderRadius: 8,
-    },
-    activeTab: {
-        backgroundColor: '#6366f1',
-    },
-    tabText: {
-        color: '#888',
+    screenTitle: {
+        fontSize: 28,
         fontWeight: 'bold',
+        color: '#fff',
+        marginBottom: 20,
+    },
+    segmentedControl: {
+        flexDirection: 'row',
+        backgroundColor: '#1a1a1a',
+        borderRadius: 12,
+        padding: 4,
+        height: 44,
+    },
+    segment: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderRadius: 10,
+    },
+    activeSegment: {
+        backgroundColor: '#333',
+    },
+    segmentText: {
+        color: '#888',
+        fontWeight: '600',
         fontSize: 14,
     },
-    activeTabText: {
+    activeSegmentText: {
         color: '#fff',
+        fontWeight: 'bold',
     },
     listContainer: {
-        padding: 15,
+        padding: 20,
+        paddingTop: 10,
     },
     card: {
-        backgroundColor: '#1a1a1a',
+        backgroundColor: '#161616',
         borderRadius: 16,
-        padding: 15,
-        marginBottom: 15,
+        padding: 16,
+        marginBottom: 16,
         borderWidth: 1,
-        borderColor: '#2a2a2a',
+        borderColor: '#262626',
     },
     cardHeader: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 12,
+        marginBottom: 16,
+    },
+    toolIcon: {
+        width: 48,
+        height: 48,
+        borderRadius: 12,
+        backgroundColor: 'rgba(99, 102, 241, 0.1)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 12,
+    },
+    headerInfo: {
+        flex: 1,
     },
     toolName: {
-        fontSize: 18,
+        fontSize: 16,
         fontWeight: 'bold',
         color: '#fff',
-        flex: 1,
+        marginBottom: 4,
+    },
+    otherParty: {
+        fontSize: 12,
+        color: '#888',
     },
     statusBadge: {
         paddingHorizontal: 8,
@@ -199,29 +286,63 @@ const styles = StyleSheet.create({
     statusText: {
         fontSize: 10,
         fontWeight: 'bold',
+        textTransform: 'uppercase',
     },
-    details: {
-        marginBottom: 15,
+    divider: {
+        height: 1,
+        backgroundColor: '#262626',
+        marginBottom: 16,
     },
-    detailText: {
-        color: '#888',
-        fontSize: 14,
-        marginBottom: 4,
+    detailsRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 16,
     },
-    price: {
+    dateInfo: {
+        alignItems: 'center',
+    },
+    dateArrow: {
+        paddingHorizontal: 10,
+    },
+    dateLabel: {
+        fontSize: 10,
+        color: '#666',
+        marginBottom: 2,
+        textTransform: 'uppercase',
+    },
+    dateValue: {
+        fontSize: 13,
+        color: '#ccc',
+        fontWeight: '500',
+    },
+    priceInfo: {
+        alignItems: 'flex-end',
+        borderLeftWidth: 1,
+        borderLeftColor: '#262626',
+        paddingLeft: 16,
+    },
+    priceLabel: {
+        fontSize: 10,
+        color: '#666',
+        marginBottom: 2,
+        textTransform: 'uppercase',
+    },
+    priceValue: {
+        fontSize: 16,
         color: '#6366f1',
         fontWeight: 'bold',
-        fontSize: 16,
-        marginTop: 4,
     },
     actions: {
         flexDirection: 'row',
-        gap: 10,
+        gap: 12,
+        marginTop: 4,
     },
     actionButton: {
         flex: 1,
-        paddingVertical: 10,
-        borderRadius: 8,
+        height: 40,
+        borderRadius: 20,
+        justifyContent: 'center',
         alignItems: 'center',
     },
     approveButton: {
@@ -235,30 +356,39 @@ const styles = StyleSheet.create({
     approveButtonText: {
         color: '#fff',
         fontWeight: 'bold',
+        fontSize: 14,
     },
     rejectButtonText: {
         color: '#ef4444',
         fontWeight: 'bold',
+        fontSize: 14,
     },
-    cancelButton: {
-        paddingVertical: 10,
-        borderRadius: 8,
-        alignItems: 'center',
-        backgroundColor: 'transparent',
-        borderWidth: 1,
-        borderColor: '#444',
+    cancelLink: {
+        alignSelf: 'center',
+        paddingVertical: 8,
     },
-    cancelButtonText: {
-        color: '#888',
-        fontWeight: 'bold',
+    cancelLinkText: {
+        color: '#666',
+        fontSize: 12,
+        textDecorationLine: 'underline',
     },
     emptyContainer: {
-        marginTop: 100,
+        marginTop: 60,
         alignItems: 'center',
+        padding: 40,
+    },
+    emptyTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#fff',
+        marginTop: 10,
+        marginBottom: 8,
     },
     emptyText: {
-        color: '#888',
-        fontSize: 16,
+        color: '#666',
+        fontSize: 14,
+        textAlign: 'center',
+        lineHeight: 20,
     },
 });
 

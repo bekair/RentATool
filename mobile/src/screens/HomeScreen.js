@@ -37,7 +37,7 @@ export default function HomeScreen({ navigation }) {
 
     const menuItems = [
         { id: 'explore', title: 'Find Tools', icon: 'search', screen: 'Explore', color: '#6366f1' },
-        { id: 'my-tools', title: 'My Tools', icon: 'construct', screen: 'My Tools', color: '#10b981' },
+        { id: 'my-tools', title: 'My Tools', icon: 'construct', screen: 'MyTools', color: '#10b981' },
         { id: 'add-tool', title: 'List a Tool', icon: 'add-circle', screen: 'AddTool', color: '#f59e0b' },
         { id: 'bookings', title: 'My Bookings', icon: 'calendar', screen: 'Bookings', color: '#ec4899' },
     ];

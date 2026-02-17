@@ -8,6 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { AuthProvider, useAuth } from '../context/AuthContext';
 import LoginScreen from '../screens/LoginScreen';
 import SignupScreen from '../screens/SignupScreen';
+import ForgotPasswordScreen from '../screens/ForgotPasswordScreen';
 import HomeScreen from '../screens/HomeScreen';
 import BrowseToolsScreen from '../screens/BrowseToolsScreen';
 import MyToolsScreen from '../screens/MyToolsScreen';
@@ -29,6 +30,7 @@ function AuthStack() {
         >
             <Stack.Screen name="Login" component={LoginScreen} />
             <Stack.Screen name="Signup" component={SignupScreen} />
+            <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
         </Stack.Navigator>
     );
 }
@@ -70,7 +72,7 @@ function TabNavigator({ navigation }) {
 
                     if (route.name === 'Explore') {
                         iconName = focused ? 'search' : 'search-outline';
-                    } else if (route.name === 'My Tools') {
+                    } else if (route.name === 'MyTools') {
                         iconName = focused ? 'construct' : 'construct-outline';
                     } else if (route.name === 'Bookings') {
                         iconName = focused ? 'calendar' : 'calendar-outline';
@@ -111,7 +113,9 @@ function TabNavigator({ navigation }) {
             })}
         >
             <Tab.Screen name="Explore" component={BrowseToolsScreen} />
-            <Tab.Screen name="My Tools" component={MyToolsScreen} />
+            <Tab.Screen name="MyTools" component={MyToolsScreen}
+                options={{ tabBarLabel: 'My Tools' }}
+            />
             <Tab.Screen
                 name="AddToolAction"
                 component={View}

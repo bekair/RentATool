@@ -43,6 +43,17 @@ export class AuthService {
         return this.generateAuthResponse(user);
     }
 
+    async forgotPassword(email: string): Promise<{ message: string }> {
+        const user = await this.usersService.findByEmail(email);
+        if (user) {
+            // In a real app, generate a token and send an email here.
+            // For now, we simulate success to avoid enumeration attacks (safe) 
+            // or just confirm it works (dev).
+            console.log(`[Mock Email Service] Sending reset link to ${email}`);
+        }
+        return { message: 'If an account exists, a reset link has been sent.' };
+    }
+
     async validateUserById(userId: string): Promise<User | null> {
         return this.usersService.findById(userId);
     }

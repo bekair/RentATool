@@ -9,19 +9,73 @@ import {
     Alert,
     SafeAreaView,
     ActivityIndicator,
+    Modal,
+    Dimensions,
 } from 'react-native';
+import MapView, { Marker } from 'react-native-maps';
 import api from '../api/client';
+
+import * as Location from 'expo-location';
+import { Ionicons } from '@expo/vector-icons';
 
 const AddToolScreen = ({ navigation }) => {
     const [name, setName] = useState('');
     const [category, setCategory] = useState('');
     const [description, setDescription] = useState('');
     const [price, setPrice] = useState('');
+    const [replacementValue, setReplacementValue] = useState('');
+    const [condition, setCondition] = useState('');
+    const [latitude, setLatitude] = useState(null);
+    const [longitude, setLongitude] = useState(null);
+    const [tempCoords, setTempCoords] = useState(null);
+    const [showMapModal, setShowMapModal] = useState(false);
+    const [locationLoading, setLocationLoading] = useState(false);
     const [loading, setLoading] = useState(false);
+
+    const openMapPicker = async () => {
+        setLocationLoading(true);
+        try {
+            let { status } = await Location.requestForegroundPermissionsAsync();
+            if (status !== 'granted') {
+                Alert.alert('Permission Denied', 'Permission to access location was denied');
+                return;
+            }
+
+            // If we don't have a location set yet, get current to center the map
+            if (!latitude) {
+                let location = await Location.getCurrentPositionAsync({});
+                setTempCoords({
+                    latitude: location.coords.latitude,
+                    longitude: location.coords.longitude
+                });
+            } else {
+                setTempCoords({ latitude, longitude });
+            }
+            setShowMapModal(true);
+        } catch (error) {
+            console.error('Error opening map picker:', error);
+            Alert.alert('Error', 'Failed to initialize map');
+        } finally {
+            setLocationLoading(false);
+        }
+    };
+
+    const confirmLocation = () => {
+        if (tempCoords) {
+            setLatitude(tempCoords.latitude);
+            setLongitude(tempCoords.longitude);
+            setShowMapModal(false);
+        }
+    };
 
     const handleSubmit = async () => {
         if (!name || !category || !description || !price) {
-            Alert.alert('Error', 'Please fill in all fields');
+            Alert.alert('Error', 'Please fill in all basic fields');
+            return;
+        }
+
+        if (!latitude || !longitude) {
+            Alert.alert('Error', 'Please set the tool location for the map');
             return;
         }
 
@@ -32,6 +86,10 @@ const AddToolScreen = ({ navigation }) => {
                 category,
                 description,
                 pricePerDay: parseFloat(price),
+                replacementValue: replacementValue ? parseFloat(replacementValue) : undefined,
+                condition: condition || undefined,
+                latitude,
+                longitude,
             });
             Alert.alert('Success', 'Tool listed successfully!', [
                 { text: 'OK', onPress: () => navigation.goBack() }
@@ -56,7 +114,7 @@ const AddToolScreen = ({ navigation }) => {
 
             <ScrollView contentContainerStyle={styles.scrollContent}>
                 <View style={styles.form}>
-                    <Text style={styles.label}>Tool Name</Text>
+                    <Text style={styles.label}>Tool Name *</Text>
                     <TextInput
                         style={styles.input}
                         placeholder="e.g. Bosch Drill PBH 2100"
@@ -65,7 +123,7 @@ const AddToolScreen = ({ navigation }) => {
                         onChangeText={setName}
                     />
 
-                    <Text style={styles.label}>Category</Text>
+                    <Text style={styles.label}>Category *</Text>
                     <TextInput
                         style={styles.input}
                         placeholder="e.g. Power Tools, Gardening"
@@ -74,10 +132,10 @@ const AddToolScreen = ({ navigation }) => {
                         onChangeText={setCategory}
                     />
 
-                    <Text style={styles.label}>Description</Text>
+                    <Text style={styles.label}>Description *</Text>
                     <TextInput
                         style={[styles.input, styles.textArea]}
-                        placeholder="Describe your tool, its condition, and any accessories included..."
+                        placeholder="Describe your tool, its condition..."
                         placeholderTextColor="#666"
                         value={description}
                         onChangeText={setDescription}
@@ -85,7 +143,7 @@ const AddToolScreen = ({ navigation }) => {
                         numberOfLines={4}
                     />
 
-                    <Text style={styles.label}>Price per Day (€)</Text>
+                    <Text style={styles.label}>Price per Day (€) *</Text>
                     <TextInput
                         style={styles.input}
                         placeholder="15.00"
@@ -94,6 +152,50 @@ const AddToolScreen = ({ navigation }) => {
                         onChangeText={setPrice}
                         keyboardType="decimal-pad"
                     />
+
+                    <Text style={styles.label}>Replacement Value (€)</Text>
+                    <TextInput
+                        style={styles.input}
+                        placeholder="150.00 (optional)"
+                        placeholderTextColor="#666"
+                        value={replacementValue}
+                        onChangeText={setReplacementValue}
+                        keyboardType="decimal-pad"
+                    />
+
+                    <Text style={styles.label}>Condition</Text>
+                    <TextInput
+                        style={styles.input}
+                        placeholder="e.g. Good as new (optional)"
+                        placeholderTextColor="#666"
+                        value={condition}
+                        onChangeText={setCondition}
+                    />
+
+                    <Text style={styles.label}>Location *</Text>
+                    <TouchableOpacity
+                        style={[styles.locationButton, (latitude && longitude) && styles.locationButtonActive]}
+                        onPress={openMapPicker}
+                        disabled={locationLoading}
+                    >
+                        {locationLoading ? (
+                            <ActivityIndicator color="#6366f1" />
+                        ) : (
+                            <>
+                                <Ionicons
+                                    name={(latitude && longitude) ? "location" : "map-outline"}
+                                    size={20}
+                                    color={(latitude && longitude) ? "#6366f1" : "#666"}
+                                    style={{ marginRight: 8 }}
+                                />
+                                <Text style={[styles.locationButtonText, (latitude && longitude) && styles.locationButtonTextActive]}>
+                                    {(latitude && longitude)
+                                        ? "Location Selected (Tap to change)"
+                                        : "Select on Map"}
+                                </Text>
+                            </>
+                        )}
+                    </TouchableOpacity>
 
                     <TouchableOpacity
                         style={[styles.submitButton, loading && styles.disabledButton]}
@@ -108,6 +210,42 @@ const AddToolScreen = ({ navigation }) => {
                     </TouchableOpacity>
                 </View>
             </ScrollView>
+
+            <Modal
+                visible={showMapModal}
+                animationType="slide"
+            >
+                <SafeAreaView style={styles.modalContainer}>
+                    <View style={styles.modalHeader}>
+                        <TouchableOpacity onPress={() => setShowMapModal(false)}>
+                            <Text style={styles.cancelText}>Cancel</Text>
+                        </TouchableOpacity>
+                        <Text style={styles.modalTitle}>Select Location</Text>
+                        <TouchableOpacity onPress={confirmLocation}>
+                            <Text style={styles.confirmText}>Confirm</Text>
+                        </TouchableOpacity>
+                    </View>
+
+                    <MapView
+                        style={styles.pickerMap}
+                        initialRegion={{
+                            latitude: tempCoords?.latitude || 50.8503,
+                            longitude: tempCoords?.longitude || 4.3517,
+                            latitudeDelta: 0.0122,
+                            longitudeDelta: 0.0121,
+                        }}
+                        onPress={(e) => setTempCoords(e.nativeEvent.coordinate)}
+                    >
+                        {tempCoords && (
+                            <Marker coordinate={tempCoords} draggable />
+                        )}
+                    </MapView>
+
+                    <View style={styles.pickerTip}>
+                        <Text style={styles.pickerTipText}>Tap on the map to set the exact tool location</Text>
+                    </View>
+                </SafeAreaView>
+            </Modal>
         </SafeAreaView>
     );
 };
@@ -164,6 +302,27 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         marginTop: 10,
     },
+    locationButton: {
+        backgroundColor: '#1a1a1a',
+        borderRadius: 12,
+        padding: 15,
+        flexDirection: 'row',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: '#2a2a2a',
+    },
+    locationButtonActive: {
+        borderColor: '#6366f1',
+        backgroundColor: 'rgba(99, 102, 241, 0.05)',
+    },
+    locationButtonText: {
+        color: '#666',
+        fontSize: 14,
+    },
+    locationButtonTextActive: {
+        color: '#6366f1',
+        fontWeight: 'bold',
+    },
     disabledButton: {
         opacity: 0.7,
     },
@@ -171,6 +330,49 @@ const styles = StyleSheet.create({
         color: '#fff',
         fontSize: 16,
         fontWeight: 'bold',
+    },
+    modalContainer: {
+        flex: 1,
+        backgroundColor: '#0a0a0a',
+    },
+    modalHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: 20,
+        backgroundColor: '#1a1a1a',
+    },
+    modalTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#fff',
+    },
+    cancelText: {
+        color: '#ff4444',
+        fontSize: 16,
+    },
+    confirmText: {
+        color: '#6366f1',
+        fontSize: 16,
+        fontWeight: 'bold',
+    },
+    pickerMap: {
+        flex: 1,
+    },
+    pickerTip: {
+        position: 'absolute',
+        bottom: 40,
+        left: 20,
+        right: 20,
+        backgroundColor: 'rgba(0,0,0,0.8)',
+        padding: 15,
+        borderRadius: 12,
+        alignItems: 'center',
+    },
+    pickerTipText: {
+        color: '#fff',
+        fontSize: 12,
+        fontWeight: '500',
     },
 });
 
