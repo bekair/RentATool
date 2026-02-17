@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "mobile",
-    "slug": "mobile",
+    "name": "Share a Tool",
+    "slug": "share-a-tool",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -13,7 +13,11 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.lorisoft.shareatool",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -21,7 +25,7 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.bekair.mobile"
+      "package": "com.lorisoft.shareatool"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -31,7 +35,7 @@
     ],
     "extra": {
       "eas": {
-        "projectId": "f6fa0359-4209-4bfc-83ce-b630cab99c61"
+        "projectId": "cb49d49f-73ee-44c6-83d6-ad740470efbd"
       }
     }
   }

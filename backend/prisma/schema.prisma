@@ -39,16 +39,18 @@ model Tool {
   name        String
   description String
   category    String
-  pricePerDay Float
-  owner       User      @relation(fields: [ownerId], references: [id])
-  ownerId     String
-  latitude    Float?
-  longitude   Float?
-  images      String[]  @default([])
-  isAvailable Boolean   @default(true)
-  bookings    Booking[]
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  pricePerDay      Float
+  replacementValue Float?
+  condition        String?
+  owner            User      @relation(fields: [ownerId], references: [id])
+  ownerId          String
+  latitude         Float?
+  longitude        Float?
+  images           String[]  @default([])
+  isAvailable      Boolean   @default(true)
+  bookings         Booking[]
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
   @@map("tools")
 }

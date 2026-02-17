@@ -55,7 +55,7 @@ const ToolDetailsScreen = ({ route, navigation }) => {
             Alert.alert(
                 'Success',
                 'Rental request sent to owner!',
-                [{ text: 'View My Rentals', onPress: () => navigation.navigate('My Tools') }] // Will update to Bookings tab
+                [{ text: 'View My Rentals', onPress: () => navigation.navigate('Bookings') }] // Will update to Bookings tab
             );
         } catch (error) {
             Alert.alert('Error', error.response?.data?.message || 'Failed to send rental request');

@@ -18,6 +18,14 @@ export class CreateToolDto {
 
     @IsOptional()
     @IsNumber()
+    replacementValue?: number;
+
+    @IsOptional()
+    @IsString()
+    condition?: string;
+
+    @IsOptional()
+    @IsNumber()
     latitude?: number;
 
     @IsOptional()
@@ -50,6 +58,14 @@ export class UpdateToolDto {
     @IsOptional()
     @IsBoolean()
     isAvailable?: boolean;
+
+    @IsOptional()
+    @IsNumber()
+    replacementValue?: number;
+
+    @IsOptional()
+    @IsString()
+    condition?: string;
 
     @IsOptional()
     @IsNumber()

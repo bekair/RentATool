@@ -47,7 +47,13 @@ export const AuthProvider = ({ children }) => {
             setUser(response.user);
             return true;
         } catch (err) {
-            setError(err.response?.data?.message || 'Signup failed');
+            console.log('Signup Error Details:', {
+                message: err.message,
+                status: err.response?.status,
+                data: err.response?.data,
+            });
+            const errorMessage = err.response?.data?.message || 'Signup failed';
+            setError(errorMessage);
             return false;
         }
     };
@@ -55,6 +61,17 @@ export const AuthProvider = ({ children }) => {
     const logout = async () => {
         await removeToken();
         setUser(null);
+    };
+
+    const forgotPassword = async (email) => {
+        setError(null);
+        try {
+            await authApi.forgotPassword(email);
+            return true;
+        } catch (err) {
+            setError(err.response?.data?.message || 'Failed to send reset email');
+            return false;
+        }
     };
 
     return (
@@ -66,6 +83,7 @@ export const AuthProvider = ({ children }) => {
                 login,
                 signup,
                 logout,
+                forgotPassword,
                 isAuthenticated: !!user,
             }}
         >
