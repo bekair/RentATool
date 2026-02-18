@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
     View,
     StyleSheet,
@@ -8,77 +8,84 @@ import {
     TextInput,
     TouchableOpacity,
     Platform,
-    Image,
+    ScrollView,
 } from 'react-native';
-import MapView, { Marker, Callout } from 'react-native-maps';
+import MapView, { Marker } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../api/client';
 
+const { width } = Dimensions.get('window');
+
 const MapScreen = ({ navigation }) => {
+    const mapRef = useRef(null);
     const [location, setLocation] = useState(null);
-    const [errorMsg, setErrorMsg] = useState(null);
     const [loading, setLoading] = useState(true);
     const [tools, setTools] = useState([]);
     const [searchQuery, setSearchQuery] = useState('');
-    const [filters, setFilters] = useState({ maxPrice: null, category: null });
-    const [showFilters, setShowFilters] = useState(false);
+    const [selectedTool, setSelectedTool] = useState(null);
+    const [markersReady, setMarkersReady] = useState(false);
+    const [priceFilter, setPriceFilter] = useState('all'); // 'all', 'low', 'mid', 'high'
+
+    // Force markers to re-render after a delay to replace default pins on Android
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setMarkersReady(true);
+        }, 1500);
+        return () => clearTimeout(timer);
+    }, []);
 
     useEffect(() => {
         (async () => {
             let { status } = await Location.requestForegroundPermissionsAsync();
             if (status !== 'granted') {
-                setErrorMsg('Permission to access location was denied');
                 setLoading(false);
                 return;
             }
-
-            let location = await Location.getCurrentPositionAsync({});
-            setLocation(location);
-            fetchTools(); // Fetch tools after getting location
+            let loc = await Location.getCurrentPositionAsync({});
+            setLocation(loc);
+            fetchTools();
         })();
     }, []);
 
     const fetchTools = async () => {
         try {
             const response = await api.get('/tools');
-            // Filter out tools without coordinates
             const validTools = response.data.filter(t => t.latitude && t.longitude);
             setTools(validTools);
+            if (validTools.length > 0 && mapRef.current) {
+                setTimeout(() => {
+                    mapRef.current?.fitToCoordinates(
+                        validTools.map(t => ({ latitude: t.latitude, longitude: t.longitude })),
+                        { edgePadding: { top: 150, right: 80, bottom: 300, left: 80 }, animated: true }
+                    );
+                }, 500);
+            }
         } catch (err) {
-            console.error('Error fetching map tools:', err);
+            console.error('[Map] fetch error:', err);
         } finally {
             setLoading(false);
         }
     };
 
-    const handleSearch = () => {
-        // Implement client-side filtering for now
-        // In a real app, this would be a backend query with ?q=...
-        fetchTools();
-    };
-
     const filteredTools = tools.filter(tool => {
         const matchesSearch = tool.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            tool.description.toLowerCase().includes(searchQuery.toLowerCase());
-        const matchesPrice = filters.maxPrice ? tool.pricePerDay <= filters.maxPrice : true;
-        // Add category match if we implement category filter UI
+            tool.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            tool.category.toLowerCase().includes(searchQuery.toLowerCase());
+
+        let matchesPrice = true;
+        if (priceFilter === 'low') matchesPrice = tool.pricePerDay < 20;
+        else if (priceFilter === 'mid') matchesPrice = tool.pricePerDay >= 20 && tool.pricePerDay <= 50;
+        else if (priceFilter === 'high') matchesPrice = tool.pricePerDay > 50;
+
         return matchesSearch && matchesPrice;
     });
 
     if (loading) {
         return (
             <View style={styles.center}>
-                <ActivityIndicator size="large" color="#6366f1" />
-                <Text style={styles.loadingText}>Locating you...</Text>
-            </View>
-        );
-    }
-
-    if (errorMsg) {
-        return (
-            <View style={styles.center}>
-                <Text style={styles.errorText}>{errorMsg}</Text>
+                <ActivityIndicator size="large" color="#222" />
+                <Text style={styles.loadingText}>Loading map...</Text>
             </View>
         );
     }
@@ -86,68 +93,156 @@ const MapScreen = ({ navigation }) => {
     return (
         <View style={styles.container}>
             <MapView
+                ref={mapRef}
                 style={styles.map}
                 initialRegion={{
-                    latitude: location ? location.coords.latitude : 50.8503,
-                    longitude: location ? location.coords.longitude : 4.3517,
-                    latitudeDelta: 0.0922,
-                    longitudeDelta: 0.0421,
+                    latitude: location?.coords.latitude ?? 50.8503,
+                    longitude: location?.coords.longitude ?? 4.3517,
+                    latitudeDelta: 0.05,
+                    longitudeDelta: 0.05,
                 }}
-                showsUserLocation={true}
+                showsUserLocation
+                onPress={() => setSelectedTool(null)}
             >
-                {filteredTools.map((tool) => (
-                    <Marker
-                        key={tool.id}
-                        coordinate={{ latitude: tool.latitude, longitude: tool.longitude }}
-                        pinColor="#6366f1"
-                    >
-                        <Callout onPress={() => navigation.navigate('ToolDetails', { toolId: tool.id })}>
-                            <View style={styles.callout}>
-                                <Text style={styles.calloutTitle}>{tool.name}</Text>
-                                <Text style={styles.calloutPrice}>€{tool.pricePerDay}/day</Text>
-                                <Text style={styles.calloutMore}>Tap for details</Text>
+                {filteredTools.map((tool) => {
+                    const isSelected = selectedTool?.id === tool.id;
+                    return (
+                        <Marker
+                            key={`${tool.id}-${isSelected}`}
+                            coordinate={{ latitude: tool.latitude, longitude: tool.longitude }}
+                            onPress={(e) => {
+                                if (Platform.OS === 'ios') e.stopPropagation();
+                                setSelectedTool(tool);
+                            }}
+                            // Android needs this to be true more often for custom markers to show up
+                            tracksViewChanges={Platform.OS === 'android' ? true : (!markersReady || isSelected)}
+                            zIndex={isSelected ? 99 : 1}
+                            anchor={{ x: 0.5, y: 0.5 }}
+                            tappable={true}
+                        >
+                            <View
+                                collapsable={false}
+                                pointerEvents={Platform.OS === 'ios' ? 'none' : 'auto'}
+                                style={[
+                                    styles.pricePill,
+                                    isSelected && styles.pricePillSelected,
+                                ]}
+                            >
+                                <Text
+                                    style={[
+                                        styles.pricePillText,
+                                        isSelected && styles.pricePillTextSelected,
+                                    ]}
+                                >
+                                    €{Math.round(tool.pricePerDay)}
+                                </Text>
                             </View>
-                        </Callout>
-                    </Marker>
-                ))}
+                        </Marker>
+                    );
+                })}
             </MapView>
 
-            <View style={styles.searchContainer}>
+            {/* Search and Filters */}
+            <View style={styles.searchRow}>
                 <View style={styles.searchBar}>
-                    <Ionicons name="search" size={20} color="#666" style={{ marginRight: 8 }} />
+                    <Ionicons name="search" size={20} color="#FF385C" style={{ marginRight: 10 }} />
                     <TextInput
                         placeholder="Search for tools..."
-                        placeholderTextColor="#666"
+                        placeholderTextColor="#717171"
                         style={styles.searchInput}
                         value={searchQuery}
                         onChangeText={setSearchQuery}
-                        returnKeyType="search"
                     />
+                    <TouchableOpacity style={styles.filterMenuIcon}>
+                        <Ionicons name="options-outline" size={20} color="#222" />
+                    </TouchableOpacity>
                 </View>
-                <TouchableOpacity
-                    style={[styles.filterButton, showFilters && styles.filterButtonActive]}
-                    onPress={() => setShowFilters(!showFilters)}
+
+                {/* Horizontal Price Filters */}
+                <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    style={styles.filterScroll}
+                    contentContainerStyle={styles.filterContent}
                 >
-                    <Ionicons name="options" size={24} color={showFilters ? "#fff" : "#333"} />
-                </TouchableOpacity>
+                    {[
+                        { id: 'all', label: 'All prices' },
+                        { id: 'low', label: '< €20' },
+                        { id: 'mid', label: '€20 - €50' },
+                        { id: 'high', label: '> €50' },
+                    ].map((f) => (
+                        <TouchableOpacity
+                            key={f.id}
+                            onPress={() => setPriceFilter(f.id)}
+                            style={[
+                                styles.filterPill,
+                                priceFilter === f.id && styles.filterPillActive
+                            ]}
+                        >
+                            <Text style={[
+                                styles.filterPillText,
+                                priceFilter === f.id && styles.filterPillTextActive
+                            ]}>
+                                {f.label}
+                            </Text>
+                        </TouchableOpacity>
+                    ))}
+                </ScrollView>
             </View>
 
-            {showFilters && (
-                <View style={styles.filterContainer}>
-                    <Text style={styles.filterTitle}>Max Price: €{filters.maxPrice || 'Any'}</Text>
-                    <View style={styles.priceButtons}>
-                        {[10, 20, 50, 100].map(price => (
-                            <TouchableOpacity
-                                key={price}
-                                style={[styles.priceChip, filters.maxPrice === price && styles.priceChipActive]}
-                                onPress={() => setFilters({ ...filters, maxPrice: filters.maxPrice === price ? null : price })}
-                            >
-                                <Text style={[styles.priceChipText, filters.maxPrice === price && styles.priceChipTextActive]}>
-                                    €{price}
-                                </Text>
+            {selectedTool && (
+                <View style={styles.card}>
+                    {/* Image area with carousel dots and heart */}
+                    <View style={styles.cardImageContainer}>
+                        <View style={styles.cardImagePlaceholder}>
+                            <Ionicons name="construct-outline" size={40} color="#ccc" />
+                        </View>
+
+                        {/* Status/Heart icons top row */}
+                        <View style={styles.cardImageTopRow}>
+                            <View style={styles.guestFavoriteBadge}>
+                                <Text style={styles.guestFavoriteText}>Guest favorite</Text>
+                            </View>
+                            <TouchableOpacity style={styles.heartButton}>
+                                <Ionicons name="heart-outline" size={24} color="#fff" />
                             </TouchableOpacity>
-                        ))}
+                        </View>
+
+                        {/* Carousel Dots */}
+                        <View style={styles.carouselDots}>
+                            <View style={[styles.dot, styles.dotActive]} />
+                            <View style={styles.dot} />
+                            <View style={styles.dot} />
+                            <View style={styles.dot} />
+                            <View style={styles.dot} />
+                        </View>
                     </View>
+
+                    {/* Info area */}
+                    <TouchableOpacity
+                        style={styles.cardBody}
+                        activeOpacity={0.9}
+                        onPress={() => navigation.navigate('ToolDetails', { toolId: selectedTool.id })}
+                    >
+                        <View style={styles.cardRatingRow}>
+                            <Ionicons name="star" size={14} color="#ffb400" />
+                            <Text style={styles.cardRatingText}> 4.91 (98)</Text>
+                        </View>
+                        <Text style={styles.cardCategoryText}>{selectedTool.category} in Brussels</Text>
+                        <Text style={styles.cardNameText} numberOfLines={1}>{selectedTool.name}</Text>
+                        <Text style={styles.cardPriceLine}>
+                            <Text style={styles.cardPriceValue}>€{selectedTool.pricePerDay}</Text>
+                            <Text style={styles.cardPriceUnit}> / day</Text>
+                        </Text>
+                    </TouchableOpacity>
+
+                    {/* Subtle close button if map tap isn't enough */}
+                    <TouchableOpacity
+                        style={styles.cardCloseX}
+                        onPress={() => setSelectedTool(null)}
+                    >
+                        <Ionicons name="close" size={20} color="#222" />
+                    </TouchableOpacity>
                 </View>
             )}
         </View>
@@ -155,135 +250,228 @@ const MapScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
+    container: { flex: 1 },
+    map: { width: '100%', height: '100%' },
+    center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+    loadingText: { marginTop: 12, color: '#555', fontSize: 14 },
+
+    // ── Price Bubbles ────────────────────────────────────────────────────────
+    pricePill: {
         backgroundColor: '#fff',
-    },
-    map: {
-        width: Dimensions.get('window').width,
-        height: Dimensions.get('window').height,
-    },
-    center: {
-        flex: 1,
+        borderRadius: 20,
+        borderWidth: 1.5,
+        borderColor: '#ddd',
+        paddingHorizontal: 10,
+        paddingVertical: 5,
+        minWidth: 70, // Critical to avoid horizontal clipping
+        alignItems: 'center',
         justifyContent: 'center',
-        alignItems: 'center',
+        elevation: 3,
     },
-    loadingText: {
-        marginTop: 10,
-        color: '#666',
+    pricePillSelected: {
+        backgroundColor: '#222',
+        borderColor: '#222',
     },
-    errorText: {
-        color: 'red',
-        fontSize: 16,
+    pricePillText: {
+        fontSize: 14,
+        fontWeight: 'bold',
+        color: '#222',
+        textAlign: 'center',
     },
-    searchContainer: {
+    pricePillTextSelected: {
+        color: '#fff',
+    },
+
+    // ── Search bar ────────────────────────────────────────────────────────────
+    searchRow: {
         position: 'absolute',
-        top: Platform.OS === 'ios' ? 60 : 40,
-        left: 20,
-        right: 20,
-        flexDirection: 'row',
-        alignItems: 'center',
-        zIndex: 1,
+        top: Platform.OS === 'ios' ? 50 : 30,
+        left: 0,
+        right: 0,
+        zIndex: 10,
     },
     searchBar: {
-        flex: 1,
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: '#fff',
-        borderRadius: 12,
-        paddingHorizontal: 15,
-        height: 50,
+        borderRadius: 32,
+        marginHorizontal: 20,
+        paddingHorizontal: 20,
+        height: 56,
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
+        shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 3,
-        marginRight: 10,
+        shadowRadius: 12,
+        elevation: 8,
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: '#ddd',
     },
     searchInput: {
         flex: 1,
-        fontSize: 16,
-        color: '#333',
+        fontSize: 14,
+        fontWeight: '500',
+        color: '#222'
     },
-    filterButton: {
-        width: 50,
-        height: 50,
+    filterMenuIcon: {
+        padding: 8,
+        borderLeftWidth: 1,
+        borderLeftColor: '#eee',
+        marginLeft: 10,
+    },
+    filterScroll: {
+        marginTop: 12,
+    },
+    filterContent: {
+        paddingHorizontal: 20,
+        gap: 8,
+    },
+    filterPill: {
         backgroundColor: '#fff',
-        borderRadius: 12,
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        borderRadius: 20,
+        borderWidth: 1,
+        borderColor: '#ddd',
+        height: 36,
         justifyContent: 'center',
-        alignItems: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 3,
     },
-    filterButtonActive: {
-        backgroundColor: '#6366f1',
+    filterPillActive: {
+        backgroundColor: '#222',
+        borderColor: '#222',
     },
-    filterContainer: {
+    filterPillText: {
+        fontSize: 13,
+        fontWeight: '600',
+        color: '#222',
+    },
+    filterPillTextActive: {
+        color: '#fff',
+    },
+
+    // ── Airbnb detail card ────────────────────────────────────────────────────
+    card: {
         position: 'absolute',
-        top: Platform.OS === 'ios' ? 120 : 100,
+        bottom: 100,
         left: 20,
         right: 20,
         backgroundColor: '#fff',
-        borderRadius: 15,
-        padding: 15,
+        borderRadius: 16,
+        overflow: 'hidden',
+        zIndex: 100, // Critical for iOS visibility
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.15,
+        shadowRadius: 20,
+        elevation: 12,
+    },
+    cardImageContainer: {
+        height: 180,
+        backgroundColor: '#f5f5f5',
+    },
+    cardImagePlaceholder: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    cardImageTopRow: {
+        position: 'absolute',
+        top: 15,
+        left: 15,
+        right: 15,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    guestFavoriteBadge: {
+        backgroundColor: '#fff',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 20,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
         shadowRadius: 4,
-        elevation: 3,
-        zIndex: 1,
+        elevation: 2,
     },
-    filterTitle: {
-        fontSize: 14,
-        fontWeight: 'bold',
-        color: '#333',
-        marginBottom: 10,
+    guestFavoriteText: {
+        fontSize: 12,
+        fontWeight: '700',
+        color: '#222',
     },
-    priceButtons: {
+    heartButton: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.5,
+        shadowRadius: 4,
+    },
+    carouselDots: {
+        position: 'absolute',
+        bottom: 15,
+        width: '100%',
         flexDirection: 'row',
-        justifyContent: 'space-between',
+        justifyContent: 'center',
+        gap: 6,
     },
-    priceChip: {
-        paddingVertical: 8,
-        paddingHorizontal: 12,
-        borderRadius: 20,
-        backgroundColor: '#f3f4f6',
-        borderWidth: 1,
-        borderColor: '#e5e7eb',
+    dot: {
+        width: 6,
+        height: 6,
+        borderRadius: 3,
+        backgroundColor: 'rgba(255,255,255,0.6)',
     },
-    priceChipActive: {
-        backgroundColor: '#6366f1',
-        borderColor: '#6366f1',
+    dotActive: {
+        backgroundColor: '#fff',
     },
-    priceChipText: {
-        fontSize: 14,
-        color: '#4b5563',
+    cardBody: {
+        padding: 16,
     },
-    priceChipTextActive: {
-        color: '#fff',
-        fontWeight: 'bold',
-    },
-    callout: {
-        width: 150,
-        padding: 5,
+    cardRatingRow: {
+        flexDirection: 'row',
         alignItems: 'center',
+        marginBottom: 6,
     },
-    calloutTitle: {
-        fontWeight: 'bold',
+    cardRatingText: {
+        fontSize: 14,
+        color: '#222',
+        fontWeight: '500',
+    },
+    cardCategoryText: {
+        fontSize: 15,
+        color: '#717171',
+        marginBottom: 4,
+    },
+    cardNameText: {
         fontSize: 16,
-        marginBottom: 2,
+        fontWeight: '600',
+        color: '#222',
+        marginBottom: 8,
     },
-    calloutPrice: {
-        color: '#6366f1',
+    cardPriceLine: {
+        fontSize: 16,
+        color: '#222',
+    },
+    cardPriceValue: {
         fontWeight: 'bold',
     },
-    calloutMore: {
-        fontSize: 10,
-        color: '#888',
-        marginTop: 2,
+    cardPriceUnit: {
+        color: '#717171',
+        fontWeight: '300',
+    },
+    cardCloseX: {
+        position: 'absolute',
+        top: 10,
+        right: 10,
+        backgroundColor: 'rgba(255,255,255,0.9)',
+        width: 30,
+        height: 30,
+        borderRadius: 15,
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 20,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 4,
     },
 });
 

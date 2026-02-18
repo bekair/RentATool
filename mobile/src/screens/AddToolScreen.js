@@ -11,10 +11,11 @@ import {
     ActivityIndicator,
     Modal,
     Dimensions,
+    Platform,
+    KeyboardAvoidingView,
 } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import api from '../api/client';
-
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -41,7 +42,6 @@ const AddToolScreen = ({ navigation }) => {
                 return;
             }
 
-            // If we don't have a location set yet, get current to center the map
             if (!latitude) {
                 let location = await Location.getCurrentPositionAsync({});
                 setTempCoords({
@@ -70,12 +70,12 @@ const AddToolScreen = ({ navigation }) => {
 
     const handleSubmit = async () => {
         if (!name || !category || !description || !price) {
-            Alert.alert('Error', 'Please fill in all basic fields');
+            Alert.alert('Required Info', 'Please fill in the tool name, category, description and daily price.');
             return;
         }
 
         if (!latitude || !longitude) {
-            Alert.alert('Error', 'Please set the tool location for the map');
+            Alert.alert('Location Missing', 'Please select where the tool is located on the map.');
             return;
         }
 
@@ -91,8 +91,8 @@ const AddToolScreen = ({ navigation }) => {
                 latitude,
                 longitude,
             });
-            Alert.alert('Success', 'Tool listed successfully!', [
-                { text: 'OK', onPress: () => navigation.goBack() }
+            Alert.alert('Success!', 'Your tool is now live on the marketplace.', [
+                { text: 'Great!', onPress: () => navigation.goBack() }
             ]);
         } catch (error) {
             console.error('Error listing tool:', error);
@@ -105,111 +105,128 @@ const AddToolScreen = ({ navigation }) => {
     return (
         <SafeAreaView style={styles.container}>
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()}>
-                    <Text style={styles.backButton}>Back</Text>
+                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                    <Ionicons name="close" size={24} color="#222" />
                 </TouchableOpacity>
-                <Text style={styles.title}>List a Tool</Text>
+                <Text style={styles.headerTitle}>List your tool</Text>
                 <View style={{ width: 40 }} />
             </View>
 
-            <ScrollView contentContainerStyle={styles.scrollContent}>
-                <View style={styles.form}>
-                    <Text style={styles.label}>Tool Name *</Text>
-                    <TextInput
-                        style={styles.input}
-                        placeholder="e.g. Bosch Drill PBH 2100"
-                        placeholderTextColor="#666"
-                        value={name}
-                        onChangeText={setName}
-                    />
+            <KeyboardAvoidingView
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                style={{ flex: 1 }}
+            >
+                <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+                    <View style={styles.form}>
+                        <View style={styles.section}>
+                            <Text style={styles.label}>Basic Information</Text>
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Tool name (e.g. Bosch Hammer Drill)"
+                                placeholderTextColor="#999"
+                                value={name}
+                                onChangeText={setName}
+                            />
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Category (e.g. Power Tools)"
+                                placeholderTextColor="#999"
+                                value={category}
+                                onChangeText={setCategory}
+                            />
+                            <TextInput
+                                style={[styles.input, styles.textArea]}
+                                placeholder="Tell us more about your tool..."
+                                placeholderTextColor="#999"
+                                value={description}
+                                onChangeText={setDescription}
+                                multiline
+                                numberOfLines={4}
+                            />
+                        </View>
 
-                    <Text style={styles.label}>Category *</Text>
-                    <TextInput
-                        style={styles.input}
-                        placeholder="e.g. Power Tools, Gardening"
-                        placeholderTextColor="#666"
-                        value={category}
-                        onChangeText={setCategory}
-                    />
+                        <View style={styles.section}>
+                            <Text style={styles.label}>Pricing & Value</Text>
+                            <View style={styles.row}>
+                                <View style={[styles.inputContainer, { flex: 1, marginRight: 10 }]}>
+                                    <Text style={styles.currencyPrefix}>€</Text>
+                                    <TextInput
+                                        style={styles.inputInner}
+                                        placeholder="15.00"
+                                        placeholderTextColor="#999"
+                                        value={price}
+                                        onChangeText={setPrice}
+                                        keyboardType="decimal-pad"
+                                    />
+                                    <Text style={styles.unitSuffix}>/day</Text>
+                                </View>
+                                <View style={[styles.inputContainer, { flex: 1 }]}>
+                                    <Text style={styles.currencyPrefix}>€</Text>
+                                    <TextInput
+                                        style={styles.inputInner}
+                                        placeholder="Value"
+                                        placeholderTextColor="#999"
+                                        value={replacementValue}
+                                        onChangeText={setReplacementValue}
+                                        keyboardType="decimal-pad"
+                                    />
+                                </View>
+                            </View>
+                        </View>
 
-                    <Text style={styles.label}>Description *</Text>
-                    <TextInput
-                        style={[styles.input, styles.textArea]}
-                        placeholder="Describe your tool, its condition..."
-                        placeholderTextColor="#666"
-                        value={description}
-                        onChangeText={setDescription}
-                        multiline
-                        numberOfLines={4}
-                    />
+                        <View style={styles.section}>
+                            <Text style={styles.label}>Condition</Text>
+                            <TextInput
+                                style={styles.input}
+                                placeholder="e.g. Excellent, Minor scratches"
+                                placeholderTextColor="#999"
+                                value={condition}
+                                onChangeText={setCondition}
+                            />
+                        </View>
 
-                    <Text style={styles.label}>Price per Day (€) *</Text>
-                    <TextInput
-                        style={styles.input}
-                        placeholder="15.00"
-                        placeholderTextColor="#666"
-                        value={price}
-                        onChangeText={setPrice}
-                        keyboardType="decimal-pad"
-                    />
+                        <View style={styles.section}>
+                            <Text style={styles.label}>Location</Text>
+                            <TouchableOpacity
+                                style={[styles.locationCard, (latitude && longitude) && styles.locationCardActive]}
+                                onPress={openMapPicker}
+                                disabled={locationLoading}
+                            >
+                                <View style={styles.locationIcon}>
+                                    <Ionicons
+                                        name={(latitude && longitude) ? "location" : "map-outline"}
+                                        size={24}
+                                        color={(latitude && longitude) ? "#fff" : "#222"}
+                                    />
+                                </View>
+                                <View style={styles.locationInfo}>
+                                    <Text style={styles.locationTitle}>
+                                        {(latitude && longitude) ? "Location set" : "Set tool location"}
+                                    </Text>
+                                    <Text style={styles.locationSub}>
+                                        {(latitude && longitude) ? "Tap to change position" : "Pin the exact pickup spot"}
+                                    </Text>
+                                </View>
+                                <Ionicons name="chevron-forward" size={20} color="#ccc" />
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </ScrollView>
+            </KeyboardAvoidingView>
 
-                    <Text style={styles.label}>Replacement Value (€)</Text>
-                    <TextInput
-                        style={styles.input}
-                        placeholder="150.00 (optional)"
-                        placeholderTextColor="#666"
-                        value={replacementValue}
-                        onChangeText={setReplacementValue}
-                        keyboardType="decimal-pad"
-                    />
-
-                    <Text style={styles.label}>Condition</Text>
-                    <TextInput
-                        style={styles.input}
-                        placeholder="e.g. Good as new (optional)"
-                        placeholderTextColor="#666"
-                        value={condition}
-                        onChangeText={setCondition}
-                    />
-
-                    <Text style={styles.label}>Location *</Text>
-                    <TouchableOpacity
-                        style={[styles.locationButton, (latitude && longitude) && styles.locationButtonActive]}
-                        onPress={openMapPicker}
-                        disabled={locationLoading}
-                    >
-                        {locationLoading ? (
-                            <ActivityIndicator color="#6366f1" />
-                        ) : (
-                            <>
-                                <Ionicons
-                                    name={(latitude && longitude) ? "location" : "map-outline"}
-                                    size={20}
-                                    color={(latitude && longitude) ? "#6366f1" : "#666"}
-                                    style={{ marginRight: 8 }}
-                                />
-                                <Text style={[styles.locationButtonText, (latitude && longitude) && styles.locationButtonTextActive]}>
-                                    {(latitude && longitude)
-                                        ? "Location Selected (Tap to change)"
-                                        : "Select on Map"}
-                                </Text>
-                            </>
-                        )}
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                        style={[styles.submitButton, loading && styles.disabledButton]}
-                        onPress={handleSubmit}
-                        disabled={loading}
-                    >
-                        {loading ? (
-                            <ActivityIndicator color="#fff" />
-                        ) : (
-                            <Text style={styles.submitButtonText}>List Tool</Text>
-                        )}
-                    </TouchableOpacity>
-                </View>
-            </ScrollView>
+            <View style={styles.footer}>
+                <TouchableOpacity
+                    style={[styles.submitButton, loading && styles.disabledButton]}
+                    onPress={handleSubmit}
+                    disabled={loading}
+                >
+                    {loading ? (
+                        <ActivityIndicator color="#fff" />
+                    ) : (
+                        <Text style={styles.submitButtonText}>Publish Listing</Text>
+                    )}
+                </TouchableOpacity>
+            </View>
 
             <Modal
                 visible={showMapModal}
@@ -218,21 +235,20 @@ const AddToolScreen = ({ navigation }) => {
                 <SafeAreaView style={styles.modalContainer}>
                     <View style={styles.modalHeader}>
                         <TouchableOpacity onPress={() => setShowMapModal(false)}>
-                            <Text style={styles.cancelText}>Cancel</Text>
+                            <Text style={styles.modalCancel}>Cancel</Text>
                         </TouchableOpacity>
-                        <Text style={styles.modalTitle}>Select Location</Text>
+                        <Text style={styles.modalTitle}>Pickup Location</Text>
                         <TouchableOpacity onPress={confirmLocation}>
-                            <Text style={styles.confirmText}>Confirm</Text>
+                            <Text style={styles.modalConfirm}>Confirm</Text>
                         </TouchableOpacity>
                     </View>
-
                     <MapView
                         style={styles.pickerMap}
                         initialRegion={{
                             latitude: tempCoords?.latitude || 50.8503,
                             longitude: tempCoords?.longitude || 4.3517,
-                            latitudeDelta: 0.0122,
-                            longitudeDelta: 0.0121,
+                            latitudeDelta: 0.01,
+                            longitudeDelta: 0.01,
                         }}
                         onPress={(e) => setTempCoords(e.nativeEvent.coordinate)}
                     >
@@ -240,9 +256,8 @@ const AddToolScreen = ({ navigation }) => {
                             <Marker coordinate={tempCoords} draggable />
                         )}
                     </MapView>
-
-                    <View style={styles.pickerTip}>
-                        <Text style={styles.pickerTipText}>Tap on the map to set the exact tool location</Text>
+                    <View style={styles.pickerHint}>
+                        <Text style={styles.pickerHintText}>Tap the map to place the pin</Text>
                     </View>
                 </SafeAreaView>
             </Modal>
@@ -253,126 +268,184 @@ const AddToolScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#0a0a0a',
+        backgroundColor: '#fff',
     },
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingHorizontal: 20,
-        paddingVertical: 15,
+        paddingHorizontal: 15,
+        paddingVertical: 10,
+        borderBottomWidth: 1,
+        borderBottomColor: '#f0f0f0',
+    },
+    headerTitle: {
+        fontSize: 16,
+        fontWeight: '700',
+        color: '#222',
     },
     backButton: {
-        color: '#6366f1',
-        fontSize: 16,
-    },
-    title: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        color: '#ffffff',
+        padding: 5,
     },
     scrollContent: {
-        padding: 20,
+        padding: 24,
+        paddingBottom: 120,
     },
     form: {
-        gap: 20,
+        gap: 25,
+    },
+    section: {
+        gap: 12,
     },
     label: {
-        color: '#fff',
-        fontSize: 16,
-        fontWeight: 'bold',
-        marginBottom: -10,
+        fontSize: 18,
+        fontWeight: '600',
+        color: '#222',
+        marginBottom: 4,
     },
     input: {
-        backgroundColor: '#1a1a1a',
-        borderRadius: 12,
-        padding: 15,
-        color: '#fff',
+        backgroundColor: '#fff',
+        borderRadius: 10,
+        padding: 16,
+        color: '#222',
         borderWidth: 1,
-        borderColor: '#2a2a2a',
+        borderColor: '#ccc',
+        fontSize: 16,
+    },
+    inputContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#fff',
+        borderRadius: 10,
+        borderWidth: 1,
+        borderColor: '#ccc',
+        paddingHorizontal: 16,
+    },
+    inputInner: {
+        flex: 1,
+        paddingVertical: 16,
+        fontSize: 16,
+        color: '#222',
+    },
+    currencyPrefix: {
+        fontSize: 16,
+        color: '#222',
+        marginRight: 4,
+    },
+    unitSuffix: {
+        fontSize: 14,
+        color: '#717171',
     },
     textArea: {
         height: 120,
         textAlignVertical: 'top',
     },
-    submitButton: {
-        backgroundColor: '#6366f1',
-        borderRadius: 12,
-        padding: 18,
-        alignItems: 'center',
-        marginTop: 10,
+    row: {
+        flexDirection: 'row',
     },
-    locationButton: {
-        backgroundColor: '#1a1a1a',
-        borderRadius: 12,
-        padding: 15,
+    locationCard: {
         flexDirection: 'row',
         alignItems: 'center',
+        backgroundColor: '#fff',
+        borderRadius: 12,
+        padding: 16,
         borderWidth: 1,
-        borderColor: '#2a2a2a',
+        borderColor: '#ccc',
     },
-    locationButtonActive: {
-        borderColor: '#6366f1',
-        backgroundColor: 'rgba(99, 102, 241, 0.05)',
+    locationCardActive: {
+        borderColor: '#222',
+        backgroundColor: '#fff',
     },
-    locationButtonText: {
-        color: '#666',
+    locationIcon: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: '#f7f7f7',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 16,
+    },
+    locationInfo: {
+        flex: 1,
+    },
+    locationTitle: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#222',
+    },
+    locationSub: {
         fontSize: 14,
+        color: '#717171',
     },
-    locationButtonTextActive: {
-        color: '#6366f1',
-        fontWeight: 'bold',
+    footer: {
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        backgroundColor: '#fff',
+        borderTopWidth: 1,
+        borderTopColor: '#ebebeb',
+        padding: 24,
+        paddingBottom: Platform.OS === 'ios' ? 40 : 24,
+    },
+    submitButton: {
+        backgroundColor: '#FF385C',
+        borderRadius: 8,
+        padding: 16,
+        alignItems: 'center',
+    },
+    submitButtonText: {
+        color: '#fff',
+        fontSize: 18,
+        fontWeight: '600',
     },
     disabledButton: {
         opacity: 0.7,
     },
-    submitButtonText: {
-        color: '#fff',
-        fontSize: 16,
-        fontWeight: 'bold',
-    },
     modalContainer: {
         flex: 1,
-        backgroundColor: '#0a0a0a',
+        backgroundColor: '#fff',
     },
     modalHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
         padding: 20,
-        backgroundColor: '#1a1a1a',
+        borderBottomWidth: 1,
+        borderBottomColor: '#ebebeb',
     },
     modalTitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: '#fff',
-    },
-    cancelText: {
-        color: '#ff4444',
         fontSize: 16,
+        fontWeight: '700',
+        color: '#222',
     },
-    confirmText: {
-        color: '#6366f1',
+    modalCancel: {
+        color: '#222',
         fontSize: 16,
-        fontWeight: 'bold',
+        textDecorationLine: 'underline',
+    },
+    modalConfirm: {
+        color: '#222',
+        fontSize: 16,
+        fontWeight: '700',
     },
     pickerMap: {
         flex: 1,
     },
-    pickerTip: {
+    pickerHint: {
         position: 'absolute',
         bottom: 40,
-        left: 20,
-        right: 20,
-        backgroundColor: 'rgba(0,0,0,0.8)',
-        padding: 15,
+        left: 24,
+        right: 24,
+        backgroundColor: '#222',
+        padding: 16,
         borderRadius: 12,
         alignItems: 'center',
     },
-    pickerTipText: {
+    pickerHintText: {
         color: '#fff',
-        fontSize: 12,
-        fontWeight: '500',
+        fontSize: 14,
+        fontWeight: '600',
     },
 });
 
