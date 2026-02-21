@@ -2,8 +2,9 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { ActivityIndicator, View, StyleSheet, TouchableOpacity } from 'react-native';
+import { ActivityIndicator, View, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AuthProvider, useAuth } from '../context/AuthContext';
 import LoginScreen from '../screens/LoginScreen';
@@ -63,6 +64,13 @@ const CustomTabBarButton = ({ children, onPress }) => (
 );
 
 function TabNavigator({ navigation }) {
+    const insets = useSafeAreaInsets();
+    // On Android, bottom insets account for the system nav bar (gesture strip / buttons)
+    // On iOS, this is handled automatically by the tab bar
+    const tabBarBottomOffset = Platform.OS === 'android'
+        ? insets.bottom + 8   // just above the Android system nav bar
+        : 25;                 // iOS: standard floating offset
+
     return (
         <Tab.Navigator
             screenOptions={({ route }) => ({
@@ -88,7 +96,7 @@ function TabNavigator({ navigation }) {
                     backgroundColor: 'rgba(26, 26, 26, 0.95)',
                     borderTopColor: 'transparent',
                     position: 'absolute',
-                    bottom: 25,
+                    bottom: tabBarBottomOffset,
                     left: 15,
                     right: 15,
                     borderRadius: 30,
@@ -174,11 +182,13 @@ function RootNavigator() {
 
 export default function Navigation() {
     return (
-        <NavigationContainer>
-            <AuthProvider>
-                <RootNavigator />
-            </AuthProvider>
-        </NavigationContainer>
+        <SafeAreaProvider>
+            <NavigationContainer>
+                <AuthProvider>
+                    <RootNavigator />
+                </AuthProvider>
+            </NavigationContainer>
+        </SafeAreaProvider>
     );
 }
 

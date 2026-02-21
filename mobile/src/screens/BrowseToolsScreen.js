@@ -7,8 +7,8 @@ import {
     TouchableOpacity,
     ActivityIndicator,
     Image,
-    SafeAreaView,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import api from '../api/client';
 

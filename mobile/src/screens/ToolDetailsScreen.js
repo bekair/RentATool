@@ -7,12 +7,12 @@ import {
     TouchableOpacity,
     ActivityIndicator,
     Alert,
-    SafeAreaView,
     Image,
     Dimensions,
     StatusBar,
     Platform,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../api/client';
 
