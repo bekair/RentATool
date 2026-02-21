@@ -7,13 +7,13 @@ import {
     TouchableOpacity,
     ScrollView,
     Alert,
-    SafeAreaView,
     ActivityIndicator,
     Modal,
     Dimensions,
     Platform,
     KeyboardAvoidingView,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import MapView, { Marker } from 'react-native-maps';
 import api from '../api/client';
 import * as Location from 'expo-location';
@@ -106,7 +106,7 @@ const AddToolScreen = ({ navigation }) => {
         <SafeAreaView style={styles.container}>
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                    <Ionicons name="close" size={24} color="#222" />
+                    <Ionicons name="close" size={24} color="#ffffff" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>List your tool</Text>
                 <View style={{ width: 40 }} />
@@ -207,7 +207,7 @@ const AddToolScreen = ({ navigation }) => {
                                         {(latitude && longitude) ? "Tap to change position" : "Pin the exact pickup spot"}
                                     </Text>
                                 </View>
-                                <Ionicons name="chevron-forward" size={20} color="#ccc" />
+                                <Ionicons name="chevron-forward" size={20} color="#555" />
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -268,7 +268,7 @@ const AddToolScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#fff',
+        backgroundColor: '#0a0a0a',
     },
     header: {
         flexDirection: 'row',
@@ -277,12 +277,12 @@ const styles = StyleSheet.create({
         paddingHorizontal: 15,
         paddingVertical: 10,
         borderBottomWidth: 1,
-        borderBottomColor: '#f0f0f0',
+        borderBottomColor: '#2a2a2a',
     },
     headerTitle: {
         fontSize: 16,
         fontWeight: '700',
-        color: '#222',
+        color: '#ffffff',
     },
     backButton: {
         padding: 5,
@@ -300,41 +300,41 @@ const styles = StyleSheet.create({
     label: {
         fontSize: 18,
         fontWeight: '600',
-        color: '#222',
+        color: '#ffffff',
         marginBottom: 4,
     },
     input: {
-        backgroundColor: '#fff',
+        backgroundColor: '#1a1a1a',
         borderRadius: 10,
         padding: 16,
-        color: '#222',
+        color: '#ffffff',
         borderWidth: 1,
-        borderColor: '#ccc',
+        borderColor: '#2a2a2a',
         fontSize: 16,
     },
     inputContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#fff',
+        backgroundColor: '#1a1a1a',
         borderRadius: 10,
         borderWidth: 1,
-        borderColor: '#ccc',
+        borderColor: '#2a2a2a',
         paddingHorizontal: 16,
     },
     inputInner: {
         flex: 1,
         paddingVertical: 16,
         fontSize: 16,
-        color: '#222',
+        color: '#ffffff',
     },
     currencyPrefix: {
         fontSize: 16,
-        color: '#222',
+        color: '#aaa',
         marginRight: 4,
     },
     unitSuffix: {
         fontSize: 14,
-        color: '#717171',
+        color: '#666',
     },
     textArea: {
         height: 120,
@@ -346,21 +346,21 @@ const styles = StyleSheet.create({
     locationCard: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#fff',
+        backgroundColor: '#1a1a1a',
         borderRadius: 12,
         padding: 16,
         borderWidth: 1,
-        borderColor: '#ccc',
+        borderColor: '#2a2a2a',
     },
     locationCardActive: {
-        borderColor: '#222',
-        backgroundColor: '#fff',
+        borderColor: '#6366f1',
+        backgroundColor: '#1a1a1a',
     },
     locationIcon: {
         width: 44,
         height: 44,
         borderRadius: 22,
-        backgroundColor: '#f7f7f7',
+        backgroundColor: '#2a2a2a',
         justifyContent: 'center',
         alignItems: 'center',
         marginRight: 16,
@@ -371,20 +371,20 @@ const styles = StyleSheet.create({
     locationTitle: {
         fontSize: 16,
         fontWeight: '600',
-        color: '#222',
+        color: '#ffffff',
     },
     locationSub: {
         fontSize: 14,
-        color: '#717171',
+        color: '#888',
     },
     footer: {
         position: 'absolute',
         bottom: 0,
         left: 0,
         right: 0,
-        backgroundColor: '#fff',
+        backgroundColor: '#0a0a0a',
         borderTopWidth: 1,
-        borderTopColor: '#ebebeb',
+        borderTopColor: '#2a2a2a',
         padding: 24,
         paddingBottom: Platform.OS === 'ios' ? 40 : 24,
     },
@@ -404,7 +404,7 @@ const styles = StyleSheet.create({
     },
     modalContainer: {
         flex: 1,
-        backgroundColor: '#fff',
+        backgroundColor: '#0a0a0a',
     },
     modalHeader: {
         flexDirection: 'row',
@@ -412,20 +412,20 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         padding: 20,
         borderBottomWidth: 1,
-        borderBottomColor: '#ebebeb',
+        borderBottomColor: '#2a2a2a',
     },
     modalTitle: {
         fontSize: 16,
         fontWeight: '700',
-        color: '#222',
+        color: '#ffffff',
     },
     modalCancel: {
-        color: '#222',
+        color: '#aaa',
         fontSize: 16,
         textDecorationLine: 'underline',
     },
     modalConfirm: {
-        color: '#222',
+        color: '#6366f1',
         fontSize: 16,
         fontWeight: '700',
     },
