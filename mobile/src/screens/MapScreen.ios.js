@@ -25,8 +25,10 @@ import MapView, { Marker } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../api/client';
+import { useAuth } from '../context/AuthContext';
 
 const MapScreen = ({ navigation }) => {
+    const { user } = useAuth();
     const mapRef = useRef(null);
     const justTapped = useRef(false);
     const locationCache = useRef({});
@@ -49,7 +51,7 @@ const MapScreen = ({ navigation }) => {
                 setLocation(loc);
             }
             try {
-                const res = await api.get('/tools');
+                const res = await api.get(user?.id ? `/tools?exclude=${user.id}` : '/tools');
                 setTools(res.data.filter(t => t.latitude && t.longitude));
             } catch (e) {
                 console.error('[Map/iOS] fetch:', e);
@@ -61,7 +63,7 @@ const MapScreen = ({ navigation }) => {
     // ── Re-fetch on tab focus ─────────────────────────────────────────────────
     useFocusEffect(useCallback(() => {
         if (loading) return;
-        api.get('/tools')
+        api.get(user?.id ? `/tools?exclude=${user.id}` : '/tools')
             .then(res => setTools(res.data.filter(t => t.latitude && t.longitude)))
             .catch(e => console.warn('[Map/iOS] focus fetch:', e));
     }, [loading]));

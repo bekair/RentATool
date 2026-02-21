@@ -16,9 +16,12 @@ export class ToolsService {
         });
     }
 
-    async findAll(): Promise<Tool[]> {
+    async findAll(excludeOwnerId?: string): Promise<Tool[]> {
         return this.prisma.tool.findMany({
-            where: { isAvailable: true },
+            where: {
+                isAvailable: true,
+                ...(excludeOwnerId ? { ownerId: { not: excludeOwnerId } } : {}),
+            },
             include: {
                 owner: {
                     select: {

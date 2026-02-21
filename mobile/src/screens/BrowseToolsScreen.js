@@ -11,15 +11,18 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import api from '../api/client';
+import { useAuth } from '../context/AuthContext';
 
 const BrowseToolsScreen = ({ navigation }) => {
+    const { user } = useAuth();
     const [tools, setTools] = useState([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
 
     const fetchTools = async () => {
         try {
-            const response = await api.get('/tools');
+            const params = user?.id ? `?exclude=${user.id}` : '';
+            const response = await api.get(`/tools${params}`);
             setTools(response.data);
         } catch (error) {
             console.error('Error fetching tools:', error);
