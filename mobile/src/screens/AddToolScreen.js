@@ -13,13 +13,14 @@ import {
     Platform,
     KeyboardAvoidingView,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import MapView, { Marker } from 'react-native-maps';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import MapView from 'react-native-maps';
 import api from '../api/client';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
 
 const AddToolScreen = ({ navigation }) => {
+    const insets = useSafeAreaInsets();
     const [name, setName] = useState('');
     const [category, setCategory] = useState('');
     const [description, setDescription] = useState('');
@@ -28,6 +29,7 @@ const AddToolScreen = ({ navigation }) => {
     const [condition, setCondition] = useState('');
     const [latitude, setLatitude] = useState(null);
     const [longitude, setLongitude] = useState(null);
+    const [locationAddress, setLocationAddress] = useState(null); // { street, city, country }
     const [tempCoords, setTempCoords] = useState(null);
     const [showMapModal, setShowMapModal] = useState(false);
     const [locationLoading, setLocationLoading] = useState(false);
@@ -60,10 +62,32 @@ const AddToolScreen = ({ navigation }) => {
         }
     };
 
-    const confirmLocation = () => {
+    const confirmLocation = async () => {
         if (tempCoords) {
             setLatitude(tempCoords.latitude);
             setLongitude(tempCoords.longitude);
+            // Reverse-geocode to get a human-readable address
+            try {
+                const [result] = await Location.reverseGeocodeAsync(tempCoords);
+                if (result) {
+                    const street = [
+                        result.streetNumber,
+                        result.street,
+                    ].filter(Boolean).join(' ');
+                    setLocationAddress({
+                        street: street || result.name || '',
+                        city: result.city || result.district || result.subregion || '',
+                        country: result.country || '',
+                    });
+                }
+            } catch (e) {
+                // Geocode failed — show coordinates as fallback
+                setLocationAddress({
+                    street: `${tempCoords.latitude.toFixed(5)}, ${tempCoords.longitude.toFixed(5)}`,
+                    city: '',
+                    country: '',
+                });
+            }
             setShowMapModal(false);
         }
     };
@@ -192,22 +216,51 @@ const AddToolScreen = ({ navigation }) => {
                                 onPress={openMapPicker}
                                 disabled={locationLoading}
                             >
-                                <View style={styles.locationIcon}>
+                                <View style={[
+                                    styles.locationIcon,
+                                    (latitude && longitude) && styles.locationIconActive,
+                                ]}>
+                                    {locationLoading
+                                        ? <ActivityIndicator size="small" color="#6366f1" />
+                                        : <Ionicons
+                                            name={(latitude && longitude) ? 'location' : 'map-outline'}
+                                            size={22}
+                                            color={(latitude && longitude) ? '#fff' : '#888'}
+                                        />}
+                                </View>
+
+                                <View style={styles.locationInfo}>
+                                    {(latitude && longitude && locationAddress) ? (
+                                        <>
+                                            {locationAddress.street ? (
+                                                <Text style={styles.locationStreet} numberOfLines={1}>
+                                                    {locationAddress.street}
+                                                </Text>
+                                            ) : null}
+                                            {(locationAddress.city || locationAddress.country) ? (
+                                                <Text style={styles.locationCity} numberOfLines={1}>
+                                                    {[locationAddress.city, locationAddress.country].filter(Boolean).join(', ')}
+                                                </Text>
+                                            ) : null}
+                                            <Text style={styles.locationCoords}>
+                                                {latitude.toFixed(5)}, {longitude.toFixed(5)}
+                                            </Text>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Text style={styles.locationTitle}>Set tool location</Text>
+                                            <Text style={styles.locationSub}>Pin the exact pickup spot on the map</Text>
+                                        </>
+                                    )}
+                                </View>
+
+                                <View style={styles.locationChevron}>
                                     <Ionicons
-                                        name={(latitude && longitude) ? "location" : "map-outline"}
-                                        size={24}
-                                        color={(latitude && longitude) ? "#fff" : "#222"}
+                                        name={(latitude && longitude) ? 'pencil-outline' : 'chevron-forward'}
+                                        size={18}
+                                        color="#555"
                                     />
                                 </View>
-                                <View style={styles.locationInfo}>
-                                    <Text style={styles.locationTitle}>
-                                        {(latitude && longitude) ? "Location set" : "Set tool location"}
-                                    </Text>
-                                    <Text style={styles.locationSub}>
-                                        {(latitude && longitude) ? "Tap to change position" : "Pin the exact pickup spot"}
-                                    </Text>
-                                </View>
-                                <Ionicons name="chevron-forward" size={20} color="#555" />
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -231,35 +284,63 @@ const AddToolScreen = ({ navigation }) => {
             <Modal
                 visible={showMapModal}
                 animationType="slide"
+                statusBarTranslucent
             >
-                <SafeAreaView style={styles.modalContainer}>
-                    <View style={styles.modalHeader}>
-                        <TouchableOpacity onPress={() => setShowMapModal(false)}>
-                            <Text style={styles.modalCancel}>Cancel</Text>
-                        </TouchableOpacity>
-                        <Text style={styles.modalTitle}>Pickup Location</Text>
-                        <TouchableOpacity onPress={confirmLocation}>
-                            <Text style={styles.modalConfirm}>Confirm</Text>
-                        </TouchableOpacity>
+                <View style={styles.modalContainer}>
+                    {/* ── Top bar — uses insets.top for reliable notch/island clearance ── */}
+                    <View style={[styles.modalTopBar, { paddingTop: insets.top + 12 }]}>
+                        <Text style={styles.modalTitle}>Pin Pickup Location</Text>
+                        <Text style={styles.modalSubtitle}>Move the map — the pin stays centred</Text>
                     </View>
-                    <MapView
-                        style={styles.pickerMap}
-                        initialRegion={{
-                            latitude: tempCoords?.latitude || 50.8503,
-                            longitude: tempCoords?.longitude || 4.3517,
-                            latitudeDelta: 0.01,
-                            longitudeDelta: 0.01,
-                        }}
-                        onPress={(e) => setTempCoords(e.nativeEvent.coordinate)}
-                    >
-                        {tempCoords && (
-                            <Marker coordinate={tempCoords} draggable />
-                        )}
-                    </MapView>
-                    <View style={styles.pickerHint}>
-                        <Text style={styles.pickerHintText}>Tap the map to place the pin</Text>
+
+                    {/* ── Map + fixed centre-pin ───────────────────────── */}
+                    <View style={styles.mapWrapper}>
+                        <MapView
+                            style={StyleSheet.absoluteFill}
+                            initialRegion={{
+                                latitude: tempCoords?.latitude || 50.8503,
+                                longitude: tempCoords?.longitude || 4.3517,
+                                latitudeDelta: 0.01,
+                                longitudeDelta: 0.01,
+                            }}
+                            onRegionChange={(region) => {
+                                // Live-update coords as user pans
+                                setTempCoords({ latitude: region.latitude, longitude: region.longitude });
+                            }}
+                        />
+
+                        {/* Fixed crosshair — always centre of the view */}
+                        <View style={styles.crosshairContainer} pointerEvents="none">
+                            {/* Shadow dot on the ground */}
+                            <View style={styles.crosshairShadow} />
+                            {/* Pin stem */}
+                            <View style={styles.crosshairStem} />
+                            {/* Pin head */}
+                            <View style={styles.crosshairHead}>
+                                <View style={styles.crosshairInner} />
+                            </View>
+                        </View>
                     </View>
-                </SafeAreaView>
+
+                    {/* ── Sticky bottom action bar ─────────────────────────── */}
+                    <View style={[styles.modalBottomBar, { paddingBottom: insets.bottom }]}>
+                        <View style={styles.modalActions}>
+                            <TouchableOpacity
+                                style={styles.modalCancelBtn}
+                                onPress={() => setShowMapModal(false)}
+                            >
+                                <Text style={styles.modalCancelText}>Cancel</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={styles.modalConfirmBtn}
+                                onPress={confirmLocation}
+                            >
+                                <Ionicons name="checkmark" size={18} color="#fff" style={{ marginRight: 6 }} />
+                                <Text style={styles.modalConfirmText}>Confirm Location</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
             </Modal>
         </SafeAreaView>
     );
@@ -365,17 +446,40 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         marginRight: 16,
     },
+    locationIconActive: {
+        backgroundColor: '#6366f1',
+    },
     locationInfo: {
         flex: 1,
     },
     locationTitle: {
-        fontSize: 16,
+        fontSize: 15,
         fontWeight: '600',
         color: '#ffffff',
     },
     locationSub: {
-        fontSize: 14,
+        fontSize: 13,
         color: '#888',
+        marginTop: 2,
+    },
+    locationStreet: {
+        fontSize: 15,
+        fontWeight: '600',
+        color: '#ffffff',
+    },
+    locationCity: {
+        fontSize: 14,
+        color: '#aaa',
+        marginTop: 2,
+    },
+    locationCoords: {
+        fontSize: 11,
+        color: '#555',
+        marginTop: 4,
+        fontVariant: ['tabular-nums'],
+    },
+    locationChevron: {
+        marginLeft: 8,
     },
     footer: {
         position: 'absolute',
@@ -389,10 +493,15 @@ const styles = StyleSheet.create({
         paddingBottom: Platform.OS === 'ios' ? 40 : 24,
     },
     submitButton: {
-        backgroundColor: '#FF385C',
-        borderRadius: 8,
-        padding: 16,
+        backgroundColor: '#6366f1',
+        borderRadius: 12,
+        padding: 18,
         alignItems: 'center',
+        shadowColor: '#6366f1',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.4,
+        shadowRadius: 12,
+        elevation: 8,
     },
     submitButtonText: {
         color: '#fff',
@@ -406,46 +515,111 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: '#0a0a0a',
     },
-    modalHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: 20,
+    modalTopBar: {
+        backgroundColor: '#0a0a0a',
         borderBottomWidth: 1,
         borderBottomColor: '#2a2a2a',
+        paddingHorizontal: 20,
+        paddingBottom: 14,
+        paddingTop: 10,
+        alignItems: 'center',
     },
     modalTitle: {
         fontSize: 16,
         fontWeight: '700',
         color: '#ffffff',
     },
-    modalCancel: {
-        color: '#aaa',
-        fontSize: 16,
-        textDecorationLine: 'underline',
+    modalSubtitle: {
+        fontSize: 12,
+        color: '#666',
+        marginTop: 3,
     },
-    modalConfirm: {
-        color: '#6366f1',
-        fontSize: 16,
-        fontWeight: '700',
-    },
-    pickerMap: {
+    mapWrapper: {
         flex: 1,
+        position: 'relative',
     },
-    pickerHint: {
+    // ── Centre-pin crosshair ──────────────────────────────────────────────
+    crosshairContainer: {
         position: 'absolute',
-        bottom: 40,
-        left: 24,
-        right: 24,
-        backgroundColor: '#222',
-        padding: 16,
-        borderRadius: 12,
+        top: 0, left: 0, right: 0, bottom: 0,
+        justifyContent: 'center',
         alignItems: 'center',
     },
-    pickerHintText: {
-        color: '#fff',
-        fontSize: 14,
+    crosshairShadow: {
+        position: 'absolute',
+        width: 20, height: 6, borderRadius: 10,
+        backgroundColor: 'rgba(0,0,0,0.25)',
+        bottom: '50%',
+        marginBottom: -3,
+    },
+    crosshairStem: {
+        position: 'absolute',
+        width: 3, height: 22,
+        backgroundColor: '#6366f1',
+        borderRadius: 2,
+        bottom: '50%',
+        marginBottom: 12,
+    },
+    crosshairHead: {
+        position: 'absolute',
+        width: 32, height: 32, borderRadius: 16,
+        backgroundColor: '#6366f1',
+        bottom: '50%',
+        marginBottom: 30,
+        justifyContent: 'center', alignItems: 'center',
+        shadowColor: '#6366f1',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.5,
+        shadowRadius: 8,
+        elevation: 6,
+    },
+    crosshairInner: {
+        width: 10, height: 10, borderRadius: 5,
+        backgroundColor: '#fff',
+    },
+    modalBottomBar: {
+        backgroundColor: '#0a0a0a',
+        borderTopWidth: 1,
+        borderTopColor: '#2a2a2a',
+    },
+    modalActions: {
+        flexDirection: 'row',
+        gap: 12,
+        paddingHorizontal: 20,
+        paddingVertical: 16,
+    },
+    modalCancelBtn: {
+        flex: 1,
+        borderRadius: 12,
+        paddingVertical: 16,
+        alignItems: 'center',
+        backgroundColor: '#1a1a1a',
+        borderWidth: 1,
+        borderColor: '#2a2a2a',
+    },
+    modalCancelText: {
+        fontSize: 15,
         fontWeight: '600',
+        color: '#aaa',
+    },
+    modalConfirmBtn: {
+        flex: 2,
+        borderRadius: 12,
+        paddingVertical: 16,
+        alignItems: 'center',
+        flexDirection: 'row',
+        justifyContent: 'center',
+        backgroundColor: '#6366f1',
+        shadowColor: '#6366f1',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.4,
+        shadowRadius: 12,
+        elevation: 8,
+    },
+    modalConfirmText: {
+        fontSize: 15,
+        fontWeight: '700',
+        color: '#fff',
     },
 });
 

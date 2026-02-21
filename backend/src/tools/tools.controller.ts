@@ -8,6 +8,7 @@ import {
     Delete,
     UseGuards,
     Request,
+    Query,
 } from '@nestjs/common';
 import { ToolsService } from './tools.service';
 import { CreateToolDto, UpdateToolDto } from './dto/tool.dto';
@@ -24,8 +25,8 @@ export class ToolsController {
     }
 
     @Get()
-    findAll() {
-        return this.toolsService.findAll();
+    findAll(@Query('exclude') exclude?: string) {
+        return this.toolsService.findAll(exclude);
     }
 
     @Get('mine')

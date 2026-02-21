@@ -35,10 +35,12 @@ import { captureRef } from 'react-native-view-shot';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../api/client';
+import { useAuth } from '../context/AuthContext';
 
 const { width } = Dimensions.get('window');
 
 const MapScreen = ({ navigation }) => {
+    const { user } = useAuth();
     const mapRef = useRef(null);
     const justTappedMarker = useRef(false);
     const locationCache = useRef({});
@@ -65,7 +67,7 @@ const MapScreen = ({ navigation }) => {
                 setLocation(loc);
             }
             try {
-                const res = await api.get('/tools');
+                const res = await api.get(user?.id ? `/tools?exclude=${user.id}` : '/tools');
                 const valid = res.data.filter(t => t.latitude && t.longitude);
                 setTools(valid);
                 setPhase(valid.length > 0 ? 'capturing' : 'ready');
@@ -81,7 +83,7 @@ const MapScreen = ({ navigation }) => {
         if (phase !== 'ready') return;
         (async () => {
             try {
-                const res = await api.get('/tools');
+                const res = await api.get(user?.id ? `/tools?exclude=${user.id}` : '/tools');
                 const valid = res.data.filter(t => t.latitude && t.longitude);
                 setTools(valid);
                 setMarkerImages(prev => {
