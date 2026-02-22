@@ -8,7 +8,6 @@ import {
     ActivityIndicator,
     Alert,
     RefreshControl,
-    Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -112,14 +111,15 @@ const MyToolsScreen = ({ navigation }) => {
                 data={tools}
                 renderItem={renderToolItem}
                 keyExtractor={(item) => item.id}
+                style={{ flex: 1 }}
                 contentContainerStyle={styles.listContainer}
+                alwaysBounceVertical={true}
                 refreshControl={
                     <RefreshControl
                         refreshing={refreshing}
                         onRefresh={onRefresh}
                         tintColor="#6366f1"
                         colors={['#6366f1']}
-                        progressBackgroundColor="#1a1a1a"
                     />
                 }
                 ListEmptyComponent={
@@ -179,6 +179,8 @@ const styles = StyleSheet.create({
     },
     listContainer: {
         padding: 15,
+        paddingBottom: 100,
+        flexGrow: 1,
     },
     card: {
         backgroundColor: '#1a1a1a',
@@ -240,7 +242,7 @@ const styles = StyleSheet.create({
         marginTop: 60,
         alignItems: 'center',
         paddingHorizontal: 40,
-        height: Dimensions.get('window').height * 0.7,
+        flex: 1,
     },
     emptyIconContainer: {
         width: 100,
