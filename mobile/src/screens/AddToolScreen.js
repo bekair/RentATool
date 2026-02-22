@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     View,
     Text,
@@ -17,12 +17,14 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import MapView from 'react-native-maps';
 import api from '../api/client';
 import * as Location from 'expo-location';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 
 const AddToolScreen = ({ navigation }) => {
     const insets = useSafeAreaInsets();
     const [name, setName] = useState('');
-    const [category, setCategory] = useState('');
+    const [selectedCategory, setSelectedCategory] = useState(null); // { id, name, icon }
+    const [categories, setCategories] = useState([]);
+    const [showCategoryModal, setShowCategoryModal] = useState(false);
     const [description, setDescription] = useState('');
     const [price, setPrice] = useState('');
     const [replacementValue, setReplacementValue] = useState('');
@@ -34,6 +36,12 @@ const AddToolScreen = ({ navigation }) => {
     const [showMapModal, setShowMapModal] = useState(false);
     const [locationLoading, setLocationLoading] = useState(false);
     const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+        api.get('/categories')
+            .then(res => setCategories(res.data))
+            .catch(() => { }); // silently fall back — picker just stays empty
+    }, []);
 
     const openMapPicker = async () => {
         setLocationLoading(true);
@@ -93,7 +101,7 @@ const AddToolScreen = ({ navigation }) => {
     };
 
     const handleSubmit = async () => {
-        if (!name || !category || !description || !price) {
+        if (!name || !selectedCategory || !description || !price) {
             Alert.alert('Required Info', 'Please fill in the tool name, category, description and daily price.');
             return;
         }
@@ -107,7 +115,7 @@ const AddToolScreen = ({ navigation }) => {
         try {
             await api.post('/tools', {
                 name,
-                category,
+                categoryId: selectedCategory.id,
                 description,
                 pricePerDay: parseFloat(price),
                 replacementValue: replacementValue ? parseFloat(replacementValue) : undefined,
@@ -151,13 +159,25 @@ const AddToolScreen = ({ navigation }) => {
                                 value={name}
                                 onChangeText={setName}
                             />
-                            <TextInput
-                                style={styles.input}
-                                placeholder="Category (e.g. Power Tools)"
-                                placeholderTextColor="#999"
-                                value={category}
-                                onChangeText={setCategory}
-                            />
+                            {/* Category picker */}
+                            <TouchableOpacity
+                                style={[styles.input, styles.categoryCard]}
+                                onPress={() => setShowCategoryModal(true)}
+                            >
+                                {selectedCategory ? (
+                                    <View style={styles.categorySelected}>
+                                        <MaterialCommunityIcons
+                                            name={selectedCategory.icon}
+                                            size={22}
+                                            color="#6366f1"
+                                        />
+                                        <Text style={styles.categorySelectedText}>{selectedCategory.name}</Text>
+                                    </View>
+                                ) : (
+                                    <Text style={styles.categoryPlaceholder}>Select a category…</Text>
+                                )}
+                                <Ionicons name="chevron-forward" size={18} color="#555" />
+                            </TouchableOpacity>
                             <TextInput
                                 style={[styles.input, styles.textArea]}
                                 placeholder="Tell us more about your tool..."
@@ -281,6 +301,60 @@ const AddToolScreen = ({ navigation }) => {
                 </TouchableOpacity>
             </View>
 
+            {/* ── Category Picker Modal ───────────────── */}
+            <Modal
+                visible={showCategoryModal}
+                animationType="slide"
+                statusBarTranslucent
+            >
+                <View style={styles.modalContainer}>
+                    <View style={[styles.modalTopBar, { paddingTop: insets.top + 12 }]}>
+                        <Text style={styles.modalTitle}>Select a Category</Text>
+                        <Text style={styles.modalSubtitle}>Choose the type that best fits your tool</Text>
+                    </View>
+
+                    <ScrollView
+                        contentContainerStyle={styles.categoryGrid}
+                        showsVerticalScrollIndicator={false}
+                    >
+                        {categories.map((cat) => {
+                            const isActive = selectedCategory?.id === cat.id;
+                            return (
+                                <TouchableOpacity
+                                    key={cat.id}
+                                    style={[styles.categoryGridItem, isActive && styles.categoryGridItemActive]}
+                                    onPress={() => {
+                                        setSelectedCategory(cat);
+                                        setShowCategoryModal(false);
+                                    }}
+                                >
+                                    <MaterialCommunityIcons
+                                        name={cat.icon}
+                                        size={32}
+                                        color={isActive ? '#6366f1' : '#aaa'}
+                                    />
+                                    <Text style={[styles.categoryGridLabel, isActive && styles.categoryGridLabelActive]}>
+                                        {cat.name}
+                                    </Text>
+                                </TouchableOpacity>
+                            );
+                        })}
+                    </ScrollView>
+
+                    <View style={[styles.modalBottomBar, { paddingBottom: insets.bottom }]}>
+                        <View style={styles.modalActions}>
+                            <TouchableOpacity
+                                style={styles.modalCancelBtn}
+                                onPress={() => setShowCategoryModal(false)}
+                            >
+                                <Text style={styles.modalCancelText}>Cancel</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
+
+            {/* ── Map Modal ───────────────── */}
             <Modal
                 visible={showMapModal}
                 animationType="slide"
@@ -342,7 +416,7 @@ const AddToolScreen = ({ navigation }) => {
                     </View>
                 </View>
             </Modal>
-        </SafeAreaView>
+        </SafeAreaView >
     );
 };
 
@@ -620,6 +694,59 @@ const styles = StyleSheet.create({
         fontSize: 15,
         fontWeight: '700',
         color: '#fff',
+    },
+    // ── Category picker ──────────────────────────────────────────────────────
+    categoryCard: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingVertical: 14,
+    },
+    categorySelected: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+        flex: 1,
+    },
+    categorySelectedText: {
+        fontSize: 16,
+        color: '#ffffff',
+    },
+    categoryPlaceholder: {
+        fontSize: 16,
+        color: '#666',
+        flex: 1,
+    },
+    categoryGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        padding: 16,
+        gap: 12,
+    },
+    categoryGridItem: {
+        width: '30%',
+        aspectRatio: 1,
+        backgroundColor: '#1a1a1a',
+        borderRadius: 14,
+        borderWidth: 1,
+        borderColor: '#2a2a2a',
+        justifyContent: 'center',
+        alignItems: 'center',
+        gap: 8,
+        padding: 8,
+    },
+    categoryGridItemActive: {
+        borderColor: '#6366f1',
+        backgroundColor: '#1e1b4b',
+    },
+    categoryGridLabel: {
+        fontSize: 11,
+        color: '#aaa',
+        textAlign: 'center',
+    },
+    categoryGridLabelActive: {
+        color: '#818cf8',
+        fontWeight: '600',
     },
 });
 

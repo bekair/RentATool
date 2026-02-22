@@ -7,6 +7,7 @@ import { UsersModule } from './users/users.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { ToolsModule } from './tools/tools.module';
 import { BookingsModule } from './bookings/bookings.module';
+import { CategoriesModule } from './categories/categories.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { BookingsModule } from './bookings/bookings.module';
     PrismaModule,
     ToolsModule,
     BookingsModule,
+    CategoriesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

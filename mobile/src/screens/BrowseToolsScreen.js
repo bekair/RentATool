@@ -59,7 +59,7 @@ const BrowseToolsScreen = ({ navigation }) => {
                     <Text style={styles.toolName}>{item.name}</Text>
                     <Text style={styles.price}>€{item.pricePerDay}<Text style={styles.perDay}>/day</Text></Text>
                 </View>
-                <Text style={styles.category}>{item.category}</Text>
+                <Text style={styles.category}>{item.category?.name}</Text>
                 <Text style={styles.description} numberOfLines={2}>
                     {item.description}
                 </Text>

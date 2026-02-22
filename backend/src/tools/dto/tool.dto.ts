@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsNumber, IsOptional, IsArray, IsBoolean } from 'class-validator';
+import { IsString, IsNotEmpty, IsNumber, IsOptional, IsArray, IsBoolean, IsUUID } from 'class-validator';
 
 export class CreateToolDto {
     @IsString()
@@ -9,9 +9,9 @@ export class CreateToolDto {
     @IsNotEmpty()
     description: string;
 
-    @IsString()
+    @IsUUID()
     @IsNotEmpty()
-    category: string;
+    categoryId: string;
 
     @IsNumber()
     pricePerDay: number;
@@ -48,8 +48,8 @@ export class UpdateToolDto {
     description?: string;
 
     @IsOptional()
-    @IsString()
-    category?: string;
+    @IsUUID()
+    categoryId?: string;
 
     @IsOptional()
     @IsNumber()

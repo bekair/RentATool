@@ -198,7 +198,7 @@ const ToolDetailsScreen = ({ route, navigation }) => {
                     {/* Specs */}
                     <View style={styles.section}>
                         <Text style={styles.sectionTitle}>Specifications</Text>
-                        <SpecRow label="Category" value={tool.category} />
+                        <SpecRow label="Category" value={tool.category?.name} />
                         <SpecRow label="Condition" value={tool.condition || 'Excellent'} />
                         <SpecRow label="Replacement value" value={`€${tool.replacementValue ?? 'N/A'}`} />
                     </View>

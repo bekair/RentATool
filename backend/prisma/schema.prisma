@@ -34,11 +34,26 @@ model User {
   @@map("users")
 }
 
+model Category {
+  id        String     @id @default(uuid())
+  name      String
+  slug      String     @unique
+  icon      String?
+  parentId  String?
+  parent    Category?  @relation("Subcategories", fields: [parentId], references: [id])
+  children  Category[] @relation("Subcategories")
+  tools     Tool[]
+  createdAt DateTime   @default(now())
+
+  @@map("categories")
+}
+
 model Tool {
-  id          String    @id @default(uuid())
-  name        String
-  description String
-  category    String
+  id               String    @id @default(uuid())
+  name             String
+  description      String
+  categoryId       String
+  category         Category  @relation(fields: [categoryId], references: [id])
   pricePerDay      Float
   replacementValue Float?
   condition        String?

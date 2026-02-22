@@ -85,7 +85,7 @@ const MapScreen = ({ navigation }) => {
         const matchesSearch =
             tool.name.toLowerCase().includes(q) ||
             tool.description?.toLowerCase().includes(q) ||
-            tool.category?.toLowerCase().includes(q);
+            tool.category?.name?.toLowerCase().includes(q);
         let matchesPrice = true;
         if (priceFilter === 'low') matchesPrice = tool.pricePerDay < 20;
         if (priceFilter === 'mid') matchesPrice = tool.pricePerDay >= 20 && tool.pricePerDay <= 50;
@@ -255,7 +255,7 @@ const MapScreen = ({ navigation }) => {
                             <Text style={styles.ratingText}> 4.91 (98)</Text>
                         </View>
                         <Text style={styles.categoryText}>
-                            {selectedTool.category}{selectedToolCity ? ` in ${selectedToolCity}` : ''}
+                            {selectedTool.category?.name}{selectedToolCity ? ` in ${selectedToolCity}` : ''}
                         </Text>
                         <Text style={styles.nameText} numberOfLines={1}>{selectedTool.name}</Text>
                         <Text style={styles.priceLine}>

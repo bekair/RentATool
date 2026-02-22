@@ -30,6 +30,7 @@ export class ToolsService {
                         verificationTier: true,
                     },
                 },
+                category: true,
             },
         });
     }
@@ -45,6 +46,7 @@ export class ToolsService {
                         verificationTier: true,
                     },
                 },
+                category: true,
             },
         });
 

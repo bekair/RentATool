@@ -66,7 +66,7 @@ const MyToolsScreen = ({ navigation }) => {
         <View style={styles.card}>
             <View style={styles.cardInfo}>
                 <Text style={styles.toolName}>{item.name}</Text>
-                <Text style={styles.category}>{item.category}</Text>
+                <Text style={styles.category}>{item.category?.name}</Text>
                 <Text style={styles.price}>€{item.pricePerDay}/day</Text>
             </View>
             <View style={styles.cardActions}>
