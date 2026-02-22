@@ -71,6 +71,12 @@ const MyToolsScreen = ({ navigation }) => {
             </View>
             <View style={styles.cardActions}>
                 <TouchableOpacity
+                    style={styles.editButton}
+                    onPress={() => navigation.navigate('EditTool', { tool: item })}
+                >
+                    <Text style={styles.editButtonText}>Edit</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
                     style={styles.deleteButton}
                     onPress={() => handleDelete(item.id)}
                 >
@@ -193,6 +199,19 @@ const styles = StyleSheet.create({
     },
     cardActions: {
         marginLeft: 10,
+        flexDirection: 'row',
+        gap: 8,
+    },
+    editButton: {
+        paddingHorizontal: 15,
+        paddingVertical: 8,
+        borderRadius: 8,
+        backgroundColor: 'rgba(99, 102, 241, 0.1)',
+    },
+    editButtonText: {
+        color: '#6366f1',
+        fontWeight: '600',
+        fontSize: 12,
     },
     deleteButton: {
         paddingHorizontal: 15,

@@ -42,14 +42,39 @@ model Category {
   parentId  String?
   parent    Category?  @relation("Subcategories", fields: [parentId], references: [id])
   children  Category[] @relation("Subcategories")
-  tools     Tool[]
+  toolVersions ToolVersion[]
   createdAt DateTime   @default(now())
 
   @@map("categories")
 }
 
 model Tool {
+  id               String          @id @default(uuid())
+  ownerId          String
+  owner            User            @relation(fields: [ownerId], references: [id])
+  isAvailable      Boolean         @default(true)
+  
+  // The spotlight pointer to the currently active content version
+  activeVersionId  String?         @unique
+  activeVersion    ToolVersion?    @relation("ActiveVersion", fields: [activeVersionId], references: [id])
+  
+  // History tracking
+  allVersions      ToolVersion[]   @relation("AllVersions")
+  
+  bookings         Booking[]       // The meta relationship 
+  blocks           ToolDateBlock[]
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  @@map("tools")
+}
+
+model ToolVersion {
   id               String    @id @default(uuid())
+  toolId           String
+  tool             Tool      @relation("AllVersions", fields: [toolId], references: [id], onDelete: Cascade)
+  
+  // The mutable tool content
   name             String
   description      String
   categoryId       String
@@ -57,18 +82,19 @@ model Tool {
   pricePerDay      Float
   replacementValue Float?
   condition        String?
-  owner            User      @relation(fields: [ownerId], references: [id])
-  ownerId          String
   latitude         Float?
   longitude        Float?
   images           String[]  @default([])
-  isAvailable      Boolean   @default(true)
-  bookings         Booking[]
-  blocks           ToolDateBlock[]
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
 
-  @@map("tools")
+  // Inverse relationship for the active spotlight
+  activeForTool    Tool?     @relation("ActiveVersion")
+
+  // Bookings point directly to the specific version to freeze historical price/data
+  bookings         Booking[]
+
+  createdAt        DateTime  @default(now())
+
+  @@map("tool_versions")
 }
 
 enum BookingStatus {
@@ -80,19 +106,21 @@ enum BookingStatus {
 }
 
 model Booking {
-  id         String        @id @default(uuid())
-  tool       Tool          @relation(fields: [toolId], references: [id])
-  toolId     String
-  renter     User          @relation("RenterBookings", fields: [renterId], references: [id])
-  renterId   String
-  owner      User          @relation("OwnerBookings", fields: [ownerId], references: [id])
-  ownerId    String
-  startDate  DateTime
-  endDate    DateTime
-  totalPrice Float
-  status     BookingStatus @default(PENDING)
-  createdAt  DateTime      @default(now())
-  updatedAt  DateTime      @updatedAt
+  id            String        @id @default(uuid())
+  tool          Tool          @relation(fields: [toolId], references: [id])
+  toolId        String
+  toolVersion   ToolVersion   @relation(fields: [toolVersionId], references: [id])
+  toolVersionId String
+  renter        User          @relation("RenterBookings", fields: [renterId], references: [id])
+  renterId      String
+  owner         User          @relation("OwnerBookings", fields: [ownerId], references: [id])
+  ownerId       String
+  startDate     DateTime
+  endDate       DateTime
+  totalPrice    Float
+  status        BookingStatus @default(PENDING)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
 
   @@map("bookings")
 }

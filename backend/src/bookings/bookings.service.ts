@@ -20,9 +20,14 @@ export class BookingsService {
             throw new BadRequestException('You cannot rent your own tool');
         }
 
+        if (!tool.activeVersionId) {
+            throw new BadRequestException('Tool is not properly configured for renting');
+        }
+
         return this.prisma.booking.create({
             data: {
                 toolId: createBookingDto.toolId,
+                toolVersionId: tool.activeVersionId,
                 renterId,
                 ownerId: tool.ownerId,
                 startDate: new Date(createBookingDto.startDate),
@@ -33,11 +38,11 @@ export class BookingsService {
         });
     }
 
-    async findByRenter(renterId: string): Promise<Booking[]> {
-        return this.prisma.booking.findMany({
+    async findByRenter(renterId: string): Promise<any[]> {
+        const bookings = await this.prisma.booking.findMany({
             where: { renterId },
             include: {
-                tool: true,
+                toolVersion: true,
                 owner: {
                     select: {
                         displayName: true,
@@ -47,13 +52,18 @@ export class BookingsService {
             },
             orderBy: { createdAt: 'desc' },
         });
+
+        return bookings.map(b => ({
+            ...b,
+            tool: b.toolVersion, // Map for frontend compatibility
+        }));
     }
 
-    async findByOwner(ownerId: string): Promise<Booking[]> {
-        return this.prisma.booking.findMany({
+    async findByOwner(ownerId: string): Promise<any[]> {
+        const bookings = await this.prisma.booking.findMany({
             where: { ownerId },
             include: {
-                tool: true,
+                toolVersion: true,
                 renter: {
                     select: {
                         displayName: true,
@@ -63,6 +73,11 @@ export class BookingsService {
             },
             orderBy: { createdAt: 'desc' },
         });
+
+        return bookings.map(b => ({
+            ...b,
+            tool: b.toolVersion, // Map for frontend compatibility
+        }));
     }
 
     async updateStatus(id: string, userId: string, updateDto: UpdateBookingStatusDto): Promise<Booking> {
