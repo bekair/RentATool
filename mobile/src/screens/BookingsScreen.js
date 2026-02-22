@@ -7,7 +7,6 @@ import {
     TouchableOpacity,
     Alert,
     RefreshControl,
-    Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -176,7 +175,9 @@ const BookingsScreen = ({ navigation }) => {
                 data={bookings}
                 renderItem={renderBookingItem}
                 keyExtractor={(item) => item.id}
+                style={{ flex: 1 }}
                 contentContainerStyle={styles.listContainer}
+                alwaysBounceVertical={true}
                 refreshControl={
                     <RefreshControl
                         refreshing={refreshing}
@@ -186,7 +187,6 @@ const BookingsScreen = ({ navigation }) => {
                         }}
                         tintColor="#6366f1"
                         colors={['#6366f1']}
-                        progressBackgroundColor="#1a1a1a"
                     />
                 }
                 ListEmptyComponent={
@@ -259,6 +259,8 @@ const styles = StyleSheet.create({
     listContainer: {
         padding: 20,
         paddingTop: 10,
+        paddingBottom: 100,
+        flexGrow: 1,
     },
     card: {
         backgroundColor: '#161616',
@@ -393,7 +395,7 @@ const styles = StyleSheet.create({
         marginTop: 60,
         alignItems: 'center',
         padding: 40,
-        height: Dimensions.get('window').height * 0.7,
+        flex: 1,
     },
     emptyTitle: {
         fontSize: 18,
