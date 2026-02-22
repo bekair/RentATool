@@ -257,8 +257,9 @@ const EditToolScreen = ({ route, navigation }) => {
                 { text: 'Great!', onPress: () => navigation.goBack() }
             ]);
         } catch (error) {
-            console.error('Error updating tool:', error);
-            Alert.alert('Error', error.response?.data?.message || 'Failed to update tool');
+            const msg = error.response?.data?.message;
+            const finalMessage = Array.isArray(msg) ? msg.join('\n') : (msg || 'Failed to update tool.');
+            Alert.alert('Update Warning', finalMessage);
         } finally {
             setLoading(false);
         }

@@ -7,9 +7,12 @@ import {
     TouchableOpacity,
     ActivityIndicator,
     Image,
+    RefreshControl,
+    Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
 import api from '../api/client';
 import { useAuth } from '../context/AuthContext';
 
@@ -99,17 +102,28 @@ const BrowseToolsScreen = ({ navigation }) => {
                 renderItem={renderToolItem}
                 keyExtractor={(item) => item.id}
                 contentContainerStyle={styles.listContainer}
-                onRefresh={onRefresh}
-                refreshing={refreshing}
+                refreshControl={
+                    <RefreshControl
+                        refreshing={refreshing}
+                        onRefresh={onRefresh}
+                        tintColor="#6366f1"
+                        colors={['#6366f1']}
+                        progressBackgroundColor="#1a1a1a"
+                    />
+                }
                 ListEmptyComponent={
                     <View style={styles.emptyContainer}>
-                        <Text style={styles.emptyText}>No tools available yet.</Text>
-                        <TouchableOpacity
-                            style={styles.emptyButton}
-                            onPress={() => navigation.navigate('AddTool')}
-                        >
-                            <Text style={styles.emptyButtonText}>List your first tool</Text>
-                        </TouchableOpacity>
+                        <View style={styles.emptyIconContainer}>
+                            <Ionicons name="search-outline" size={48} color="#6366f1" />
+                        </View>
+                        <Text style={styles.emptyTitle}>Nothing to see here</Text>
+                        <Text style={styles.emptyText}>
+                            It looks like no one has listed any tools in your area yet. Check back soon for new listings!
+                        </Text>
+                        <View style={styles.pullToRefreshContainer}>
+                            <Ionicons name="arrow-down" size={16} color="#6366f1" style={{ marginRight: 6 }} />
+                            <Text style={styles.pullToRefreshText}>Pull down to refresh</Text>
+                        </View>
                     </View>
                 }
             />
@@ -257,32 +271,45 @@ const styles = StyleSheet.create({
         fontWeight: '700',
     },
     emptyContainer: {
-        marginTop: 100,
+        marginTop: 60,
         alignItems: 'center',
         paddingHorizontal: 40,
+        height: Dimensions.get('window').height * 0.7,
+    },
+    emptyIconContainer: {
+        width: 100,
+        height: 100,
+        borderRadius: 50,
+        backgroundColor: 'rgba(99, 102, 241, 0.1)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 24,
+    },
+    emptyTitle: {
+        color: '#fff',
+        fontSize: 22,
+        fontWeight: '800',
+        marginBottom: 12,
+        letterSpacing: -0.5,
     },
     emptyText: {
-        color: '#666',
-        fontSize: 18,
+        color: '#888',
+        fontSize: 15,
         textAlign: 'center',
-        marginBottom: 25,
-        lineHeight: 26,
+        marginBottom: 35,
+        lineHeight: 22,
     },
-    emptyButton: {
-        backgroundColor: '#6366f1',
-        paddingHorizontal: 25,
-        paddingVertical: 14,
-        borderRadius: 12,
-        elevation: 4,
-        shadowColor: '#6366f1',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
+    pullToRefreshContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginTop: 10,
+        opacity: 0.8,
     },
-    emptyButtonText: {
-        color: '#ffffff',
-        fontWeight: '700',
-        fontSize: 16,
+    pullToRefreshText: {
+        color: '#6366f1',
+        fontWeight: '600',
+        fontSize: 14,
+        letterSpacing: 0.5,
     },
 });
 

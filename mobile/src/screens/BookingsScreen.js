@@ -7,8 +7,11 @@ import {
     TouchableOpacity,
     ActivityIndicator,
     Alert,
+    RefreshControl,
+    Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import api from '../api/client';
 
 const BookingsScreen = ({ navigation }) => {
@@ -18,9 +21,7 @@ const BookingsScreen = ({ navigation }) => {
     const [refreshing, setRefreshing] = useState(false);
 
     const fetchBookings = async () => {
-        setLoading(true);
-        // Clear bookings immediately to avoid rendering mismatched data
-        // setBookings([]); // Wait, this might cause flash. Better to just use safe access in render.
+        if (!refreshing) setLoading(true);
         try {
             const endpoint = viewMode === 'rentals' ? '/bookings/renter' : '/bookings/owner';
             const response = await api.get(endpoint);
@@ -74,7 +75,7 @@ const BookingsScreen = ({ navigation }) => {
             <View style={styles.card}>
                 <View style={styles.cardHeader}>
                     <View style={styles.toolIcon}>
-                        <Text style={{ fontSize: 24 }}>🛠️</Text>
+                        <Ionicons name="build-outline" size={24} color="#6366f1" />
                     </View>
                     <View style={styles.headerInfo}>
                         <Text style={styles.toolName}>{item.tool.name}</Text>
@@ -177,13 +178,26 @@ const BookingsScreen = ({ navigation }) => {
                 renderItem={renderBookingItem}
                 keyExtractor={(item) => item.id}
                 contentContainerStyle={styles.listContainer}
-                onRefresh={() => fetchBookings()}
-                refreshing={refreshing}
+                refreshControl={
+                    <RefreshControl
+                        refreshing={refreshing}
+                        onRefresh={() => {
+                            setRefreshing(true);
+                            fetchBookings();
+                        }}
+                        tintColor="#6366f1"
+                        colors={['#6366f1']}
+                        progressBackgroundColor="#1a1a1a"
+                    />
+                }
                 ListEmptyComponent={
                     <View style={styles.emptyContainer}>
-                        <Text style={{ fontSize: 40, marginBottom: 10 }}>
-                            {viewMode === 'rentals' ? '🤷‍♂️' : '📦'}
-                        </Text>
+                        <Ionicons
+                            name={viewMode === 'rentals' ? 'calendar-outline' : 'construct-outline'}
+                            size={64}
+                            color="#333"
+                            style={{ marginBottom: 16 }}
+                        />
                         <Text style={styles.emptyTitle}>
                             {viewMode === 'rentals' ? 'No Active Rentals' : 'No Booking Requests'}
                         </Text>
@@ -192,6 +206,10 @@ const BookingsScreen = ({ navigation }) => {
                                 ? "You haven't rented any tools yet."
                                 : "No one has requested your tools yet."}
                         </Text>
+                        <View style={styles.pullToRefreshContainer}>
+                            <Ionicons name="arrow-down" size={16} color="#6366f1" style={{ marginRight: 6 }} />
+                            <Text style={styles.pullToRefreshText}>Pull down to refresh</Text>
+                        </View>
                     </View>
                 }
             />
@@ -376,6 +394,7 @@ const styles = StyleSheet.create({
         marginTop: 60,
         alignItems: 'center',
         padding: 40,
+        height: Dimensions.get('window').height * 0.7,
     },
     emptyTitle: {
         fontSize: 18,
@@ -385,10 +404,22 @@ const styles = StyleSheet.create({
         marginBottom: 8,
     },
     emptyText: {
-        color: '#666',
-        fontSize: 14,
+        color: '#888',
+        fontSize: 15,
         textAlign: 'center',
-        lineHeight: 20,
+        lineHeight: 22,
+        marginBottom: 35,
+    },
+    pullToRefreshContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        opacity: 0.8,
+    },
+    pullToRefreshText: {
+        color: '#6366f1',
+        fontWeight: '600',
+        fontSize: 14,
+        letterSpacing: 0.5,
     },
 });
 

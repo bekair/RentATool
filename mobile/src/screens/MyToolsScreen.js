@@ -7,9 +7,12 @@ import {
     TouchableOpacity,
     ActivityIndicator,
     Alert,
+    RefreshControl,
+    Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
 import api from '../api/client';
 
 const MyToolsScreen = ({ navigation }) => {
@@ -110,17 +113,26 @@ const MyToolsScreen = ({ navigation }) => {
                 renderItem={renderToolItem}
                 keyExtractor={(item) => item.id}
                 contentContainerStyle={styles.listContainer}
-                onRefresh={onRefresh}
-                refreshing={refreshing}
+                refreshControl={
+                    <RefreshControl
+                        refreshing={refreshing}
+                        onRefresh={onRefresh}
+                        tintColor="#6366f1"
+                        colors={['#6366f1']}
+                        progressBackgroundColor="#1a1a1a"
+                    />
+                }
                 ListEmptyComponent={
                     <View style={styles.emptyContainer}>
+                        <View style={styles.emptyIconContainer}>
+                            <Ionicons name="hardware-chip-outline" size={48} color="#6366f1" />
+                        </View>
+                        <Text style={styles.emptyTitle}>Nothing here yet</Text>
                         <Text style={styles.emptyText}>You haven't listed any tools yet.</Text>
-                        <TouchableOpacity
-                            style={styles.emptyButton}
-                            onPress={() => navigation.navigate('AddTool')}
-                        >
-                            <Text style={styles.emptyButtonText}>List a tool now</Text>
-                        </TouchableOpacity>
+                        <View style={styles.pullToRefreshContainer}>
+                            <Ionicons name="arrow-down" size={16} color="#6366f1" style={{ marginRight: 6 }} />
+                            <Text style={styles.pullToRefreshText}>Pull down to refresh</Text>
+                        </View>
                     </View>
                 }
             />
@@ -225,23 +237,44 @@ const styles = StyleSheet.create({
         fontSize: 12,
     },
     emptyContainer: {
-        marginTop: 100,
+        marginTop: 60,
         alignItems: 'center',
+        paddingHorizontal: 40,
+        height: Dimensions.get('window').height * 0.7,
+    },
+    emptyIconContainer: {
+        width: 100,
+        height: 100,
+        borderRadius: 50,
+        backgroundColor: 'rgba(99, 102, 241, 0.1)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 24,
+    },
+    emptyTitle: {
+        color: '#fff',
+        fontSize: 22,
+        fontWeight: '800',
+        marginBottom: 12,
+        letterSpacing: -0.5,
     },
     emptyText: {
         color: '#888',
-        fontSize: 16,
-        marginBottom: 20,
+        fontSize: 15,
+        textAlign: 'center',
+        marginBottom: 35,
+        lineHeight: 22,
     },
-    emptyButton: {
-        backgroundColor: '#6366f1',
-        paddingHorizontal: 20,
-        paddingVertical: 10,
-        borderRadius: 10,
+    pullToRefreshContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        opacity: 0.8,
     },
-    emptyButtonText: {
-        color: '#ffffff',
-        fontWeight: 'bold',
+    pullToRefreshText: {
+        color: '#6366f1',
+        fontWeight: '600',
+        fontSize: 14,
+        letterSpacing: 0.5,
     },
 });
 

@@ -111,8 +111,9 @@ export default function ToolCalendarScreen({ route, navigation }) {
             Alert.alert('Success', 'Availability updated successfully.');
             // Allow them to stay on the screen or navigation.goBack() 
         } catch (error) {
-            console.error('Failed to update availability:', error);
-            Alert.alert('Error', 'Failed to save changes. Please try again.');
+            const msg = error.response?.data?.message;
+            const finalMessage = Array.isArray(msg) ? msg.join('\n') : (msg || 'Failed to save changes. Please try again.');
+            Alert.alert('Update Warning', finalMessage);
         } finally {
             setIsSaving(false);
         }

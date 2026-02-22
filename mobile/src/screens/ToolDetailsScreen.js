@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
     View, Text, StyleSheet, ScrollView, TouchableOpacity,
-    ActivityIndicator, Alert, Dimensions, StatusBar, Platform,
+    ActivityIndicator, Alert, Dimensions, StatusBar, Platform, DeviceEventEmitter
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -32,33 +32,98 @@ const ToolDetailsScreen = ({ route, navigation }) => {
     const { user } = useAuth();
     const [tool, setTool] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [bookingLoading, setBookingLoading] = useState(false);
     const [isFavorite, setIsFavorite] = useState(false);
-    const [existingBooking, setExistingBooking] = useState(null);
+    const [selectedStartDate, setSelectedStartDate] = useState(null);
+    const [selectedEndDate, setSelectedEndDate] = useState(null);
+    const [isReserving, setIsReserving] = useState(false);
 
     const isOwner = user?.id && tool?.ownerId === user.id;
+    const hasSelection = !!selectedStartDate;
 
     useEffect(() => {
+        if (!toolId) return;
+
+        // Only show loading if we haven't loaded the tool yet
+        if (!tool) setLoading(true);
+
         api.get(`/tools/${toolId}`)
             .then(r => setTool(r.data))
             .catch(() => {
                 Alert.alert('Error', 'Failed to load tool details');
-                navigation.goBack();
+                if (navigation.canGoBack()) navigation.goBack();
             })
             .finally(() => setLoading(false));
-
-        // Check if the user already has an active booking for this tool
-        api.get('/bookings/renter')
-            .then(r => {
-                const active = r.data.find(
-                    b => b.toolId === toolId &&
-                        b.status !== 'CANCELLED' &&
-                        b.status !== 'REJECTED'
-                );
-                setExistingBooking(active || null);
-            })
-            .catch(() => { }); // not critical — ignore silently
     }, [toolId]);
+
+    const openDatePicker = () => {
+        if (isOwner) {
+            navigation.navigate('ToolCalendar', { toolItem: tool });
+        } else {
+            navigation.navigate('BookingDates', {
+                toolItem: tool,
+                initialStartDate: selectedStartDate,
+                initialEndDate: selectedEndDate,
+            });
+        }
+    };
+
+    useEffect(() => {
+        if (!toolId) return;
+        const sub = DeviceEventEmitter.addListener(`confirmDates_${toolId}`, ({ start, end }) => {
+            setSelectedStartDate(start);
+            setSelectedEndDate(end);
+        });
+        return () => sub.remove();
+    }, [toolId]);
+
+    const handleReserve = async () => {
+        if (!selectedStartDate || isReserving) return;
+        const effectiveEnd = selectedEndDate || selectedStartDate;
+
+        setIsReserving(true);
+        try {
+            await api.post('/bookings', {
+                toolId: tool.id,
+                startDate: new Date(`${selectedStartDate}T00:00:00Z`).toISOString(),
+                endDate: new Date(`${effectiveEnd}T23:59:59Z`).toISOString(),
+                totalPrice,
+            });
+
+            Alert.alert(
+                'Request Sent! 🎉',
+                'The owner has been notified. You can track this in your bookings.',
+                [{ text: 'View Bookings', onPress: () => navigation.navigate('MainTabs', { screen: 'Bookings' }) }]
+            );
+            setSelectedStartDate(null);
+            setSelectedEndDate(null);
+        } catch (err) {
+            Alert.alert('Error', err.response?.data?.message || 'Failed to send rental request');
+        } finally {
+            setIsReserving(false);
+        }
+    };
+
+    const formatDate = (dateStr) => {
+        if (!dateStr) return '';
+        const d = new Date(dateStr);
+        return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+    };
+
+    const dateLabel = selectedStartDate
+        ? selectedEndDate && selectedEndDate !== selectedStartDate
+            ? `${formatDate(selectedStartDate)} – ${formatDate(selectedEndDate)}`
+            : formatDate(selectedStartDate)
+        : null;
+
+    let totalDays = 0;
+    let totalPrice = 0;
+    if (hasSelection && tool) {
+        const startObj = new Date(selectedStartDate);
+        const effectiveEnd = selectedEndDate || selectedStartDate;
+        const endObj = new Date(effectiveEnd);
+        totalDays = Math.ceil(Math.abs(endObj - startObj) / (1000 * 60 * 60 * 24)) + 1;
+        totalPrice = tool.pricePerDay * totalDays;
+    }
 
 
 
@@ -185,15 +250,54 @@ const ToolDetailsScreen = ({ route, navigation }) => {
 
                     <Divider />
 
-                    {/* Availability calendar placeholder */}
+                    {/* Availability / Date selection */}
                     <View style={styles.section}>
                         <Text style={styles.sectionTitle}>Availability</Text>
-                        <View style={styles.calendarPlaceholder}>
-                            <Ionicons name="calendar-outline" size={32} color={C.textSub} />
-                            <Text style={styles.calendarText}>
-                                Add your dates to check availability
-                            </Text>
-                        </View>
+                        {isOwner ? (
+                            <TouchableOpacity
+                                style={styles.calendarPlaceholder}
+                                onPress={openDatePicker}
+                            >
+                                <Ionicons name="calendar-outline" size={28} color={C.accent} />
+                                <Text style={[styles.calendarText, { color: C.accent, fontWeight: '600' }]}>
+                                    Manage availability calendar
+                                </Text>
+                            </TouchableOpacity>
+                        ) : (
+                            <TouchableOpacity
+                                style={[
+                                    styles.calendarPlaceholder,
+                                    hasSelection && { borderColor: C.accent, backgroundColor: C.accentSoft }
+                                ]}
+                                onPress={openDatePicker}
+                            >
+                                <Ionicons
+                                    name={hasSelection ? 'calendar' : 'calendar-outline'}
+                                    size={28}
+                                    color={hasSelection ? C.accent : C.textSub}
+                                />
+                                {hasSelection ? (
+                                    <View style={{ flex: 1, marginLeft: 12 }}>
+                                        <Text style={{ color: C.accent, fontWeight: '700', fontSize: 15 }}>
+                                            {dateLabel}
+                                        </Text>
+                                        <Text style={{ color: C.textSub, fontSize: 12, marginTop: 2 }}>
+                                            Tap to change dates
+                                        </Text>
+                                    </View>
+                                ) : (
+                                    <View style={{ flex: 1, marginLeft: 12 }}>
+                                        <Text style={{ color: C.text, fontWeight: '600', fontSize: 15 }}>
+                                            Select dates
+                                        </Text>
+                                        <Text style={{ color: C.textSub, fontSize: 12, marginTop: 2 }}>
+                                            Check availability & pick your rental period
+                                        </Text>
+                                    </View>
+                                )}
+                                <Ionicons name="chevron-forward" size={18} color={C.textSub} />
+                            </TouchableOpacity>
+                        )}
                     </View>
 
                 </View>
@@ -203,43 +307,44 @@ const ToolDetailsScreen = ({ route, navigation }) => {
             <View style={styles.footer}>
                 <SafeAreaView edges={['bottom']}>
                     <View style={styles.footerContent}>
-                        <View>
-                            <Text style={styles.footerPrice}>
-                                €{tool.pricePerDay}
-                                <Text style={styles.footerDay}> / day</Text>
-                            </Text>
-                            <TouchableOpacity>
-                                <Text style={styles.availLink}>Check availability</Text>
-                            </TouchableOpacity>
+                        <View style={{ flex: 1, paddingRight: 12 }}>
+                            {!hasSelection ? (
+                                <Text style={styles.footerPrice}>
+                                    €{tool.pricePerDay}
+                                    <Text style={styles.footerDay}> / day</Text>
+                                </Text>
+                            ) : (
+                                <View>
+                                    <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 6, marginBottom: 2 }}>
+                                        <Text style={styles.footerTotalVal}>€{totalPrice}</Text>
+                                        <Text style={styles.footerTotalLabel}>total</Text>
+                                    </View>
+                                    <Text style={styles.footerDateSub}>
+                                        {totalDays} {totalDays === 1 ? 'day' : 'days'} ({dateLabel})
+                                    </Text>
+                                    <Text style={styles.footerStrikeThru}>
+                                        €{tool.pricePerDay} / day
+                                    </Text>
+                                </View>
+                            )}
                         </View>
                         {isOwner ? (
                             <TouchableOpacity
                                 style={styles.reserveBtn}
-                                onPress={() => navigation.navigate('ToolCalendar', { toolItem: tool })}
+                                onPress={openDatePicker}
                             >
                                 <Text style={styles.reserveBtnText}>Settings</Text>
                             </TouchableOpacity>
                         ) : (
                             <TouchableOpacity
-                                style={[
-                                    styles.reserveBtn,
-                                    (bookingLoading || existingBooking) && styles.reserveBtnDisabled,
-                                ]}
-                                onPress={() => navigation.navigate('BookingDates', { toolItem: tool })}
-                                disabled={bookingLoading || !!existingBooking}
+                                style={[styles.reserveBtn, !hasSelection && styles.reserveBtnDisabled]}
+                                onPress={handleReserve}
+                                disabled={!hasSelection || isReserving}
                             >
-                                {bookingLoading ? (
-                                    <ActivityIndicator color="#fff" />
-                                ) : existingBooking ? (
-                                    <View style={{ alignItems: 'center' }}>
-                                        <Ionicons name="checkmark-circle" size={16} color="#fff" />
-                                        <Text style={[styles.reserveBtnText, { fontSize: 12, marginTop: 2 }]}>
-                                            {existingBooking.status === 'APPROVED' ? 'Approved' : 'Requested'}
-                                        </Text>
-                                    </View>
-                                ) : (
-                                    <Text style={styles.reserveBtnText}>Reserve</Text>
-                                )}
+                                {isReserving
+                                    ? <ActivityIndicator color="#fff" />
+                                    : <Text style={styles.reserveBtnText}>Reserve</Text>
+                                }
                             </TouchableOpacity>
                         )}
                     </View>
@@ -364,9 +469,9 @@ const styles = StyleSheet.create({
 
     // Calendar placeholder
     calendarPlaceholder: {
-        height: 100, backgroundColor: C.surface,
+        minHeight: 76, backgroundColor: C.surface,
         borderRadius: 16, borderWidth: 1, borderColor: C.border,
-        justifyContent: 'center', alignItems: 'center', gap: 8,
+        flexDirection: 'row', alignItems: 'center', padding: 16,
     },
     calendarText: { fontSize: 13, color: C.textSub },
 
@@ -396,6 +501,15 @@ const styles = StyleSheet.create({
         elevation: 0,
     },
     reserveBtnText: { color: '#fff', fontSize: 16, fontWeight: '700', letterSpacing: 0.3 },
+
+    // Dynamic Summary specific styles
+    footerTotalVal: { fontSize: 24, fontWeight: '800', color: C.text, letterSpacing: -0.5 },
+    footerTotalLabel: { fontSize: 13, fontWeight: '700', color: C.textSub, marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.5 },
+    footerDateSub: { color: '#fff', fontSize: 13, fontWeight: '600', opacity: 0.9 },
+    footerStrikeThru: {
+        textDecorationLine: 'line-through', color: C.textSub,
+        fontSize: 11, marginTop: 3, fontWeight: '500'
+    },
 });
 
 export default ToolDetailsScreen;

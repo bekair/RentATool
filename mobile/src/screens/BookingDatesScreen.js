@@ -1,20 +1,18 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, DeviceEventEmitter } from 'react-native';
 import { Calendar } from 'react-native-calendars';
 import { toolsApi } from '../api/client';
 import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
-import api from '../api/client';
 
 export default function BookingDatesScreen({ route, navigation }) {
-    const { toolItem } = route.params;
+    const { toolItem, initialStartDate = null, initialEndDate = null } = route.params;
     const [isLoading, setIsLoading] = useState(true);
-    const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Dates the tool is unavailable (bookings + manual blocks)
     const [unavailableDates, setUnavailableDates] = useState(new Set());
 
-    const [startDate, setStartDate] = useState(null);
-    const [endDate, setEndDate] = useState(null);
+    const [startDate, setStartDate] = useState(initialStartDate);
+    const [endDate, setEndDate] = useState(initialEndDate);
 
     const fetchAvailability = useCallback(async () => {
         try {
@@ -80,45 +78,21 @@ export default function BookingDatesScreen({ route, navigation }) {
         }
     };
 
-    const handleReserve = async () => {
-        if (!startDate || !endDate) return;
+    const handleConfirm = () => {
+        if (!startDate) return;
+        const effectiveEnd = endDate || startDate;
 
-        setIsSubmitting(true);
-        try {
-            // 1. Calculate price
-            const startObj = new Date(startDate);
-            const endObj = new Date(endDate);
-            // Add 1 to include both start and end dates (e.g., 25th to 25th = 1 day)
-            const diffTime = Math.abs(endObj - startObj);
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-            const totalPrice = toolItem.pricePerDay * diffDays;
-
-            // 2. Format dates correctly (add time component if backend expects ISO strings)
-            await api.post('/bookings', {
-                toolId: toolItem.id,
-                startDate: new Date(`${startDate}T00:00:00Z`).toISOString(),
-                endDate: new Date(`${endDate}T23:59:59Z`).toISOString(),
-                totalPrice,
-            });
-
-            Alert.alert(
-                'Request Sent',
-                'The owner has been notified. You can track this in your bookings.',
-                [{ text: 'View Bookings', onPress: () => navigation.navigate('MainTabs', { screen: 'Bookings' }) }]
-            );
-        } catch (err) {
-            console.error('Booking failed:', err);
-            Alert.alert('Error', err.response?.data?.message || 'Failed to send rental request');
-        } finally {
-            setIsSubmitting(false);
-        }
+        // Emit an event to the originating ToolDetailsScreen, then pop the modal off the stack
+        DeviceEventEmitter.emit(`confirmDates_${toolItem.id}`, { start: startDate, end: effectiveEnd });
+        navigation.goBack();
     };
 
     // Calculate days and total price for the summary
     const bookingSummary = useMemo(() => {
-        if (!startDate || !endDate) return null;
+        if (!startDate) return null;
+        const effectiveEnd = endDate || startDate;
         const start = new Date(startDate);
-        const end = new Date(endDate);
+        const end = new Date(effectiveEnd);
         const diffTime = Math.abs(end - start);
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
         return {
@@ -143,7 +117,7 @@ export default function BookingDatesScreen({ route, navigation }) {
                 startingDay: true,
                 color: '#6366f1',
                 textColor: 'white',
-                // If it's the only day selected, it's also the ending day visually
+                // If no end date, this single day is both start and end
                 endingDay: !endDate,
             };
         }
@@ -182,7 +156,7 @@ export default function BookingDatesScreen({ route, navigation }) {
         );
     }
 
-    const canSubmit = startDate && endDate && !isSubmitting;
+    const canSubmit = !!startDate;
 
     return (
         <View style={styles.container}>
@@ -239,16 +213,12 @@ export default function BookingDatesScreen({ route, navigation }) {
 
                 <TouchableOpacity
                     style={[styles.reserveButton, !canSubmit && styles.reserveButtonDisabled]}
-                    onPress={handleReserve}
+                    onPress={handleConfirm}
                     disabled={!canSubmit}
                 >
-                    {isSubmitting ? (
-                        <ActivityIndicator color="#fff" />
-                    ) : (
-                        <Text style={[styles.reserveButtonText, !canSubmit && { color: '#888' }]}>
-                            Request Reservation
-                        </Text>
-                    )}
+                    <Text style={[styles.reserveButtonText, !canSubmit && { color: '#888' }]}>
+                        Confirm
+                    </Text>
                 </TouchableOpacity>
             </View>
         </View>
