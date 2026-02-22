@@ -49,6 +49,17 @@ export const authApi = {
     },
 };
 
+export const toolsApi = {
+    getAvailability: async (id) => {
+        const response = await api.get(`/tools/${id}/availability`);
+        return response.data;
+    },
+    updateAvailability: async (id, manualBlockedDates) => {
+        const response = await api.patch(`/tools/${id}/availability`, { manualBlockedDates });
+        return response.data;
+    },
+};
+
 export const saveToken = async (token) => {
     await SecureStore.setItemAsync('authToken', token);
 };

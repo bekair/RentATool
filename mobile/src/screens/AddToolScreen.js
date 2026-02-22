@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import MapView from 'react-native-maps';
+import { Calendar } from 'react-native-calendars';
 import api from '../api/client';
 import * as Location from 'expo-location';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -37,11 +38,101 @@ const AddToolScreen = ({ navigation }) => {
     const [locationLoading, setLocationLoading] = useState(false);
     const [loading, setLoading] = useState(false);
 
+    // Calendar blocks state
+    const [manualBlockedDates, setManualBlockedDates] = useState(new Set());
+    const [selectionStart, setSelectionStart] = useState(null);
+
+    const maxDateObj = new Date();
+    maxDateObj.setDate(maxDateObj.getDate() + 21);
+    const maxDateString = maxDateObj.toISOString().split('T')[0];
+    const todayString = new Date().toISOString().split('T')[0];
+
     useEffect(() => {
         api.get('/categories')
             .then(res => setCategories(res.data))
             .catch(() => { }); // silently fall back — picker just stays empty
     }, []);
+
+    const handleDayPress = (day) => {
+        const dateString = day.dateString;
+
+        // Prevent tapping past dates or beyond 3 weeks
+        if (dateString < todayString || dateString > maxDateString) {
+            Alert.alert('Invalid Date', 'You can only block dates within the next 3 weeks.');
+            return;
+        }
+
+        // Single tap to unblock an already blocked date
+        if (manualBlockedDates.has(dateString)) {
+            setManualBlockedDates(prev => {
+                const newSet = new Set(prev);
+                newSet.delete(dateString);
+                return newSet;
+            });
+            setSelectionStart(null);
+            return;
+        }
+
+        // If no selection start, start one
+        if (!selectionStart) {
+            setSelectionStart(dateString);
+        } else {
+            // End date selection
+            if (dateString < selectionStart) {
+                // Tapped before start date -> make it the new start date
+                setSelectionStart(dateString);
+            } else {
+                // Tapped after start date -> fill the range
+                let current = new Date(selectionStart);
+                const endObj = new Date(dateString);
+                const newBlocks = new Set(manualBlockedDates);
+
+                while (current <= endObj) {
+                    const dStr = current.toISOString().split('T')[0];
+                    newBlocks.add(dStr);
+                    current.setDate(current.getDate() + 1);
+                }
+
+                setManualBlockedDates(newBlocks);
+                setSelectionStart(null); // finish selection
+            }
+        }
+    };
+
+    const markedDates = React.useMemo(() => {
+        const marks = {};
+
+        // Render blocked dates as periods
+        manualBlockedDates.forEach(date => {
+            const dStr = date;
+            const d = new Date(dStr);
+            const prev = new Date(d); prev.setDate(prev.getDate() - 1);
+            const next = new Date(d); next.setDate(next.getDate() + 1);
+
+            const prevStr = prev.toISOString().split('T')[0];
+            const nextStr = next.toISOString().split('T')[0];
+
+            marks[dStr] = {
+                color: '#333',
+                textColor: '#fff',
+                startingDay: !manualBlockedDates.has(prevStr),
+                endingDay: !manualBlockedDates.has(nextStr),
+            };
+        });
+
+        // Add the active selection overlay
+        if (selectionStart) {
+            marks[selectionStart] = {
+                ...marks[selectionStart],
+                startingDay: true,
+                endingDay: true,
+                color: '#6366f1',
+                textColor: 'white',
+            };
+        }
+
+        return marks;
+    }, [manualBlockedDates, selectionStart]);
 
     const openMapPicker = async () => {
         setLocationLoading(true);
@@ -113,7 +204,7 @@ const AddToolScreen = ({ navigation }) => {
 
         setLoading(true);
         try {
-            await api.post('/tools', {
+            const response = await api.post('/tools', {
                 name,
                 categoryId: selectedCategory.id,
                 description,
@@ -123,6 +214,15 @@ const AddToolScreen = ({ navigation }) => {
                 latitude,
                 longitude,
             });
+            const createdTool = response.data;
+
+            // If user selected any calendar dates, block them immediately
+            if (manualBlockedDates.size > 0) {
+                await api.patch(`/tools/${createdTool.id}/availability`, {
+                    manualBlockedDates: Array.from(manualBlockedDates)
+                });
+            }
+
             Alert.alert('Success!', 'Your tool is now live on the marketplace.', [
                 { text: 'Great!', onPress: () => navigation.goBack() }
             ]);
@@ -226,6 +326,31 @@ const AddToolScreen = ({ navigation }) => {
                                 placeholderTextColor="#999"
                                 value={condition}
                                 onChangeText={setCondition}
+                            />
+                        </View>
+
+                        <View style={styles.section}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                <Text style={styles.label}>Availability (Optional)</Text>
+                            </View>
+                            <Text style={[styles.locationSub, { marginBottom: 10 }]}>Select a start and end date to block out a range of days (up to 3 weeks in advance).</Text>
+                            <Calendar
+                                style={[styles.calendar, { borderRadius: 12, overflow: 'hidden' }]}
+                                theme={{
+                                    backgroundColor: '#1a1a1a',
+                                    calendarBackground: '#1a1a1a',
+                                    textSectionTitleColor: '#888',
+                                    todayTextColor: '#6366f1',
+                                    dayTextColor: '#ffffff',
+                                    textDisabledColor: '#333',
+                                    arrowColor: '#6366f1',
+                                    monthTextColor: '#ffffff',
+                                }}
+                                markingType={'period'}
+                                onDayPress={handleDayPress}
+                                markedDates={markedDates}
+                                minDate={todayString}
+                                maxDate={maxDateString}
                             />
                         </View>
 

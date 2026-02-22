@@ -17,6 +17,8 @@ import MapScreen from '../screens/MapScreen';
 import AddToolScreen from '../screens/AddToolScreen';
 import ToolDetailsScreen from '../screens/ToolDetailsScreen';
 import BookingsScreen from '../screens/BookingsScreen';
+import ToolCalendarScreen from '../screens/ToolCalendarScreen';
+import BookingDatesScreen from '../screens/BookingDatesScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -157,6 +159,14 @@ function AppStack() {
             <Stack.Screen
                 name="AddTool"
                 component={AddToolScreen}
+                options={{
+                    presentation: 'modal',
+                    animation: 'slide_from_bottom'
+                }}
+            />
+            <Stack.Screen
+                name="ToolCalendar"
+                component={ToolCalendarScreen}
                 options={{
                     presentation: 'modal',
                     animation: 'slide_from_bottom'

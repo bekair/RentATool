@@ -10,6 +10,7 @@ import {
     ActivityIndicator,
 } from 'react-native';
 import { useAuth } from '../context/AuthContext';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 export default function LoginScreen({ navigation }) {
     const [email, setEmail] = useState('');
@@ -30,7 +31,7 @@ export default function LoginScreen({ navigation }) {
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
             <View style={styles.header}>
-                <Text style={styles.logo}>🔧</Text>
+                <MaterialCommunityIcons name="tools" size={64} color="#6366f1" style={{ marginBottom: 16 }} />
                 <Text style={styles.title}>RENT-a-Tool</Text>
                 <Text style={styles.subtitle}>Welcome back!</Text>
             </View>

@@ -8,7 +8,7 @@ const categories = [
     { name: 'Power Tools', slug: 'power-tools', icon: 'power-plug' },
     { name: 'Hand Tools', slug: 'hand-tools', icon: 'hammer' },
     { name: 'Measuring & Levelling', slug: 'measuring-tools', icon: 'ruler' },
-    { name: 'Drilling & Fastening', slug: 'drilling-fastening', icon: 'screw' },
+    { name: 'Drilling & Fastening', slug: 'drilling-fastening', icon: 'screw-machine-flat-top' },
     { name: 'Cutting & Grinding', slug: 'cutting-grinding', icon: 'content-cut' },
     { name: 'Sanding & Finishing', slug: 'sanding-finishing', icon: 'brush' },
     { name: 'Welding & Metalwork', slug: 'welding-metalwork', icon: 'torch' },

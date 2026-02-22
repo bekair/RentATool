@@ -11,6 +11,7 @@ import {
     ScrollView,
 } from 'react-native';
 import { useAuth } from '../context/AuthContext';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 export default function SignupScreen({ navigation }) {
     const [displayName, setDisplayName] = useState('');
@@ -51,7 +52,7 @@ export default function SignupScreen({ navigation }) {
         >
             <ScrollView contentContainerStyle={styles.scrollContent}>
                 <View style={styles.header}>
-                    <Text style={styles.logo}>🔧</Text>
+                    <MaterialCommunityIcons name="tools" size={64} color="#6366f1" style={{ marginBottom: 16 }} />
                     <Text style={styles.title}>Create Account</Text>
                     <Text style={styles.subtitle}>Join the tool-sharing community</Text>
                 </View>

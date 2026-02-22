@@ -55,4 +55,19 @@ export class ToolsController {
     remove(@Param('id') id: string, @Request() req) {
         return this.toolsService.remove(id, req.user.id);
     }
+
+    @Get(':id/availability')
+    getAvailability(@Param('id') id: string) {
+        return this.toolsService.getAvailability(id);
+    }
+
+    @Patch(':id/availability')
+    @UseGuards(JwtAuthGuard)
+    updateAvailability(
+        @Param('id') id: string,
+        @Request() req,
+        @Body() body: { manualBlockedDates: string[] }
+    ) {
+        return this.toolsService.updateAvailability(id, req.user.id, body.manualBlockedDates);
+    }
 }

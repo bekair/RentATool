@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 // expo-linear-gradient not installed — using plain View fade instead
 import api from '../api/client';
+import { useAuth } from '../context/AuthContext';
 
 const { width } = Dimensions.get('window');
 
@@ -28,11 +29,14 @@ const C = {
 
 const ToolDetailsScreen = ({ route, navigation }) => {
     const { toolId } = route.params;
+    const { user } = useAuth();
     const [tool, setTool] = useState(null);
     const [loading, setLoading] = useState(true);
     const [bookingLoading, setBookingLoading] = useState(false);
     const [isFavorite, setIsFavorite] = useState(false);
     const [existingBooking, setExistingBooking] = useState(null);
+
+    const isOwner = user?.id && tool?.ownerId === user.id;
 
     useEffect(() => {
         api.get(`/tools/${toolId}`)
@@ -56,31 +60,7 @@ const ToolDetailsScreen = ({ route, navigation }) => {
             .catch(() => { }); // not critical — ignore silently
     }, [toolId]);
 
-    const handleRent = async () => {
-        setBookingLoading(true);
-        try {
-            const tomorrow = new Date();
-            tomorrow.setDate(tomorrow.getDate() + 1);
-            const nextDay = new Date(tomorrow);
-            nextDay.setDate(nextDay.getDate() + 1);
 
-            await api.post('/bookings', {
-                toolId,
-                startDate: tomorrow.toISOString(),
-                endDate: nextDay.toISOString(),
-                totalPrice: tool.pricePerDay,
-            });
-            Alert.alert(
-                'Request Sent',
-                'The owner has been notified. You can track this in your bookings.',
-                [{ text: 'View Bookings', onPress: () => navigation.navigate('MainTabs', { screen: 'Bookings' }) }]
-            );
-        } catch (err) {
-            Alert.alert('Error', err.response?.data?.message || 'Failed to send rental request');
-        } finally {
-            setBookingLoading(false);
-        }
-    };
 
     if (loading) {
         return (
@@ -232,27 +212,36 @@ const ToolDetailsScreen = ({ route, navigation }) => {
                                 <Text style={styles.availLink}>Check availability</Text>
                             </TouchableOpacity>
                         </View>
-                        <TouchableOpacity
-                            style={[
-                                styles.reserveBtn,
-                                (bookingLoading || existingBooking) && styles.reserveBtnDisabled,
-                            ]}
-                            onPress={handleRent}
-                            disabled={bookingLoading || !!existingBooking}
-                        >
-                            {bookingLoading ? (
-                                <ActivityIndicator color="#fff" />
-                            ) : existingBooking ? (
-                                <View style={{ alignItems: 'center' }}>
-                                    <Ionicons name="checkmark-circle" size={16} color="#fff" />
-                                    <Text style={[styles.reserveBtnText, { fontSize: 12, marginTop: 2 }]}>
-                                        {existingBooking.status === 'APPROVED' ? 'Approved' : 'Requested'}
-                                    </Text>
-                                </View>
-                            ) : (
-                                <Text style={styles.reserveBtnText}>Reserve</Text>
-                            )}
-                        </TouchableOpacity>
+                        {isOwner ? (
+                            <TouchableOpacity
+                                style={styles.reserveBtn}
+                                onPress={() => navigation.navigate('ToolCalendar', { toolItem: tool })}
+                            >
+                                <Text style={styles.reserveBtnText}>Settings</Text>
+                            </TouchableOpacity>
+                        ) : (
+                            <TouchableOpacity
+                                style={[
+                                    styles.reserveBtn,
+                                    (bookingLoading || existingBooking) && styles.reserveBtnDisabled,
+                                ]}
+                                onPress={() => navigation.navigate('BookingDates', { toolItem: tool })}
+                                disabled={bookingLoading || !!existingBooking}
+                            >
+                                {bookingLoading ? (
+                                    <ActivityIndicator color="#fff" />
+                                ) : existingBooking ? (
+                                    <View style={{ alignItems: 'center' }}>
+                                        <Ionicons name="checkmark-circle" size={16} color="#fff" />
+                                        <Text style={[styles.reserveBtnText, { fontSize: 12, marginTop: 2 }]}>
+                                            {existingBooking.status === 'APPROVED' ? 'Approved' : 'Requested'}
+                                        </Text>
+                                    </View>
+                                ) : (
+                                    <Text style={styles.reserveBtnText}>Reserve</Text>
+                                )}
+                            </TouchableOpacity>
+                        )}
                     </View>
                 </SafeAreaView>
             </View>

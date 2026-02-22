@@ -11,6 +11,7 @@ import {
     Alert
 } from 'react-native';
 import { useAuth } from '../context/AuthContext';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 export default function ForgotPasswordScreen({ navigation }) {
     const [email, setEmail] = useState('');
@@ -37,7 +38,7 @@ export default function ForgotPasswordScreen({ navigation }) {
         return (
             <View style={styles.container}>
                 <View style={[styles.header, { marginTop: 120 }]}>
-                    <Text style={styles.logo}>📧</Text>
+                    <MaterialCommunityIcons name="email-check-outline" size={64} color="#6366f1" style={{ marginBottom: 16 }} />
                     <Text style={styles.title}>Check your email</Text>
                     <Text style={styles.subtitle}>
                         We have sent password reset instructions to {email}
@@ -59,7 +60,7 @@ export default function ForgotPasswordScreen({ navigation }) {
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
             <View style={styles.header}>
-                <Text style={styles.logo}>🔐</Text>
+                <MaterialCommunityIcons name="lock-reset" size={64} color="#6366f1" style={{ marginBottom: 16 }} />
                 <Text style={styles.title}>Reset Password</Text>
                 <Text style={styles.subtitle}>
                     Enter your email to receive reset instructions

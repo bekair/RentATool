@@ -64,6 +64,7 @@ model Tool {
   images           String[]  @default([])
   isAvailable      Boolean   @default(true)
   bookings         Booking[]
+  blocks           ToolDateBlock[]
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
@@ -94,6 +95,19 @@ model Booking {
   updatedAt  DateTime      @updatedAt
 
   @@map("bookings")
+}
+
+model ToolDateBlock {
+  id        String   @id @default(uuid())
+  toolId    String
+  tool      Tool     @relation(fields: [toolId], references: [id], onDelete: Cascade)
+  date      DateTime @db.Date // The specific day being blocked
+  reason    String?           // e.g., "maintenance", "vacation" (optional for future use)
+  createdAt DateTime @default(now())
+
+  // Ensure a tool can't have duplicate block entries for the exact same day
+  @@unique([toolId, date]) 
+  @@map("tool_date_blocks")
 }
 
 
