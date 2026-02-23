@@ -22,7 +22,7 @@ INSERT INTO "categories" ("name", "slug", "icon") VALUES
   ('Power Tools',                'power-tools',         'power-plug'),
   ('Hand Tools',                 'hand-tools',          'hammer'),
   ('Measuring & Levelling',      'measuring-tools',     'ruler'),
-  ('Drilling & Fastening',       'drilling-fastening',  'screw'),
+  ('Drilling & Fastening',       'drilling-fastening',  'screw-machine-flat-top'),
   ('Cutting & Grinding',         'cutting-grinding',    'content-cut'),
   ('Sanding & Finishing',        'sanding-finishing',   'brush'),
   ('Welding & Metalwork',        'welding-metalwork',   'torch'),
