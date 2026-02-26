@@ -343,7 +343,7 @@ const ToolDetailsScreen = ({ route, navigation }) => {
                             >
                                 {isReserving
                                     ? <ActivityIndicator color="#fff" />
-                                    : <Text style={styles.reserveBtnText}>Reserve</Text>
+                                    : <Text style={styles.reserveBtnText}>Request Reserve</Text>
                                 }
                             </TouchableOpacity>
                         )}

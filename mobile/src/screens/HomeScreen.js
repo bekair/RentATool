@@ -15,13 +15,19 @@ import api from '../api/client';
 
 export default function HomeScreen({ navigation }) {
     const { user, logout } = useAuth();
-    const [stats, setStats] = useState({ listedCount: 0, rentalCount: 0, rating: 0 });
+    // Assuming listedCount represents "Lendings" (tools you own that have been rented) 
+    // and rentalCount represents "Rents" (times you rented other people's tools).
+    const [stats, setStats] = useState({ listedCount: 0, rentalCount: 0, rating: 5.0 });
     const [loading, setLoading] = useState(true);
 
     const fetchStats = async () => {
         try {
             const response = await api.get('/users/me/stats');
-            setStats(response.data);
+            setStats({
+                ...response.data,
+                // Defaulting rating for visual purposes until reputation mission is built
+                rating: response.data.rating || 5.0
+            });
         } catch (error) {
             console.error('Error fetching stats:', error);
         } finally {
@@ -36,29 +42,41 @@ export default function HomeScreen({ navigation }) {
     );
 
     const menuItems = [
-        { id: 'explore', title: 'Find Tools', icon: 'search', screen: 'Explore', color: '#6366f1' },
-        { id: 'my-tools', title: 'My Tools', icon: 'construct', screen: 'MyTools', color: '#10b981' },
-        { id: 'add-tool', title: 'List a Tool', icon: 'add-circle', screen: 'AddTool', color: '#f59e0b' },
-        { id: 'bookings', title: 'My Bookings', icon: 'calendar', screen: 'Bookings', color: '#ec4899' },
+        { id: 'profile-info', title: 'Profile Information', icon: 'person-outline', screen: null },
+        { id: 'favorites', title: 'Your Favorites', icon: 'heart-outline', screen: null },
+        { id: 'payment', title: 'Payment details', icon: 'card-outline', screen: null },
+        { id: 'trust', title: 'Trust & Verification', icon: 'shield-checkmark-outline', screen: null },
+        { id: 'legal', title: 'Legal', icon: 'document-text-outline', screen: null },
+        { id: 'help', title: 'Help', icon: 'headset-outline', screen: null },
+        { id: 'settings', title: 'Settings', icon: 'settings-outline', screen: null },
     ];
 
     const renderMenuItem = (item) => (
         <TouchableOpacity
             key={item.id}
             style={styles.menuItem}
-            onPress={() => navigation.navigate(item.screen)}
+            onPress={() => item.screen ? navigation.navigate(item.screen) : null}
+            activeOpacity={0.6}
         >
-            <View style={[styles.menuIconContainer, { backgroundColor: item.color + '15' }]}>
-                <Ionicons name={item.icon} size={22} color={item.color} />
+            <View style={styles.menuIconContainer}>
+                <Ionicons name={item.icon} size={24} color="#555" />
             </View>
             <Text style={styles.menuItemText}>{item.title}</Text>
-            <Ionicons name="chevron-forward" size={18} color="#444" />
         </TouchableOpacity>
     );
 
     return (
         <SafeAreaView style={styles.container}>
+            {/* Minimalist Top Nav Header */}
+            <View style={styles.topNav}>
+                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                    {/* Only show back if pushed on stack, otherwise hide it. Using empty view for spacing */}
+                </TouchableOpacity>
+            </View>
+
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+
+                {/* 1. Header Information */}
                 <View style={styles.header}>
                     <View style={styles.avatarContainer}>
                         <View style={styles.avatar}>
@@ -66,63 +84,76 @@ export default function HomeScreen({ navigation }) {
                                 {user?.displayName?.charAt(0).toUpperCase() || 'U'}
                             </Text>
                         </View>
-                        <View style={styles.verifiedBadgeContainer}>
-                            <Ionicons name="checkmark-circle" size={20} color="#22c55e" />
-                        </View>
+
+                        {/* Edit Pencil Icon on Avatar */}
+                        <TouchableOpacity style={styles.editAvatarButton}>
+                            <Ionicons name="pencil" size={16} color="#6366f1" />
+                        </TouchableOpacity>
+
+                        {/* Verification Badge */}
+                        {user?.verificationTier !== 'UNVERIFIED' && (
+                            <View style={styles.verifiedBadgeContainer}>
+                                <Ionicons name="checkmark-circle" size={24} color="#10b981" />
+                            </View>
+                        )}
                     </View>
                     <Text style={styles.name}>{user?.displayName || 'User'}</Text>
-                    <Text style={styles.email}>{user?.email}</Text>
-                    <View style={styles.tierBadge}>
-                        <Text style={styles.tierBadgeText}>{user?.verificationTier || 'UNVERIFIED'}</Text>
+
+                    <View style={styles.ratingContainer}>
+                        <Ionicons name="star" size={14} color="#3b82f6" />
+                        <Ionicons name="star" size={14} color="#3b82f6" />
+                        <Ionicons name="star" size={14} color="#3b82f6" />
+                        <Ionicons name="star" size={14} color="#3b82f6" />
+                        <Ionicons name="star" size={14} color="#3b82f6" />
+                        <Text style={styles.ratingText}> ({stats.rating.toFixed(1)})</Text>
+                    </View>
+
+                    <View style={styles.contactInfo}>
+                        <View style={styles.contactRow}>
+                            <Ionicons name="call-outline" size={16} color="#888" />
+                            <Text style={styles.contactText}>+1 (555) 012-3456</Text>
+                        </View>
+                        <View style={styles.contactRow}>
+                            <Ionicons name="mail-outline" size={16} color="#888" />
+                            <Text style={styles.contactText}>{user?.email}</Text>
+                        </View>
                     </View>
                 </View>
 
+                {/* 2. Quick Stats Row */}
                 <View style={styles.statsContainer}>
+                    <View style={styles.statBox}>
+                        <Text style={styles.statValue}>
+                            {loading ? <ActivityIndicator size="small" color="#fff" /> : stats.rentalCount}
+                        </Text>
+                        <Text style={styles.statLabel}>Total Rents</Text>
+                    </View>
+                    <View style={styles.statDivider} />
                     <View style={styles.statBox}>
                         <Text style={styles.statValue}>
                             {loading ? <ActivityIndicator size="small" color="#fff" /> : stats.listedCount}
                         </Text>
-                        <Text style={styles.statLabel}>Listed</Text>
-                    </View>
-                    <View style={[styles.statBox, styles.statDivider]}>
-                        <Text style={styles.statValue}>
-                            {loading ? <ActivityIndicator size="small" color="#fff" /> : stats.rentalCount}
-                        </Text>
-                        <Text style={styles.statLabel}>Rentals</Text>
-                    </View>
-                    <View style={styles.statBox}>
-                        <Text style={styles.statValue}>
-                            {loading ? <ActivityIndicator size="small" color="#fff" /> : stats.rating.toFixed(1)}
-                        </Text>
-                        <Text style={styles.statLabel}>Rating</Text>
+                        <Text style={styles.statLabel}>Total Lendings</Text>
                     </View>
                 </View>
 
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Dashboard</Text>
-                    <View style={styles.menuContainer}>
-                        {menuItems.map(renderMenuItem)}
-                    </View>
+                {/* 3. Vertical Menu List */}
+                <View style={styles.menuContainer}>
+                    {menuItems.map(renderMenuItem)}
                 </View>
 
-                <View style={[styles.section, { marginBottom: 30 }]}>
-                    <Text style={styles.sectionTitle}>Account</Text>
-                    <View style={styles.menuContainer}>
-                        <TouchableOpacity style={styles.menuItem}>
-                            <View style={[styles.menuIconContainer, { backgroundColor: '#4441' }]}>
-                                <Ionicons name="settings-outline" size={22} color="#888" />
-                            </View>
-                            <Text style={styles.menuItemText}>Settings</Text>
-                            <Ionicons name="chevron-forward" size={18} color="#444" />
-                        </TouchableOpacity>
-                        <TouchableOpacity style={styles.logoutItem} onPress={logout}>
-                            <View style={[styles.menuIconContainer, { backgroundColor: '#ef444415' }]}>
-                                <Ionicons name="log-out-outline" size={22} color="#ef4444" />
-                            </View>
-                            <Text style={[styles.menuItemText, { color: '#ef4444' }]}>Sign Out</Text>
-                        </TouchableOpacity>
-                    </View>
+                {/* 4. Bottom Log Out Box */}
+                <View style={styles.logoutContainer}>
+                    <TouchableOpacity style={styles.logoutItem} onPress={logout} activeOpacity={0.6}>
+                        <View style={styles.menuIconContainer}>
+                            <Ionicons name="power-outline" size={24} color="#ef4444" />
+                        </View>
+                        <Text style={[styles.menuItemText, { color: '#ef4444', fontWeight: 'bold' }]}>
+                            Log out
+                        </Text>
+                    </TouchableOpacity>
                 </View>
+
             </ScrollView>
         </SafeAreaView>
     );
@@ -133,144 +164,167 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: '#0a0a0a',
     },
+    topNav: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingHorizontal: 20,
+        paddingTop: 10,
+    },
+    backButton: {
+        width: 40,
+        height: 40,
+        justifyContent: 'center',
+    },
     scrollContent: {
         paddingHorizontal: 20,
-        paddingBottom: 110, // Avoid overlap with floating tab bar
+        paddingBottom: 110,
     },
     header: {
         alignItems: 'center',
-        marginTop: 40,
-        marginBottom: 30,
+        paddingVertical: 10,
     },
     avatarContainer: {
         position: 'relative',
         marginBottom: 15,
+        marginTop: 10,
+        alignItems: 'center',
     },
     avatar: {
-        width: 100,
-        height: 100,
-        borderRadius: 50,
+        width: 110,
+        height: 110,
+        borderRadius: 55,
         backgroundColor: '#1a1a1a',
         justifyContent: 'center',
         alignItems: 'center',
-        borderWidth: 1,
+        borderWidth: 3,
         borderColor: '#333',
     },
     avatarText: {
-        fontSize: 40,
+        fontSize: 42,
         fontWeight: 'bold',
         color: '#6366f1',
     },
+    editAvatarButton: {
+        position: 'absolute',
+        top: 0,
+        right: 0,
+        backgroundColor: '#1a1a1a',
+        borderRadius: 15,
+        width: 32,
+        height: 32,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 1.5,
+        borderColor: '#333',
+    },
     verifiedBadgeContainer: {
         position: 'absolute',
-        bottom: 5,
-        right: 5,
+        bottom: 2,
+        right: 2,
         backgroundColor: '#0a0a0a',
-        borderRadius: 12,
+        borderRadius: 15,
         padding: 2,
     },
     name: {
-        fontSize: 24,
-        fontWeight: '800',
+        fontSize: 26,
+        fontWeight: '700',
         color: '#fff',
-        marginBottom: 4,
+        marginBottom: 6,
     },
-    email: {
+    ratingContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 16,
+    },
+    ratingText: {
         fontSize: 14,
-        color: '#666',
-        marginBottom: 12,
+        color: '#888',
+        marginLeft: 6,
+        fontWeight: '500',
     },
-    tierBadge: {
-        backgroundColor: 'rgba(99, 102, 241, 0.1)',
-        paddingHorizontal: 15,
-        paddingVertical: 6,
-        borderRadius: 20,
-        borderWidth: 1,
-        borderColor: 'rgba(99, 102, 241, 0.2)',
+    contactInfo: {
+        alignItems: 'flex-start',
+        marginBottom: 10,
     },
-    tierBadgeText: {
-        fontSize: 11,
-        fontWeight: 'bold',
-        color: '#818cf8',
-        textTransform: 'uppercase',
-        letterSpacing: 1,
+    contactRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'flex-start',
+        marginBottom: 6,
+    },
+    contactText: {
+        fontSize: 14,
+        color: '#888',
+        marginLeft: 8,
     },
     statsContainer: {
         flexDirection: 'row',
         backgroundColor: '#161616',
-        borderRadius: 20,
+        borderRadius: 16,
         paddingVertical: 20,
-        marginBottom: 35,
+        marginTop: 10,
+        marginBottom: 30,
         borderWidth: 1,
         borderColor: '#262626',
     },
     statBox: {
         flex: 1,
         alignItems: 'center',
+        justifyContent: 'center',
     },
     statDivider: {
-        borderLeftWidth: 1,
-        borderRightWidth: 1,
-        borderColor: '#262626',
+        width: 1,
+        backgroundColor: '#262626',
     },
     statValue: {
-        fontSize: 20,
-        fontWeight: 'bold',
+        fontSize: 22,
+        fontWeight: '700',
         color: '#fff',
-        marginBottom: 4,
+        marginBottom: 6,
     },
     statLabel: {
-        fontSize: 12,
-        color: '#666',
+        fontSize: 14,
+        color: '#888',
         fontWeight: '500',
-    },
-    section: {
-        marginBottom: 25,
-    },
-    sectionTitle: {
-        fontSize: 16,
-        fontWeight: '700',
-        color: '#444',
-        marginBottom: 15,
-        textTransform: 'uppercase',
-        letterSpacing: 1,
-        marginLeft: 5,
     },
     menuContainer: {
         backgroundColor: '#161616',
-        borderRadius: 20,
-        padding: 8,
+        borderRadius: 16,
+        paddingVertical: 10,
+        marginBottom: 30,
         borderWidth: 1,
         borderColor: '#262626',
     },
     menuItem: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingVertical: 12,
-        paddingHorizontal: 12,
-        marginBottom: 4,
-    },
-    logoutItem: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingVertical: 12,
-        paddingHorizontal: 12,
-        marginTop: 4,
-        borderTopWidth: 1,
-        borderTopColor: '#262626',
+        paddingVertical: 16,
+        paddingHorizontal: 20,
     },
     menuIconContainer: {
-        width: 40,
-        height: 40,
-        borderRadius: 12,
+        width: 32,
         justifyContent: 'center',
-        alignItems: 'center',
-        marginRight: 15,
+        alignItems: 'flex-start',
     },
     menuItemText: {
         flex: 1,
         fontSize: 16,
-        fontWeight: '600',
         color: '#eee',
+        fontWeight: '500',
+    },
+    logoutContainer: {
+        backgroundColor: '#161616',
+        borderRadius: 16,
+        paddingVertical: 4,
+        marginBottom: 30,
+        borderWidth: 1,
+        borderColor: '#262626',
+    },
+    logoutItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 16,
+        paddingHorizontal: 20,
     },
 });
