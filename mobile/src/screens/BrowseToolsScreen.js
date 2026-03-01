@@ -96,6 +96,11 @@ const BrowseToolsScreen = ({ navigation }) => {
                     <Text style={styles.addButtonText}>+</Text>
                 </TouchableOpacity>
             </View>
+            {refreshing && (
+                <View style={styles.topLoader}>
+                    <ActivityIndicator size="small" color="#6366f1" />
+                </View>
+            )}
             <FlatList
                 data={tools}
                 renderItem={renderToolItem}
@@ -105,10 +110,10 @@ const BrowseToolsScreen = ({ navigation }) => {
                 alwaysBounceVertical={true}
                 refreshControl={
                     <RefreshControl
-                        refreshing={refreshing}
+                        refreshing={false}
                         onRefresh={onRefresh}
-                        tintColor="#6366f1"
-                        colors={['#6366f1']}
+                        tintColor="transparent"
+                        colors={['transparent']}
                     />
                 }
                 ListEmptyComponent={
@@ -120,9 +125,9 @@ const BrowseToolsScreen = ({ navigation }) => {
                         <Text style={styles.emptyText}>
                             It looks like no one has listed any tools in your area yet. Check back soon for new listings!
                         </Text>
-                        <View style={styles.pullToRefreshContainer}>
+                        <View style={styles.swipeDownToRefreshContainer}>
                             <Ionicons name="arrow-down" size={16} color="#6366f1" style={{ marginRight: 6 }} />
-                            <Text style={styles.pullToRefreshText}>Pull down to refresh</Text>
+                            <Text style={styles.swipeDownToRefreshText}>Swipe down to refresh</Text>
                         </View>
                     </View>
                 }
@@ -141,6 +146,10 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         backgroundColor: '#0a0a0a',
+    },
+    topLoader: {
+        paddingVertical: 10,
+        alignItems: 'center',
     },
     header: {
         paddingHorizontal: 20,
@@ -300,13 +309,13 @@ const styles = StyleSheet.create({
         marginBottom: 35,
         lineHeight: 22,
     },
-    pullToRefreshContainer: {
+    swipeDownToRefreshContainer: {
         flexDirection: 'row',
         alignItems: 'center',
         marginTop: 10,
         opacity: 0.8,
     },
-    pullToRefreshText: {
+    swipeDownToRefreshText: {
         color: '#6366f1',
         fontWeight: '600',
         fontSize: 14,

@@ -7,6 +7,7 @@ import {
     TouchableOpacity,
     Alert,
     RefreshControl,
+    ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,8 +19,8 @@ const BookingsScreen = ({ navigation }) => {
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
 
-    const fetchBookings = async () => {
-        if (!refreshing) setLoading(true);
+    const fetchBookings = async (isRefreshing = false) => {
+        if (!isRefreshing) setLoading(true);
         try {
             const endpoint = viewMode === 'rentals' ? '/bookings/renter' : '/bookings/owner';
             const response = await api.get(endpoint);
@@ -152,7 +153,7 @@ const BookingsScreen = ({ navigation }) => {
                         }}
                     >
                         <Text style={[styles.segmentText, viewMode === 'rentals' && styles.activeSegmentText]}>
-                            I'm Renting
+                            Rentals
                         </Text>
                     </TouchableOpacity>
                     <TouchableOpacity
@@ -165,53 +166,66 @@ const BookingsScreen = ({ navigation }) => {
                         }}
                     >
                         <Text style={[styles.segmentText, viewMode === 'requests' && styles.activeSegmentText]}>
-                            My Tools
+                            Lendings
                         </Text>
                     </TouchableOpacity>
                 </View>
             </View>
 
-            <FlatList
-                data={bookings}
-                renderItem={renderBookingItem}
-                keyExtractor={(item) => item.id}
-                style={{ flex: 1 }}
-                contentContainerStyle={styles.listContainer}
-                alwaysBounceVertical={true}
-                refreshControl={
-                    <RefreshControl
-                        refreshing={refreshing}
-                        onRefresh={() => {
-                            setRefreshing(true);
-                            fetchBookings();
-                        }}
-                        tintColor="#6366f1"
-                        colors={['#6366f1']}
-                    />
-                }
-                ListEmptyComponent={
-                    <View style={styles.emptyContainer}>
-                        <Ionicons
-                            name={viewMode === 'rentals' ? 'calendar-outline' : 'construct-outline'}
-                            size={64}
-                            color="#333"
-                            style={{ marginBottom: 16 }}
-                        />
-                        <Text style={styles.emptyTitle}>
-                            {viewMode === 'rentals' ? 'No Active Rentals' : 'No Booking Requests'}
-                        </Text>
-                        <Text style={styles.emptyText}>
-                            {viewMode === 'rentals'
-                                ? "You haven't rented any tools yet."
-                                : "No one has requested your tools yet."}
-                        </Text>
-                        <View style={styles.pullToRefreshContainer}>
-                            <Ionicons name="arrow-down" size={16} color="#6366f1" style={{ marginRight: 6 }} />
-                            <Text style={styles.pullToRefreshText}>Pull down to refresh</Text>
+            {loading ? (
+                <View style={styles.loaderContainer}>
+                    <ActivityIndicator size="large" color="#6366f1" />
+                </View>
+            ) : (
+                <>
+                    {refreshing && (
+                        <View style={styles.topLoader}>
+                            <ActivityIndicator size="small" color="#6366f1" />
                         </View>
-                    </View>
-                }
-            />
+                    )}
+                    <FlatList
+                        data={bookings}
+                        renderItem={renderBookingItem}
+                        keyExtractor={(item) => item.id}
+                        style={{ flex: 1 }}
+                        contentContainerStyle={styles.listContainer}
+                        alwaysBounceVertical={true}
+                        refreshControl={
+                            <RefreshControl
+                                refreshing={false}
+                                onRefresh={() => {
+                                    setRefreshing(true);
+                                    fetchBookings(true);
+                                }}
+                                tintColor="#6366f1"
+                                colors={['#6366f1']}
+                            />
+                        }
+                        ListEmptyComponent={
+                            <View style={styles.emptyContainer}>
+                                <Ionicons
+                                    name={viewMode === 'rentals' ? 'calendar-outline' : 'construct-outline'}
+                                    size={64}
+                                    color="#333"
+                                    style={{ marginBottom: 16 }}
+                                />
+                                <Text style={styles.emptyTitle}>
+                                    {viewMode === 'rentals' ? 'No Active Rentals' : 'No Booking Requests'}
+                                </Text>
+                                <Text style={styles.emptyText}>
+                                    {viewMode === 'rentals'
+                                        ? "You haven't rented any tools yet."
+                                        : "No one has requested your tools yet."}
+                                </Text>
+                                <View style={styles.swipeDownToRefreshContainer}>
+                                    <Ionicons name="arrow-down" size={16} color="#6366f1" style={{ marginRight: 6 }} />
+                                    <Text style={styles.swipeDownToRefreshText}>Swipe down to refresh</Text>
+                                </View>
+                            </View>
+                        }
+                    />
+                </>
+            )}
         </SafeAreaView>
     );
 };
@@ -220,6 +234,15 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: '#0a0a0a',
+    },
+    loaderContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    topLoader: {
+        paddingVertical: 10,
+        alignItems: 'center',
     },
     headerContainer: {
         padding: 20,
@@ -411,12 +434,12 @@ const styles = StyleSheet.create({
         lineHeight: 22,
         marginBottom: 35,
     },
-    pullToRefreshContainer: {
+    swipeDownToRefreshContainer: {
         flexDirection: 'row',
         alignItems: 'center',
         opacity: 0.8,
     },
-    pullToRefreshText: {
+    swipeDownToRefreshText: {
         color: '#6366f1',
         fontWeight: '600',
         fontSize: 14,
