@@ -42,7 +42,7 @@ export default function HomeScreen({ navigation }) {
     );
 
     const menuItems = [
-        { id: 'profile-info', title: 'Profile Information', icon: 'person-outline', screen: null },
+        { id: 'profile-info', title: 'Profile Information', icon: 'person-outline', screen: 'PersonalInformation' },
         { id: 'favorites', title: 'Your Favorites', icon: 'heart-outline', screen: null },
         { id: 'payment', title: 'Payment details', icon: 'card-outline', screen: null },
         { id: 'trust', title: 'Trust & Verification', icon: 'shield-checkmark-outline', screen: null },

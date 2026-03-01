@@ -11,8 +11,11 @@ import LoginScreen from '../screens/LoginScreen';
 import SignupScreen from '../screens/SignupScreen';
 import ForgotPasswordScreen from '../screens/ForgotPasswordScreen';
 import HomeScreen from '../screens/HomeScreen';
-import BrowseToolsScreen from '../screens/BrowseToolsScreen';
-import MyToolsScreen from '../screens/MyToolsScreen';
+import PersonalInformationScreen from '../screens/PersonalInformationScreen';
+import GeneralInfoScreen from '../screens/GeneralInfoScreen';
+import ContactDetailsScreen from '../screens/ContactDetailsScreen';
+import AccountSecurityScreen from '../screens/AccountSecurityScreen';
+import AddressesScreen from '../screens/AddressesScreen';
 import MapScreen from '../screens/MapScreen';
 import AddToolScreen from '../screens/AddToolScreen';
 import ToolDetailsScreen from '../screens/ToolDetailsScreen';
@@ -20,6 +23,9 @@ import BookingsScreen from '../screens/BookingsScreen';
 import ToolCalendarScreen from '../screens/ToolCalendarScreen';
 import EditToolScreen from '../screens/EditToolScreen';
 import BookingDatesScreen from '../screens/BookingDatesScreen';
+import BrowseToolsScreen from '../screens/BrowseToolsScreen';
+import MyToolsScreen from '../screens/MyToolsScreen';
+
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -157,6 +163,11 @@ function AppStack() {
         >
             <Stack.Screen name="MainTabs" component={TabNavigator} />
             <Stack.Screen name="ToolDetails" component={ToolDetailsScreen} />
+            <Stack.Screen name="PersonalInformation" component={PersonalInformationScreen} />
+            <Stack.Screen name="GeneralInfo" component={GeneralInfoScreen} />
+            <Stack.Screen name="ContactDetails" component={ContactDetailsScreen} />
+            <Stack.Screen name="AccountSecurity" component={AccountSecurityScreen} />
+            <Stack.Screen name="Addresses" component={AddressesScreen} />
             <Stack.Screen
                 name="AddTool"
                 component={AddToolScreen}

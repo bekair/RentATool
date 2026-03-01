@@ -19,6 +19,8 @@ import { Calendar } from 'react-native-calendars';
 import api from '../api/client';
 import * as Location from 'expo-location';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import LabelField from '../components/form/LabelField';
+import { InputField, DropdownField } from '../components/form';
 
 const AddToolScreen = ({ navigation }) => {
     const insets = useSafeAreaInsets();
@@ -251,87 +253,58 @@ const AddToolScreen = ({ navigation }) => {
                 <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
                     <View style={styles.form}>
                         <View style={styles.section}>
-                            <Text style={styles.label}>Basic Information</Text>
-                            <TextInput
-                                style={styles.input}
-                                placeholder="Tool name (e.g. Bosch Hammer Drill)"
-                                placeholderTextColor="#999"
+                            <InputField
+                                label="Tool name"
+                                isEditing={true}
                                 value={name}
                                 onChangeText={setName}
+                                placeholder="e.g. Bosch Hammer Drill"
                             />
-                            {/* Category picker */}
-                            <TouchableOpacity
-                                style={[styles.input, styles.categoryCard]}
+                            <DropdownField
+                                label="Category"
+                                isEditing={true}
+                                value={selectedCategory?.name}
+                                placeholder="Select a category…"
                                 onPress={() => setShowCategoryModal(true)}
-                            >
-                                {selectedCategory ? (
-                                    <View style={styles.categorySelected}>
-                                        <MaterialCommunityIcons
-                                            name={selectedCategory.icon}
-                                            size={22}
-                                            color="#6366f1"
-                                        />
-                                        <Text style={styles.categorySelectedText}>{selectedCategory.name}</Text>
-                                    </View>
-                                ) : (
-                                    <Text style={styles.categoryPlaceholder}>Select a category…</Text>
-                                )}
-                                <Ionicons name="chevron-forward" size={18} color="#555" />
-                            </TouchableOpacity>
-                            <TextInput
-                                style={[styles.input, styles.textArea]}
-                                placeholder="Tell us more about your tool..."
-                                placeholderTextColor="#999"
+                            />
+                            <InputField
+                                label="Description"
+                                isEditing={true}
                                 value={description}
                                 onChangeText={setDescription}
+                                placeholder="Tell us more about your tool..."
                                 multiline
                                 numberOfLines={4}
+                                style={{ height: 100 }}
                             />
-                        </View>
-
-                        <View style={styles.section}>
-                            <Text style={styles.label}>Pricing & Value</Text>
-                            <View style={styles.row}>
-                                <View style={[styles.inputContainer, { flex: 1, marginRight: 10 }]}>
-                                    <Text style={styles.currencyPrefix}>€</Text>
-                                    <TextInput
-                                        style={styles.inputInner}
-                                        placeholder="15.00"
-                                        placeholderTextColor="#999"
-                                        value={price}
-                                        onChangeText={setPrice}
-                                        keyboardType="decimal-pad"
-                                    />
-                                    <Text style={styles.unitSuffix}>/day</Text>
-                                </View>
-                                <View style={[styles.inputContainer, { flex: 1 }]}>
-                                    <Text style={styles.currencyPrefix}>€</Text>
-                                    <TextInput
-                                        style={styles.inputInner}
-                                        placeholder="Value"
-                                        placeholderTextColor="#999"
-                                        value={replacementValue}
-                                        onChangeText={setReplacementValue}
-                                        keyboardType="decimal-pad"
-                                    />
-                                </View>
-                            </View>
-                        </View>
-
-                        <View style={styles.section}>
-                            <Text style={styles.label}>Condition</Text>
-                            <TextInput
-                                style={styles.input}
-                                placeholder="e.g. Excellent, Minor scratches"
-                                placeholderTextColor="#999"
+                            <InputField
+                                label="Price per day (€)"
+                                isEditing={true}
+                                value={price}
+                                onChangeText={setPrice}
+                                placeholder="15.00"
+                                keyboardType="decimal-pad"
+                            />
+                            <InputField
+                                label="Replacement value (€)"
+                                isEditing={true}
+                                value={replacementValue}
+                                onChangeText={setReplacementValue}
+                                placeholder="0.00"
+                                keyboardType="decimal-pad"
+                            />
+                            <InputField
+                                label="Condition"
+                                isEditing={true}
                                 value={condition}
                                 onChangeText={setCondition}
+                                placeholder="e.g. Excellent, Minor scratches"
                             />
                         </View>
 
                         <View style={styles.section}>
                             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                                <Text style={styles.label}>Availability (Optional)</Text>
+                                <LabelField>Availability (Optional)</LabelField>
                             </View>
                             <Text style={[styles.locationSub, { marginBottom: 10 }]}>Select a start and end date to block out a range of days (up to 3 weeks in advance).</Text>
                             <Calendar
@@ -355,7 +328,7 @@ const AddToolScreen = ({ navigation }) => {
                         </View>
 
                         <View style={styles.section}>
-                            <Text style={styles.label}>Location</Text>
+                            <LabelField>Location</LabelField>
                             <TouchableOpacity
                                 style={[styles.locationCard, (latitude && longitude) && styles.locationCardActive]}
                                 onPress={openMapPicker}
