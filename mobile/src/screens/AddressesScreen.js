@@ -17,7 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import MapView from 'react-native-maps';
 import * as Location from 'expo-location';
 import { useAuth } from '../context/AuthContext';
-import { InputField } from '../components/form';
+import { InputField, CountryField } from '../components/form';
 
 const FIELD_HEIGHT = 56;
 const ADDRESS_TYPES = ['Home', 'Work', 'Workshop', 'Office'];
@@ -266,18 +266,47 @@ export default function AddressesScreen({ navigation }) {
         initMap();
     };
 
-    const confirmMapAddress = () => {
+    const [mapSaving, setMapSaving] = useState(false);
+
+    const confirmMapAddress = async () => {
         if (!tempCoords) return;
-        const newAddr = {
-            id: Date.now().toString(),
-            label: mapLabel,
-            latitude: tempCoords.latitude,
-            longitude: tempCoords.longitude,
-            isDefault: addresses.length === 0,
-        };
-        setAddresses(prev => [...prev, newAddr]);
-        setShowAddModal(false);
-        resetForm();
+        setMapSaving(true);
+        try {
+            let resolvedStreet = '';
+            let resolvedCity = '';
+            let resolvedPostalCode = '';
+            let resolvedCountry = '';
+
+            try {
+                const [result] = await Location.reverseGeocodeAsync(tempCoords);
+                if (result) {
+                    resolvedStreet = [result.streetNumber, result.street]
+                        .filter(Boolean).join(' ') || result.name || '';
+                    resolvedCity = result.city || result.district || result.subregion || '';
+                    resolvedPostalCode = result.postalCode || '';
+                    resolvedCountry = result.country || '';
+                }
+            } catch {
+                // geocode failed — coords will still be saved
+            }
+
+            const newAddr = {
+                id: Date.now().toString(),
+                label: mapLabel,
+                street: resolvedStreet,
+                city: resolvedCity,
+                postalCode: resolvedPostalCode,
+                country: resolvedCountry,
+                latitude: tempCoords.latitude,
+                longitude: tempCoords.longitude,
+                isDefault: addresses.length === 0,
+            };
+            setAddresses(prev => [...prev, newAddr]);
+            setShowAddModal(false);
+            resetForm();
+        } finally {
+            setMapSaving(false);
+        }
     };
 
     // ── Manual helpers ───────────────────────────────────────────────────────
@@ -378,8 +407,12 @@ export default function AddressesScreen({ navigation }) {
                         <Text style={modal.title}>Add Address</Text>
                         <TouchableOpacity
                             onPress={addTab === 'manual' ? confirmManualAddress : confirmMapAddress}
+                            disabled={mapSaving}
                         >
-                            <Text style={modal.confirm}>Add</Text>
+                            {mapSaving
+                                ? <ActivityIndicator size="small" color="#6366f1" />
+                                : <Text style={modal.confirm}>Add</Text>
+                            }
                         </TouchableOpacity>
                     </View>
 
@@ -447,12 +480,11 @@ export default function AddressesScreen({ navigation }) {
                                     </View>
                                 </View>
 
-                                <InputField
+                                <CountryField
                                     label="Country"
                                     isEditing={true}
                                     value={country}
-                                    onChangeText={setCountry}
-                                    placeholder="Belgium"
+                                    onSelect={setCountry}
                                 />
                             </ScrollView>
                         </KeyboardAvoidingView>

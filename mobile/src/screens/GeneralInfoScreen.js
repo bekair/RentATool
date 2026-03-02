@@ -16,7 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/client';
-import { InputField, DropdownField, PhoneField } from '../components/form';
+import { InputField, PhoneField, CountryField } from '../components/form';
 
 const COUNTRIES = [
     { code: '+1', label: 'US', name: 'United States' },
@@ -31,10 +31,7 @@ const COUNTRIES = [
     { code: '+86', label: 'CN', name: 'China' },
 ];
 
-const REGIONS = [
-    'Belgium', 'France', 'Germany', 'India', 'Nepal',
-    'Netherlands', 'Turkey', 'United Kingdom', 'United States',
-];
+
 
 
 function PickerModal({ visible, title, options, onSelect, onClose }) {
@@ -73,7 +70,6 @@ export default function GeneralInfoScreen({ navigation }) {
     const [countryCode, setCountryCode] = useState(COUNTRIES[0]);
     const [phone, setPhone] = useState(user?.phone || '');
     const [showCountryPicker, setShowCountryPicker] = useState(false);
-    const [showRegionPicker, setShowRegionPicker] = useState(false);
 
     const handleSave = async () => {
         try {
@@ -164,12 +160,11 @@ export default function GeneralInfoScreen({ navigation }) {
                     />
 
                     {/* Country / Region */}
-                    <DropdownField
+                    <CountryField
                         label="Country/Region"
                         isEditing={isEditing}
                         value={region}
-                        placeholder="Select"
-                        onPress={() => setShowRegionPicker(true)}
+                        onSelect={setRegion}
                     />
 
                     {/* Phone */}
@@ -192,13 +187,6 @@ export default function GeneralInfoScreen({ navigation }) {
                 options={COUNTRIES}
                 onSelect={(c) => { setCountryCode(c); setShowCountryPicker(false); }}
                 onClose={() => setShowCountryPicker(false)}
-            />
-            <PickerModal
-                visible={showRegionPicker}
-                title="Select Country/Region"
-                options={REGIONS}
-                onSelect={(r) => { setRegion(r); setShowRegionPicker(false); }}
-                onClose={() => setShowRegionPicker(false)}
             />
 
         </SafeAreaView>
