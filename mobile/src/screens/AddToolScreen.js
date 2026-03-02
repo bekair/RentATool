@@ -1,15 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
     View,
     Text,
     StyleSheet,
-    TextInput,
     TouchableOpacity,
     ScrollView,
     Alert,
     ActivityIndicator,
     Modal,
-    Dimensions,
     Platform,
     KeyboardAvoidingView,
 } from 'react-native';
@@ -18,16 +16,14 @@ import MapView from 'react-native-maps';
 import { Calendar } from 'react-native-calendars';
 import api from '../api/client';
 import * as Location from 'expo-location';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import LabelField from '../components/form/LabelField';
-import { InputField, DropdownField } from '../components/form';
+import { InputField, CategoryField } from '../components/form';
 
 const AddToolScreen = ({ navigation }) => {
     const insets = useSafeAreaInsets();
     const [name, setName] = useState('');
-    const [selectedCategory, setSelectedCategory] = useState(null); // { id, name, icon }
-    const [categories, setCategories] = useState([]);
-    const [showCategoryModal, setShowCategoryModal] = useState(false);
+    const [selectedCategory, setSelectedCategory] = useState(null);
     const [description, setDescription] = useState('');
     const [price, setPrice] = useState('');
     const [replacementValue, setReplacementValue] = useState('');
@@ -49,11 +45,6 @@ const AddToolScreen = ({ navigation }) => {
     const maxDateString = maxDateObj.toISOString().split('T')[0];
     const todayString = new Date().toISOString().split('T')[0];
 
-    useEffect(() => {
-        api.get('/categories')
-            .then(res => setCategories(res.data))
-            .catch(() => { }); // silently fall back — picker just stays empty
-    }, []);
 
     const handleDayPress = (day) => {
         const dateString = day.dateString;
@@ -260,12 +251,11 @@ const AddToolScreen = ({ navigation }) => {
                                 onChangeText={setName}
                                 placeholder="e.g. Bosch Hammer Drill"
                             />
-                            <DropdownField
+                            <CategoryField
                                 label="Category"
                                 isEditing={true}
-                                value={selectedCategory?.name}
-                                placeholder="Select a category…"
-                                onPress={() => setShowCategoryModal(true)}
+                                value={selectedCategory}
+                                onSelect={setSelectedCategory}
                             />
                             <InputField
                                 label="Description"
@@ -398,59 +388,6 @@ const AddToolScreen = ({ navigation }) => {
                     )}
                 </TouchableOpacity>
             </View>
-
-            {/* ── Category Picker Modal ───────────────── */}
-            <Modal
-                visible={showCategoryModal}
-                animationType="slide"
-                statusBarTranslucent
-            >
-                <View style={styles.modalContainer}>
-                    <View style={[styles.modalTopBar, { paddingTop: insets.top + 12 }]}>
-                        <Text style={styles.modalTitle}>Select a Category</Text>
-                        <Text style={styles.modalSubtitle}>Choose the type that best fits your tool</Text>
-                    </View>
-
-                    <ScrollView
-                        contentContainerStyle={styles.categoryGrid}
-                        showsVerticalScrollIndicator={false}
-                    >
-                        {categories.map((cat) => {
-                            const isActive = selectedCategory?.id === cat.id;
-                            return (
-                                <TouchableOpacity
-                                    key={cat.id}
-                                    style={[styles.categoryGridItem, isActive && styles.categoryGridItemActive]}
-                                    onPress={() => {
-                                        setSelectedCategory(cat);
-                                        setShowCategoryModal(false);
-                                    }}
-                                >
-                                    <MaterialCommunityIcons
-                                        name={cat.icon}
-                                        size={32}
-                                        color={isActive ? '#6366f1' : '#aaa'}
-                                    />
-                                    <Text style={[styles.categoryGridLabel, isActive && styles.categoryGridLabelActive]}>
-                                        {cat.name}
-                                    </Text>
-                                </TouchableOpacity>
-                            );
-                        })}
-                    </ScrollView>
-
-                    <View style={[styles.modalBottomBar, { paddingBottom: insets.bottom }]}>
-                        <View style={styles.modalActions}>
-                            <TouchableOpacity
-                                style={styles.modalCancelBtn}
-                                onPress={() => setShowCategoryModal(false)}
-                            >
-                                <Text style={styles.modalCancelText}>Cancel</Text>
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-                </View>
-            </Modal>
 
             {/* ── Map Modal ───────────────── */}
             <Modal

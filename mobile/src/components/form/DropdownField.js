@@ -12,8 +12,9 @@ import { fieldStyles } from './styles';
  * @param {string}   value        — currently selected value
  * @param {string}   placeholder  — shown when no value is selected
  * @param {function} onPress      — called when the field is tapped in edit mode
+ * @param {node}     leftIcon     — optional element rendered to the left of the value
  */
-export default function DropdownField({ label, isEditing, value, placeholder = 'Select', onPress }) {
+export default function DropdownField({ label, isEditing, value, placeholder = 'Select', onPress, leftIcon }) {
     const stateStyle = isEditing ? fieldStyles.editing : fieldStyles.readOnly;
     const textColor = value ? (isEditing ? '#fff' : '#888') : '#444';
 
@@ -25,7 +26,8 @@ export default function DropdownField({ label, isEditing, value, placeholder = '
                 onPress={() => isEditing && onPress?.()}
                 activeOpacity={isEditing ? 0.7 : 1}
             >
-                <Text style={[s.valueText, { color: textColor }]}>
+                {leftIcon && <View style={s.iconWrap}>{leftIcon}</View>}
+                <Text style={[s.valueText, { color: textColor, flex: 1 }]}>
                     {value || placeholder}
                 </Text>
                 {isEditing && (
@@ -41,6 +43,9 @@ const s = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
+    },
+    iconWrap: {
+        marginRight: 10,
     },
     valueText: {
         fontSize: 16,

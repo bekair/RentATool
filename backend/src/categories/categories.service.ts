@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { createHash } from 'crypto';
 
 @Injectable()
 export class CategoriesService {
@@ -7,7 +8,7 @@ export class CategoriesService {
 
     findAll() {
         return this.prisma.category.findMany({
-            where: { parentId: null }, // top-level only; subcategories via children[]
+            where: { parentId: null },
             orderBy: { name: 'asc' },
         });
     }
@@ -17,5 +18,10 @@ export class CategoriesService {
             where: { parentId },
             orderBy: { name: 'asc' },
         });
+    }
+
+    async getEtag(): Promise<string> {
+        const categories = await this.findAll();
+        return createHash('md5').update(JSON.stringify(categories)).digest('hex');
     }
 }

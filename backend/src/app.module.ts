@@ -8,6 +8,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { ToolsModule } from './tools/tools.module';
 import { BookingsModule } from './bookings/bookings.module';
 import { CategoriesModule } from './categories/categories.module';
+import { CountriesModule } from './countries/countries.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { CategoriesModule } from './categories/categories.module';
     ToolsModule,
     BookingsModule,
     CategoriesModule,
+    CountriesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

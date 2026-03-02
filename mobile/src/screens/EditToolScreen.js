@@ -9,7 +9,6 @@ import {
     Alert,
     ActivityIndicator,
     Modal,
-    Dimensions,
     Platform,
     KeyboardAvoidingView,
 } from 'react-native';
@@ -18,15 +17,14 @@ import MapView from 'react-native-maps';
 import { Calendar } from 'react-native-calendars';
 import api from '../api/client';
 import * as Location from 'expo-location';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
+import { CategoryField } from '../components/form';
 
 const EditToolScreen = ({ route, navigation }) => {
     const { tool } = route.params;
     const insets = useSafeAreaInsets();
     const [name, setName] = useState(tool.name || '');
     const [selectedCategory, setSelectedCategory] = useState(tool.category || null);
-    const [categories, setCategories] = useState([]);
-    const [showCategoryModal, setShowCategoryModal] = useState(false);
     const [description, setDescription] = useState(tool.description || '');
     const [price, setPrice] = useState(tool.pricePerDay ? tool.pricePerDay.toString() : '');
     const [replacementValue, setReplacementValue] = useState(tool.replacementValue ? tool.replacementValue.toString() : '');
@@ -60,10 +58,6 @@ const EditToolScreen = ({ route, navigation }) => {
     const todayString = new Date().toISOString().split('T')[0];
 
     useEffect(() => {
-        api.get('/categories')
-            .then(res => setCategories(res.data))
-            .catch(() => { }); // silently fall back — picker just stays empty
-
         if (latitude && longitude) {
             Location.reverseGeocodeAsync({ latitude, longitude })
                 .then(([result]) => {
@@ -290,25 +284,12 @@ const EditToolScreen = ({ route, navigation }) => {
                                 value={name}
                                 onChangeText={setName}
                             />
-                            {/* Category picker */}
-                            <TouchableOpacity
-                                style={[styles.input, styles.categoryCard]}
-                                onPress={() => setShowCategoryModal(true)}
-                            >
-                                {selectedCategory ? (
-                                    <View style={styles.categorySelected}>
-                                        <MaterialCommunityIcons
-                                            name={selectedCategory.icon}
-                                            size={22}
-                                            color="#6366f1"
-                                        />
-                                        <Text style={styles.categorySelectedText}>{selectedCategory.name}</Text>
-                                    </View>
-                                ) : (
-                                    <Text style={styles.categoryPlaceholder}>Select a category…</Text>
-                                )}
-                                <Ionicons name="chevron-forward" size={18} color="#555" />
-                            </TouchableOpacity>
+                            <CategoryField
+                                label="Category"
+                                isEditing={true}
+                                value={selectedCategory}
+                                onSelect={setSelectedCategory}
+                            />
                             <TextInput
                                 style={[styles.input, styles.textArea]}
                                 placeholder="Tell us more about your tool..."
@@ -456,59 +437,6 @@ const EditToolScreen = ({ route, navigation }) => {
                     )}
                 </TouchableOpacity>
             </View>
-
-            {/* ── Category Picker Modal ───────────────── */}
-            <Modal
-                visible={showCategoryModal}
-                animationType="slide"
-                statusBarTranslucent
-            >
-                <View style={styles.modalContainer}>
-                    <View style={[styles.modalTopBar, { paddingTop: insets.top + 12 }]}>
-                        <Text style={styles.modalTitle}>Select a Category</Text>
-                        <Text style={styles.modalSubtitle}>Choose the type that best fits your tool</Text>
-                    </View>
-
-                    <ScrollView
-                        contentContainerStyle={styles.categoryGrid}
-                        showsVerticalScrollIndicator={false}
-                    >
-                        {categories.map((cat) => {
-                            const isActive = selectedCategory?.id === cat.id;
-                            return (
-                                <TouchableOpacity
-                                    key={cat.id}
-                                    style={[styles.categoryGridItem, isActive && styles.categoryGridItemActive]}
-                                    onPress={() => {
-                                        setSelectedCategory(cat);
-                                        setShowCategoryModal(false);
-                                    }}
-                                >
-                                    <MaterialCommunityIcons
-                                        name={cat.icon}
-                                        size={32}
-                                        color={isActive ? '#6366f1' : '#aaa'}
-                                    />
-                                    <Text style={[styles.categoryGridLabel, isActive && styles.categoryGridLabelActive]}>
-                                        {cat.name}
-                                    </Text>
-                                </TouchableOpacity>
-                            );
-                        })}
-                    </ScrollView>
-
-                    <View style={[styles.modalBottomBar, { paddingBottom: insets.bottom }]}>
-                        <View style={styles.modalActions}>
-                            <TouchableOpacity
-                                style={styles.modalCancelBtn}
-                                onPress={() => setShowCategoryModal(false)}
-                            >
-                                <Text style={styles.modalCancelText}>Cancel</Text>
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-                </View>
-            </Modal>
 
             {/* ── Map Modal ───────────────── */}
             <Modal
