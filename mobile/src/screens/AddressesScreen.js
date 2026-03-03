@@ -11,16 +11,26 @@ import {
     ActivityIndicator,
     KeyboardAvoidingView,
     Platform,
+    LogBox,
 } from 'react-native';
+import validator from 'validator';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import MapView from 'react-native-maps';
 import * as Location from 'expo-location';
 import { useAuth } from '../context/AuthContext';
 import { InputField, CountryField } from '../components/form';
+import { locationService } from '../services/locationService';
+import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
+import Constants from 'expo-constants';
+
+const GOOGLE_API_KEY = Constants.expoConfig?.extra?.googleMapsApiKey;
 
 const FIELD_HEIGHT = 56;
 const ADDRESS_TYPES = ['Home', 'Work', 'Workshop', 'Office'];
+
+// Ignore the VirtualizedList warning caused by GooglePlacesAutocomplete inside ScrollView
+LogBox.ignoreLogs(['VirtualizedLists should never be nested']);
 
 // Defined here so LabelChips (below) can reference it
 const chipRow = StyleSheet.create({
@@ -177,7 +187,7 @@ function AddressCard({ address, onDelete, onSetDefault }) {
                 ) : null}
                 {(address.city || address.country) ? (
                     <Text style={cardStyles.detail}>
-                        {[address.city, address.postalCode, address.country].filter(Boolean).join(', ')}
+                        {[address.city, address.state, address.postalCode, address.country].filter(Boolean).join(', ')}
                     </Text>
                 ) : null}
                 {address.latitude ? (
@@ -216,8 +226,11 @@ export default function AddressesScreen({ navigation }) {
     const [label, setLabel] = useState('Home');
     const [street, setStreet] = useState('');
     const [city, setCity] = useState('');
+    const [state, setState] = useState('');
     const [postalCode, setPostalCode] = useState('');
     const [country, setCountry] = useState('');
+    const [countryCode, setCountryCode] = useState('');
+    const [lookupLoading, setLookupLoading] = useState(false);
 
     // Map state
     const [mapReady, setMapReady] = useState(false);
@@ -229,8 +242,10 @@ export default function AddressesScreen({ navigation }) {
         setLabel('Home');
         setStreet('');
         setCity('');
+        setState('');
         setPostalCode('');
         setCountry('');
+        setCountryCode('');
         setTempCoords(null);
         setMapLabel('Home');
         setMapReady(false);
@@ -275,6 +290,7 @@ export default function AddressesScreen({ navigation }) {
         try {
             let resolvedStreet = '';
             let resolvedCity = '';
+            let resolvedState = '';
             let resolvedPostalCode = '';
             let resolvedCountry = '';
 
@@ -284,6 +300,7 @@ export default function AddressesScreen({ navigation }) {
                     resolvedStreet = [result.streetNumber, result.street]
                         .filter(Boolean).join(' ') || result.name || '';
                     resolvedCity = result.city || result.district || result.subregion || '';
+                    resolvedState = result.region || '';
                     resolvedPostalCode = result.postalCode || '';
                     resolvedCountry = result.country || '';
                 }
@@ -295,6 +312,7 @@ export default function AddressesScreen({ navigation }) {
                 label: mapLabel,
                 street: resolvedStreet,
                 city: resolvedCity,
+                state: resolvedState,
                 postalCode: resolvedPostalCode,
                 country: resolvedCountry,
                 latitude: tempCoords.latitude,
@@ -315,18 +333,48 @@ export default function AddressesScreen({ navigation }) {
         }
     };
 
+    const lookupPostalCode = async () => {
+        if (!postalCode.trim() || !countryCode || lookupLoading) return;
+
+        setLookupLoading(true);
+        try {
+            const locData = await locationService.lookupCityByPostalCode(postalCode, countryCode);
+            if (locData) {
+                if (locData.city && !city) setCity(locData.city);
+                if (locData.state && !state) setState(locData.state);
+            }
+        } finally {
+            setLookupLoading(false);
+        }
+    };
+
     // ── Manual helpers ───────────────────────────────────────────────────────
     const confirmManualAddress = async () => {
         if (!street.trim() && !city.trim()) {
             Alert.alert('Missing Info', 'Please enter at least a street or city.');
             return;
         }
+
+        // Validate Postal Code if country is selected
+        if (postalCode.trim() && countryCode) {
+            // isPostalCode supported locales
+            const supported = ['AD', 'AT', 'AU', 'AZ', 'BE', 'BG', 'BR', 'BY', 'CA', 'CH', 'CL', 'CN', 'CZ', 'DE', 'DK', 'DO', 'DZ', 'EE', 'ES', 'FI', 'FR', 'GB', 'GR', 'HR', 'HU', 'ID', 'IE', 'IL', 'IN', 'IR', 'IS', 'IT', 'JP', 'KE', 'KR', 'LI', 'LT', 'LU', 'LV', 'MG', 'MX', 'MY', 'NL', 'NO', 'NZ', 'PL', 'PR', 'PT', 'RO', 'RU', 'SA', 'SE', 'SG', 'SI', 'SK', 'TH', 'TN', 'TR', 'UA', 'US', 'ZA', 'ZM'];
+
+            if (supported.includes(countryCode)) {
+                if (!validator.isPostalCode(postalCode.trim(), countryCode)) {
+                    Alert.alert('Invalid Postal Code', `The postal code format for ${country} is invalid.`);
+                    return;
+                }
+            }
+        }
+
         setActionLoading(true);
         try {
             const newAddr = {
                 label,
                 street: street.trim(),
                 city: city.trim(),
+                state: state.trim(),
                 postalCode: postalCode.trim(),
                 country: country.trim(),
                 isDefault: addresses.length === 0,
@@ -479,13 +527,92 @@ export default function AddressesScreen({ navigation }) {
                                 <Text style={modal.fieldLabel}>Label</Text>
                                 <LabelChips selected={label} onSelect={setLabel} />
 
-                                <InputField
-                                    label="Street Address"
-                                    isEditing={true}
-                                    value={street}
-                                    onChangeText={setStreet}
-                                    placeholder="123 Main St"
-                                />
+                                <View style={{ zIndex: 1, marginBottom: 16 }}>
+                                    <Text style={modal.fieldLabel}>Street Address</Text>
+                                    <GooglePlacesAutocomplete
+                                        placeholder="Enter your street address..."
+                                        fetchDetails={true}
+                                        onPress={(data, details = null) => {
+                                            if (!details) return;
+                                            let stNumber = '';
+                                            let stName = '';
+                                            let tempLocality = '';
+                                            let tempPostalTown = '';
+                                            let tempAdminArea = '';
+                                            let tempAdminAreaLevel1 = '';
+
+                                            details.address_components.forEach(component => {
+                                                const types = component.types;
+                                                if (types.includes('street_number')) stNumber = component.long_name;
+                                                if (types.includes('route')) stName = component.long_name;
+
+                                                if (types.includes('locality')) tempLocality = component.long_name;
+                                                if (types.includes('postal_town')) tempPostalTown = component.long_name;
+                                                if (types.includes('administrative_area_level_2')) tempAdminArea = component.long_name;
+                                                if (types.includes('administrative_area_level_1')) tempAdminAreaLevel1 = component.long_name;
+
+                                                if (types.includes('postal_code')) {
+                                                    setPostalCode(component.long_name);
+                                                }
+                                                if (types.includes('country')) {
+                                                    setCountry(component.long_name);
+                                                    setCountryCode(component.short_name);
+                                                }
+                                            });
+
+                                            const computedStreet = `${stNumber} ${stName}`.trim();
+                                            setStreet(computedStreet || data.description);
+
+                                            // Priority: locality > postal_town > administrative_area_level_2
+                                            const computedCity = tempLocality || tempPostalTown || tempAdminArea;
+                                            if (computedCity) setCity(computedCity);
+
+                                            if (tempAdminAreaLevel1) setState(tempAdminAreaLevel1);
+                                        }}
+                                        query={{
+                                            key: GOOGLE_API_KEY,
+                                            language: 'en',
+                                        }}
+                                        textInputProps={{
+                                            placeholderTextColor: '#555',
+                                            value: street,
+                                            onChangeText: setStreet
+                                        }}
+                                        styles={{
+                                            textInput: {
+                                                height: 56,
+                                                backgroundColor: 'rgba(255, 255, 255, 0.12)',
+                                                borderRadius: 10,
+                                                borderWidth: 1,
+                                                borderColor: 'rgba(99, 102, 241, 0.4)',
+                                                color: '#fff',
+                                                paddingHorizontal: 16,
+                                                fontSize: 16,
+                                            },
+                                            container: { flex: 0 },
+                                            listView: {
+                                                backgroundColor: '#1c1c1e',
+                                                borderRadius: 10,
+                                                marginTop: 4,
+                                                position: 'absolute',
+                                                top: 60, left: 0, right: 0,
+                                                zIndex: 999,
+                                                borderWidth: 1,
+                                                borderColor: '#333'
+                                            },
+                                            row: {
+                                                backgroundColor: '#1c1c1e',
+                                                padding: 13,
+                                                height: 48,
+                                                flexDirection: 'row',
+                                                borderBottomWidth: 1,
+                                                borderBottomColor: '#2a2a2a'
+                                            },
+                                            description: { color: '#ccc' }
+                                        }}
+                                        enablePoweredByContainer={false}
+                                    />
+                                </View>
 
                                 <View style={modal.rowFields}>
                                     <View style={{ flex: 1 }}>
@@ -498,15 +625,33 @@ export default function AddressesScreen({ navigation }) {
                                         />
                                     </View>
                                     <View style={{ width: 12 }} />
-                                    <View style={{ flex: 0.6 }}>
+                                    <View style={{ flex: 1 }}>
+                                        <InputField
+                                            label="State / Province"
+                                            isEditing={true}
+                                            value={state}
+                                            onChangeText={setState}
+                                            placeholder="Vlaams-Brabant"
+                                        />
+                                    </View>
+                                </View>
+                                <View style={modal.rowFields}>
+                                    <View style={{ flex: 1 }}>
                                         <InputField
                                             label="Postal Code"
                                             isEditing={true}
                                             value={postalCode}
                                             onChangeText={setPostalCode}
+                                            onBlur={lookupPostalCode}
                                             placeholder="1000"
-                                            keyboardType="numeric"
                                         />
+                                        {lookupLoading && (
+                                            <ActivityIndicator
+                                                size="small"
+                                                color="#6366f1"
+                                                style={{ position: 'absolute', right: 10, bottom: 18 }}
+                                            />
+                                        )}
                                     </View>
                                 </View>
 
@@ -514,7 +659,10 @@ export default function AddressesScreen({ navigation }) {
                                     label="Country"
                                     isEditing={true}
                                     value={country}
-                                    onSelect={setCountry}
+                                    onSelect={(c) => {
+                                        setCountry(c.name);
+                                        setCountryCode(c.code);
+                                    }}
                                 />
                             </ScrollView>
                         </KeyboardAvoidingView>

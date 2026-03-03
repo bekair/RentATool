@@ -39,10 +39,10 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
-    const signup = async (email, password, displayName) => {
+    const signup = async (email, password, firstName, lastName) => {
         setError(null);
         try {
-            const response = await authApi.signup(email, password, displayName);
+            const response = await authApi.signup(email, password, firstName, lastName);
             await saveToken(response.accessToken);
             setUser(response.user);
             return true;
@@ -62,6 +62,8 @@ export const AuthProvider = ({ children }) => {
         await removeToken();
         setUser(null);
     };
+
+    const clearError = () => setError(null);
 
     const forgotPassword = async (email) => {
         setError(null);
@@ -83,6 +85,7 @@ export const AuthProvider = ({ children }) => {
                 login,
                 signup,
                 logout,
+                clearError,
                 forgotPassword,
                 isAuthenticated: !!user,
             }}

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
     View,
     Text,
@@ -10,22 +10,34 @@ import {
     ActivityIndicator,
     ScrollView,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { InputField } from '../components/form';
 
 export default function SignupScreen({ navigation }) {
-    const [displayName, setDisplayName] = useState('');
+    const [firstName, setFirstName] = useState('');
+    const [lastName, setLastName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [localError, setLocalError] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const { signup, error } = useAuth();
+    const { signup, error, clearError } = useAuth();
+
+    useFocusEffect(
+        useCallback(() => {
+            return () => {
+                clearError();
+                setLocalError('');
+            };
+        }, [])
+    );
 
     const handleSignup = async () => {
         setLocalError('');
 
-        if (!displayName || !email || !password) {
+        if (!firstName || !lastName || !email || !password) {
             setLocalError('Please fill in all fields');
             return;
         }
@@ -41,7 +53,7 @@ export default function SignupScreen({ navigation }) {
         }
 
         setIsSubmitting(true);
-        await signup(email, password, displayName);
+        await signup(email, password, firstName, lastName);
         setIsSubmitting(false);
     };
 
@@ -58,53 +70,49 @@ export default function SignupScreen({ navigation }) {
                 </View>
 
                 <View style={styles.form}>
-                    <View style={styles.inputContainer}>
-                        <Text style={styles.label}>Display Name</Text>
-                        <TextInput
-                            style={styles.input}
-                            placeholder="How should we call you?"
-                            placeholderTextColor="#666"
-                            value={displayName}
-                            onChangeText={setDisplayName}
-                        />
-                    </View>
+                    <InputField
+                        label="First Name"
+                        placeholder="John"
+                        value={firstName}
+                        onChangeText={setFirstName}
+                        isEditing={true}
+                    />
 
-                    <View style={styles.inputContainer}>
-                        <Text style={styles.label}>Email</Text>
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Enter your email"
-                            placeholderTextColor="#666"
-                            value={email}
-                            onChangeText={setEmail}
-                            keyboardType="email-address"
-                            autoCapitalize="none"
-                        />
-                    </View>
+                    <InputField
+                        label="Last Name"
+                        placeholder="Doe"
+                        value={lastName}
+                        onChangeText={setLastName}
+                        isEditing={true}
+                    />
 
-                    <View style={styles.inputContainer}>
-                        <Text style={styles.label}>Password</Text>
-                        <TextInput
-                            style={styles.input}
-                            placeholder="At least 8 characters"
-                            placeholderTextColor="#666"
-                            value={password}
-                            onChangeText={setPassword}
-                            secureTextEntry
-                        />
-                    </View>
+                    <InputField
+                        label="Email"
+                        placeholder="Enter your email"
+                        value={email}
+                        onChangeText={setEmail}
+                        keyboardType="email-address"
+                        autoCapitalize="none"
+                        isEditing={true}
+                    />
 
-                    <View style={styles.inputContainer}>
-                        <Text style={styles.label}>Confirm Password</Text>
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Re-enter your password"
-                            placeholderTextColor="#666"
-                            value={confirmPassword}
-                            onChangeText={setConfirmPassword}
-                            secureTextEntry
-                        />
-                    </View>
+                    <InputField
+                        label="Password"
+                        placeholder="At least 8 characters"
+                        value={password}
+                        onChangeText={setPassword}
+                        secureTextEntry
+                        isEditing={true}
+                    />
+
+                    <InputField
+                        label="Confirm Password"
+                        placeholder="Re-enter your password"
+                        value={confirmPassword}
+                        onChangeText={setConfirmPassword}
+                        secureTextEntry
+                        isEditing={true}
+                    />
 
                     {(localError || error) && (
                         <Text style={styles.error}>{localError || error}</Text>

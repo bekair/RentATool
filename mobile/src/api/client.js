@@ -21,11 +21,12 @@ api.interceptors.request.use(async (config) => {
 });
 
 export const authApi = {
-    signup: async (email, password, displayName) => {
+    signup: async (email, password, firstName, lastName) => {
         const response = await api.post('/auth/signup', {
             email,
             password,
-            displayName,
+            firstName,
+            lastName
         });
         return response.data;
     },

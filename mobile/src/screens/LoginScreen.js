@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
     View,
     Text,
@@ -9,6 +9,7 @@ import {
     Platform,
     ActivityIndicator,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
@@ -16,7 +17,15 @@ export default function LoginScreen({ navigation }) {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const { login, error } = useAuth();
+    const { login, error, clearError } = useAuth();
+
+    useFocusEffect(
+        useCallback(() => {
+            return () => {
+                clearError();
+            };
+        }, [])
+    );
 
     const handleLogin = async () => {
         if (!email || !password) return;

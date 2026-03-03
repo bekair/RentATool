@@ -17,7 +17,11 @@ export class CreateUserDto {
 
     @IsString()
     @IsNotEmpty()
-    displayName: string;
+    firstName: string;
+
+    @IsString()
+    @IsNotEmpty()
+    lastName: string;
 }
 
 export class UpdateProfileDto {
@@ -50,6 +54,10 @@ export class CreateAddressDto {
     @IsOptional()
     @IsString()
     city?: string;
+
+    @IsOptional()
+    @IsString()
+    state?: string;
 
     @IsOptional()
     @IsString()

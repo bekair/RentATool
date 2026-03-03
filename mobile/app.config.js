@@ -56,6 +56,7 @@ export default {
             eas: {
                 projectId: "cb49d49f-73ee-44c6-83d6-ad740470efbd",
             },
+            googleMapsApiKey: process.env.GOOGLE_MAPS_ANDROID_API_KEY,
         },
     },
 };

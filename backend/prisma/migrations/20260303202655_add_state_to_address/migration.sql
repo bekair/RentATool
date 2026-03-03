@@ -1,0 +1,8 @@
+-- AlterTable
+ALTER TABLE "addresses" ADD COLUMN     "state" TEXT;
+
+-- AlterTable
+ALTER TABLE "countries" ALTER COLUMN "code" SET DATA TYPE TEXT,
+ALTER COLUMN "name" SET DATA TYPE TEXT,
+ALTER COLUMN "countryCode" SET DATA TYPE TEXT,
+ALTER COLUMN "flag" SET DATA TYPE TEXT;

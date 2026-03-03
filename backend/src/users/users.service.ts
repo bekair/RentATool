@@ -23,7 +23,9 @@ export class UsersService {
                 verificationTier: VerificationTier.UNVERIFIED,
                 profile: {
                     create: {
-                        displayName: createUserDto.displayName,
+                        firstName: createUserDto.firstName,
+                        lastName: createUserDto.lastName,
+                        displayName: `${createUserDto.firstName} ${createUserDto.lastName.charAt(0)}.`,
                     }
                 }
             },
