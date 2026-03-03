@@ -50,6 +50,7 @@ export default {
                         "Allow Share a Tool to use your location to show nearby tools.",
                 },
             ],
+            "@react-native-community/datetimepicker",
         ],
         extra: {
             eas: {

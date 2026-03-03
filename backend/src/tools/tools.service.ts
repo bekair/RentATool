@@ -54,7 +54,7 @@ export class ToolsService {
                 owner: {
                     select: {
                         id: true,
-                        displayName: true,
+                        profile: { select: { displayName: true } },
                         verificationTier: true,
                     },
                 },
@@ -69,8 +69,9 @@ export class ToolsService {
         // Flatten for frontend compatibility
         return tools.map(t => ({
             ...t,
-            ...(t.activeVersion || {}),
+            ...((t as any).activeVersion || {}),
             id: t.id, // Preserve master tool ID
+            owner: t.owner ? { ...t.owner, displayName: (t.owner as any).profile?.displayName } : null,
         }));
     }
 
@@ -81,7 +82,7 @@ export class ToolsService {
                 owner: {
                     select: {
                         id: true,
-                        displayName: true,
+                        profile: { select: { displayName: true } },
                         verificationTier: true,
                     },
                 },
@@ -100,8 +101,9 @@ export class ToolsService {
 
         return {
             ...tool,
-            ...(tool.activeVersion || {}),
+            ...((tool as any).activeVersion || {}),
             id: tool.id, // Preserve master tool ID
+            owner: tool.owner ? { ...tool.owner, displayName: (tool.owner as any).profile?.displayName } : null,
         };
     }
 
@@ -121,7 +123,7 @@ export class ToolsService {
         // Flatten for frontend compatibility
         return tools.map(t => ({
             ...t,
-            ...(t.activeVersion || {}),
+            ...((t as any).activeVersion || {}),
             id: t.id, // Preserve master tool ID
         }));
     }

@@ -18,11 +18,57 @@ export class CreateUserDto {
     @IsString()
     @IsNotEmpty()
     displayName: string;
+}
+
+export class UpdateProfileDto {
+    @IsOptional()
+    @IsString()
+    displayName?: string;
+
+    @IsOptional()
+    @IsString()
+    phone?: string;
+
+    @IsOptional()
+    @IsString()
+    region?: string;
+
+    @IsOptional()
+    @IsString()
+    birthDate?: string; // Expecting ISO string or similar date format
+}
+
+export class CreateAddressDto {
+    @IsString()
+    @IsNotEmpty()
+    label: string;
+
+    @IsOptional()
+    @IsString()
+    street?: string;
 
     @IsOptional()
     @IsString()
     city?: string;
+
+    @IsOptional()
+    @IsString()
+    postalCode?: string;
+
+    @IsOptional()
+    @IsString()
+    country?: string;
+
+    @IsOptional()
+    latitude?: number;
+
+    @IsOptional()
+    longitude?: number;
+
+    @IsOptional()
+    isDefault?: boolean;
 }
+
 
 export class LoginDto {
     @IsEmail()

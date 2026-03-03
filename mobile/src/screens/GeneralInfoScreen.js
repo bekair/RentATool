@@ -16,7 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/client';
-import { InputField, PhoneField, CountryField } from '../components/form';
+import { InputField, PhoneField, CountryField, DateField } from '../components/form';
 
 const COUNTRIES = [
     { code: '+1', label: 'US', name: 'United States' },
@@ -64,11 +64,18 @@ export default function GeneralInfoScreen({ navigation }) {
     const [loading, setLoading] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
 
-    const [displayName, setDisplayName] = useState(user?.displayName || '');
-    const [dob, setDob] = useState(user?.dob || '');
-    const [region, setRegion] = useState(user?.region || '');
-    const [countryCode, setCountryCode] = useState(COUNTRIES[0]);
-    const [phone, setPhone] = useState(user?.phone || '');
+    const [displayName, setDisplayName] = useState(user?.profile?.displayName || '');
+    const [dob, setDob] = useState(user?.profile?.birthDate || '');
+    const [region, setRegion] = useState(user?.profile?.region || '');
+
+    // Attempt to split phone into code and number, or default it
+    const phoneFull = user?.profile?.phone || '';
+    const codeMatch = COUNTRIES.find(c => phoneFull.startsWith(c.code));
+    const initialCountry = codeMatch || COUNTRIES[0];
+    const initialPhone = codeMatch ? phoneFull.slice(codeMatch.code.length) : phoneFull;
+
+    const [countryCode, setCountryCode] = useState(initialCountry);
+    const [phone, setPhone] = useState(initialPhone);
     const [showCountryPicker, setShowCountryPicker] = useState(false);
 
     const handleSave = async () => {
@@ -76,11 +83,11 @@ export default function GeneralInfoScreen({ navigation }) {
             setLoading(true);
             const payload = {
                 displayName,
-                dob,
+                birthDate: dob,
                 region,
                 phone: `${countryCode.code}${phone}`,
             };
-            const response = await api.patch('/users/me', payload);
+            const response = await api.patch('/users/me/profile', payload);
             if (updateCurrentUser) {
                 updateCurrentUser(response.data);
             }
@@ -92,16 +99,6 @@ export default function GeneralInfoScreen({ navigation }) {
         } finally {
             setLoading(false);
         }
-    };
-
-    const formatDob = (text) => {
-        // Strip non-numeric
-        const cleaned = text.replace(/\D/g, '');
-        let result = '';
-        if (cleaned.length > 0) result += cleaned.substring(0, 2);
-        if (cleaned.length >= 3) result += ' / ' + cleaned.substring(2, 4);
-        if (cleaned.length >= 5) result += ' / ' + cleaned.substring(4, 8);
-        setDob(result);
     };
 
     return (
@@ -149,14 +146,11 @@ export default function GeneralInfoScreen({ navigation }) {
                     />
 
                     {/* Date of Birth */}
-                    <InputField
+                    <DateField
                         label="Date of birth"
                         isEditing={isEditing}
                         value={dob}
-                        onChangeText={formatDob}
-                        placeholder="dd / mm / yyyy"
-                        keyboardType="numeric"
-                        maxLength={14}
+                        onChange={setDob}
                     />
 
                     {/* Country / Region */}

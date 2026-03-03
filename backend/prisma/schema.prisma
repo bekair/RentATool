@@ -21,17 +21,31 @@ model User {
   id               String           @id @default(uuid())
   email            String           @unique
   passwordHash     String
-  displayName      String
-  city             String?
   verificationTier VerificationTier @default(UNVERIFIED)
   verifiedAt       DateTime?
+  profile          UserProfile?
   tools            Tool[]
+  addresses        Address[]
   bookings         Booking[]        @relation("RenterBookings")
   receivedBookings Booking[]        @relation("OwnerBookings")
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
 
   @@map("users")
+}
+
+model UserProfile {
+  id          String    @id @default(uuid())
+  userId      String    @unique
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  displayName String?
+  birthDate   DateTime? @db.Date
+  region      String?   // country name e.g. "Belgium"
+  phone       String?   // full number with dial code e.g. "+32470000000"
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@map("user_profiles")
 }
 
 model Category {
@@ -148,3 +162,24 @@ model Country {
 
   @@map("countries")
 }
+
+model Address {
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  label      String               // "Home", "Work", or custom
+  street     String?
+  city       String?
+  postalCode String?
+  country    String?
+  latitude   Float?
+  longitude  Float?
+  isDefault  Boolean  @default(false)
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("addresses")
+}
+

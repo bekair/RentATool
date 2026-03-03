@@ -21,12 +21,12 @@ export default function ContactDetailsScreen({ navigation }) {
     const [loading, setLoading] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
 
-    const [phone, setPhone] = useState(user?.phone || '');
+    const [phone, setPhone] = useState(user?.profile?.phone || '');
 
     const handleSave = async () => {
         try {
             setLoading(true);
-            const response = await api.patch('/users/me', { phone });
+            const response = await api.patch('/users/me/profile', { phone });
             if (updateCurrentUser) {
                 updateCurrentUser(response.data);
             }

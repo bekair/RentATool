@@ -207,6 +207,7 @@ export default function AddressesScreen({ navigation }) {
 
     const [addresses, setAddresses] = useState(user?.addresses || []);
     const [showAddModal, setShowAddModal] = useState(false);
+    const [actionLoading, setActionLoading] = useState(false);
 
     // Add-modal state
     const [addTab, setAddTab] = useState('manual'); // 'manual' | 'map'
@@ -291,7 +292,6 @@ export default function AddressesScreen({ navigation }) {
             }
 
             const newAddr = {
-                id: Date.now().toString(),
                 label: mapLabel,
                 street: resolvedStreet,
                 city: resolvedCity,
@@ -301,32 +301,47 @@ export default function AddressesScreen({ navigation }) {
                 longitude: tempCoords.longitude,
                 isDefault: addresses.length === 0,
             };
-            setAddresses(prev => [...prev, newAddr]);
+
+            const response = await api.post('/users/me/addresses', newAddr);
+            setAddresses(response.data.addresses || []);
+            user.updateCurrentUser && user.updateCurrentUser(response.data);
+
             setShowAddModal(false);
             resetForm();
+        } catch (err) {
+            Alert.alert('Error', 'Failed to save address.');
         } finally {
             setMapSaving(false);
         }
     };
 
     // ── Manual helpers ───────────────────────────────────────────────────────
-    const confirmManualAddress = () => {
+    const confirmManualAddress = async () => {
         if (!street.trim() && !city.trim()) {
             Alert.alert('Missing Info', 'Please enter at least a street or city.');
             return;
         }
-        const newAddr = {
-            id: Date.now().toString(),
-            label,
-            street: street.trim(),
-            city: city.trim(),
-            postalCode: postalCode.trim(),
-            country: country.trim(),
-            isDefault: addresses.length === 0,
-        };
-        setAddresses(prev => [...prev, newAddr]);
-        setShowAddModal(false);
-        resetForm();
+        setActionLoading(true);
+        try {
+            const newAddr = {
+                label,
+                street: street.trim(),
+                city: city.trim(),
+                postalCode: postalCode.trim(),
+                country: country.trim(),
+                isDefault: addresses.length === 0,
+            };
+            const response = await api.post('/users/me/addresses', newAddr);
+            setAddresses(response.data.addresses || []);
+            user.updateCurrentUser && user.updateCurrentUser(response.data);
+
+            setShowAddModal(false);
+            resetForm();
+        } catch (err) {
+            Alert.alert('Error', 'Failed to save address.');
+        } finally {
+            setActionLoading(false);
+        }
     };
 
     const deleteAddress = (id) => {
@@ -334,20 +349,35 @@ export default function AddressesScreen({ navigation }) {
             { text: 'Cancel', style: 'cancel' },
             {
                 text: 'Remove', style: 'destructive',
-                onPress: () => setAddresses(prev => {
-                    const filtered = prev.filter(a => a.id !== id);
-                    // If deleted was default, promote first remaining
-                    if (filtered.length > 0 && !filtered.some(a => a.isDefault)) {
-                        filtered[0] = { ...filtered[0], isDefault: true };
+                onPress: async () => {
+                    setActionLoading(true);
+                    try {
+                        const res = await api.delete(`/users/me/addresses/${id}`);
+                        // To keep it simple, just fetch me again if delete responds success
+                        const profilePayload = await api.get('/auth/me');
+                        setAddresses(profilePayload.data.addresses || []);
+                        user.updateCurrentUser && user.updateCurrentUser(profilePayload.data);
+                    } catch (err) {
+                        Alert.alert('Error', 'Failed to remove address.');
+                    } finally {
+                        setActionLoading(false);
                     }
-                    return filtered;
-                }),
+                },
             },
         ]);
     };
 
-    const setDefault = (id) => {
-        setAddresses(prev => prev.map(a => ({ ...a, isDefault: a.id === id })));
+    const setDefault = async (id) => {
+        setActionLoading(true);
+        try {
+            const response = await api.patch(`/users/me/addresses/${id}`, { isDefault: true });
+            setAddresses(response.data.addresses || []);
+            user.updateCurrentUser && user.updateCurrentUser(response.data);
+        } catch (err) {
+            Alert.alert('Error', 'Failed to set default address.');
+        } finally {
+            setActionLoading(false);
+        }
     };
 
     return (
@@ -407,9 +437,9 @@ export default function AddressesScreen({ navigation }) {
                         <Text style={modal.title}>Add Address</Text>
                         <TouchableOpacity
                             onPress={addTab === 'manual' ? confirmManualAddress : confirmMapAddress}
-                            disabled={mapSaving}
+                            disabled={mapSaving || actionLoading}
                         >
-                            {mapSaving
+                            {(mapSaving || actionLoading)
                                 ? <ActivityIndicator size="small" color="#6366f1" />
                                 : <Text style={modal.confirm}>Add</Text>
                             }

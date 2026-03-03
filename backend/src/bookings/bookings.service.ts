@@ -45,7 +45,7 @@ export class BookingsService {
                 toolVersion: true,
                 owner: {
                     select: {
-                        displayName: true,
+                        profile: { select: { displayName: true } },
                         email: true,
                     },
                 },
@@ -55,7 +55,8 @@ export class BookingsService {
 
         return bookings.map(b => ({
             ...b,
-            tool: b.toolVersion, // Map for frontend compatibility
+            tool: (b as any).toolVersion, // Map for frontend compatibility
+            owner: b.owner ? { ...b.owner, displayName: (b.owner as any).profile?.displayName } : null,
         }));
     }
 
@@ -66,7 +67,7 @@ export class BookingsService {
                 toolVersion: true,
                 renter: {
                     select: {
-                        displayName: true,
+                        profile: { select: { displayName: true } },
                         email: true,
                     },
                 },
@@ -76,7 +77,8 @@ export class BookingsService {
 
         return bookings.map(b => ({
             ...b,
-            tool: b.toolVersion, // Map for frontend compatibility
+            tool: (b as any).toolVersion, // Map for frontend compatibility
+            renter: b.renter ? { ...b.renter, displayName: (b.renter as any).profile?.displayName } : null,
         }));
     }
 

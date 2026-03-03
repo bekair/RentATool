@@ -20,27 +20,109 @@ export class UsersService {
             data: {
                 email: createUserDto.email,
                 passwordHash,
-                displayName: createUserDto.displayName,
-                city: createUserDto.city,
                 verificationTier: VerificationTier.UNVERIFIED,
+                profile: {
+                    create: {
+                        displayName: createUserDto.displayName,
+                    }
+                }
             },
+            include: {
+                profile: true,
+                addresses: true,
+            }
         });
     }
 
-    async findByEmail(email: string): Promise<User | null> {
+    async findByEmail(email: string) {
         return this.prisma.user.findUnique({
             where: { email },
+            include: {
+                profile: true,
+                addresses: true,
+            }
         });
     }
 
-    async findById(id: string): Promise<User | null> {
+    async findById(id: string) {
         return this.prisma.user.findUnique({
             where: { id },
+            include: {
+                profile: true,
+                addresses: true,
+            }
         });
     }
 
-    async findAll(): Promise<User[]> {
-        return this.prisma.user.findMany();
+    async findAll() {
+        return this.prisma.user.findMany({
+            include: {
+                profile: true,
+                addresses: true,
+            }
+        });
+    }
+
+    async updateProfile(userId: string, data: any) {
+        return this.prisma.userProfile.update({
+            where: { userId },
+            data,
+        });
+    }
+
+    async createAddress(userId: string, data: any) {
+        if (data.isDefault) {
+            await this.prisma.address.updateMany({
+                where: { userId },
+                data: { isDefault: false },
+            });
+        }
+        return this.prisma.address.create({
+            data: { ...data, userId },
+        });
+    }
+
+    async updateAddress(userId: string, addressId: string, data: any) {
+        // Must belong to user
+        const address = await this.prisma.address.findFirst({
+            where: { id: addressId, userId },
+        });
+        if (!address) throw new NotFoundException('Address not found');
+
+        if (data.isDefault) {
+            await this.prisma.address.updateMany({
+                where: { userId },
+                data: { isDefault: false },
+            });
+        }
+
+        return this.prisma.address.update({
+            where: { id: addressId },
+            data,
+        });
+    }
+
+    async deleteAddress(userId: string, addressId: string) {
+        const address = await this.prisma.address.findFirst({
+            where: { id: addressId, userId },
+        });
+        if (!address) throw new NotFoundException('Address not found');
+
+        await this.prisma.address.delete({
+            where: { id: addressId },
+        });
+
+        if (address.isDefault) {
+            const firstRemaining = await this.prisma.address.findFirst({
+                where: { userId },
+            });
+            if (firstRemaining) {
+                await this.prisma.address.update({
+                    where: { id: firstRemaining.id },
+                    data: { isDefault: true },
+                });
+            }
+        }
     }
 
     async validatePassword(user: User, password: string): Promise<boolean> {
