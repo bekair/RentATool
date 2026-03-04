@@ -3,8 +3,8 @@ import { CountriesService } from './countries.service';
 import { CountriesController } from './countries.controller';
 
 @Module({
-    controllers: [CountriesController],
-    providers: [CountriesService],
-    exports: [CountriesService],
+  controllers: [CountriesController],
+  providers: [CountriesService],
+  exports: [CountriesService],
 })
-export class CountriesModule { }
+export class CountriesModule {}

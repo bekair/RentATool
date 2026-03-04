@@ -3,7 +3,7 @@ import { ToolsService } from './tools.service';
 import { ToolsController } from './tools.controller';
 
 @Module({
-    controllers: [ToolsController],
-    providers: [ToolsService],
+  controllers: [ToolsController],
+  providers: [ToolsService],
 })
-export class ToolsModule { }
+export class ToolsModule {}

@@ -9,20 +9,20 @@ import { UsersModule } from '../users/users.module';
 import { VerificationTierGuard } from './guards/verification-tier.guard';
 
 @Module({
-    imports: [
-        UsersModule,
-        PassportModule,
-        JwtModule.registerAsync({
-            imports: [ConfigModule],
-            useFactory: async (configService: ConfigService) => ({
-                secret: configService.get<string>('JWT_SECRET') || 'dev-secret',
-                signOptions: { expiresIn: '7d' },
-            }),
-            inject: [ConfigService],
-        }),
-    ],
-    providers: [AuthService, JwtStrategy, VerificationTierGuard],
-    controllers: [AuthController],
-    exports: [AuthService, VerificationTierGuard],
+  imports: [
+    UsersModule,
+    PassportModule,
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      useFactory: async (configService: ConfigService) => ({
+        secret: configService.get<string>('JWT_SECRET') || 'dev-secret',
+        signOptions: { expiresIn: '7d' },
+      }),
+      inject: [ConfigService],
+    }),
+  ],
+  providers: [AuthService, JwtStrategy, VerificationTierGuard],
+  controllers: [AuthController],
+  exports: [AuthService, VerificationTierGuard],
 })
-export class AuthModule { }
+export class AuthModule {}
