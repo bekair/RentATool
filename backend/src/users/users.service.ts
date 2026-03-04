@@ -26,7 +26,7 @@ export class UsersService {
                         firstName: createUserDto.firstName,
                         lastName: createUserDto.lastName,
                         displayName: `${createUserDto.firstName} ${createUserDto.lastName.charAt(0)}.`,
-                    }
+                    } as any
                 }
             },
             include: {
@@ -66,9 +66,49 @@ export class UsersService {
     }
 
     async updateProfile(userId: string, data: any) {
+        const updateData: any = {};
+
+        // Only include fields that are actually provided and not empty strings
+        // except for fields we want to specifically allow nulling (if any)
+        for (const [key, value] of Object.entries(data)) {
+            if (value !== '' && value !== undefined) {
+                updateData[key] = value;
+            } else {
+                updateData[key] = null;
+            }
+        }
+
+        // Convert birthDate string to Date object if it exists
+        if (updateData.birthDate) {
+            updateData.birthDate = new Date(updateData.birthDate);
+        }
+
+        // If names changed, we might want to update the auto-generated display name
+        if ((updateData.firstName || updateData.lastName) && !updateData.displayName) {
+            const profile = await this.prisma.userProfile.findUnique({ where: { userId } });
+            if (profile) {
+                const firstName = updateData.firstName || (profile as any).firstName;
+                const lastName = updateData.lastName || (profile as any).lastName;
+                if (firstName && lastName) {
+                    updateData.displayName = `${firstName} ${lastName.charAt(0)}.`;
+                }
+            }
+        }
+
+        // Sync phone fields
+        if (updateData.phoneCode || updateData.phoneNumber) {
+            const profile = await this.prisma.userProfile.findUnique({ where: { userId } });
+            const code = updateData.phoneCode !== undefined ? updateData.phoneCode : profile?.phoneCode;
+            const num = updateData.phoneNumber !== undefined ? updateData.phoneNumber : profile?.phoneNumber;
+            updateData.phone = (code && num) ? `${code}${num}` : null;
+        } else if (updateData.phone === null) {
+            updateData.phoneCode = null;
+            updateData.phoneNumber = null;
+        }
+
         return this.prisma.userProfile.update({
             where: { userId },
-            data,
+            data: updateData,
         });
     }
 

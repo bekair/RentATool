@@ -81,7 +81,7 @@ export default function HomeScreen({ navigation }) {
                     <View style={styles.avatarContainer}>
                         <View style={styles.avatar}>
                             <Text style={styles.avatarText}>
-                                {user?.displayName?.charAt(0).toUpperCase() || 'U'}
+                                {user?.profile?.displayName?.charAt(0).toUpperCase() || 'U'}
                             </Text>
                         </View>
 
@@ -97,7 +97,7 @@ export default function HomeScreen({ navigation }) {
                             </View>
                         )}
                     </View>
-                    <Text style={styles.name}>{user?.displayName || 'User'}</Text>
+                    <Text style={styles.name}>{user?.profile?.displayName || 'User'}</Text>
 
                     <View style={styles.ratingContainer}>
                         <Ionicons name="star" size={14} color="#3b82f6" />

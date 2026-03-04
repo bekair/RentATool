@@ -31,9 +31,6 @@ const COUNTRIES = [
     { code: '+86', label: 'CN', name: 'China' },
 ];
 
-
-
-
 function PickerModal({ visible, title, options, onSelect, onClose }) {
     return (
         <Modal visible={visible} transparent animationType="slide">
@@ -63,36 +60,54 @@ export default function GeneralInfoScreen({ navigation }) {
     const { user, updateCurrentUser } = useAuth();
     const [loading, setLoading] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
+    const [hasAttemptedSave, setHasAttemptedSave] = useState(false);
 
+    const [firstName, setFirstName] = useState(user?.profile?.firstName || '');
+    const [lastName, setLastName] = useState(user?.profile?.lastName || '');
     const [displayName, setDisplayName] = useState(user?.profile?.displayName || '');
     const [dob, setDob] = useState(user?.profile?.birthDate || '');
     const [region, setRegion] = useState(user?.profile?.region || '');
 
-    // Attempt to split phone into code and number, or default it
-    const phoneFull = user?.profile?.phone || '';
-    const codeMatch = COUNTRIES.find(c => phoneFull.startsWith(c.code));
-    const initialCountry = codeMatch || COUNTRIES[0];
-    const initialPhone = codeMatch ? phoneFull.slice(codeMatch.code.length) : phoneFull;
+    const initialCountry = COUNTRIES.find(c => c.code === user?.profile?.phoneCode) || null;
+    const initialPhone = user?.profile?.phoneNumber || '';
 
     const [countryCode, setCountryCode] = useState(initialCountry);
     const [phone, setPhone] = useState(initialPhone);
     const [showCountryPicker, setShowCountryPicker] = useState(false);
 
+    // Validation logic
+    const errors = {
+        firstName: firstName.trim().length < 2 ? 'First name is too short' : null,
+        lastName: lastName.trim().length < 1 ? 'Last name is required' : null,
+        phone: (phone.trim().length > 0 && !countryCode) ? 'Country code required' : null,
+    };
+
+    const isFormValid = Object.values(errors).every(e => e === null);
+    const showErrors = hasAttemptedSave || isEditing; // Show errors while editing or after first save attempt
+
     const handleSave = async () => {
+        setHasAttemptedSave(true);
+        if (!isFormValid) return;
+
         try {
             setLoading(true);
             const payload = {
+                firstName,
+                lastName,
                 displayName,
                 birthDate: dob,
                 region,
-                phone: `${countryCode.code}${phone}`,
+                phoneCode: countryCode?.code || null,
+                phoneNumber: phone || null,
             };
+            console.log('[GeneralInfoScreen] Saving profile:', payload);
             const response = await api.patch('/users/me/profile', payload);
             if (updateCurrentUser) {
                 updateCurrentUser(response.data);
             }
             Alert.alert('Success', 'General information updated successfully.');
             setIsEditing(false);
+            setHasAttemptedSave(false);
         } catch (error) {
             console.error('Failed to update general info:', error);
             Alert.alert('Error', 'Failed to update general information.');
@@ -111,13 +126,15 @@ export default function GeneralInfoScreen({ navigation }) {
                 <Text style={styles.headerTitle}>General Information</Text>
                 <TouchableOpacity
                     onPress={isEditing ? handleSave : () => setIsEditing(true)}
-                    disabled={loading}
-                    style={styles.saveButton}
+                    disabled={loading || (isEditing && !isFormValid)}
+                    style={[styles.saveButton, (isEditing && !isFormValid) && { opacity: 0.4 }]}
                 >
                     {loading ? (
                         <ActivityIndicator size="small" color="#6366f1" />
                     ) : (
-                        <Text style={styles.saveButtonText}>{isEditing ? 'Save' : 'Edit'}</Text>
+                        <Text style={[styles.saveButtonText, (isEditing && !isFormValid) && { color: '#444' }]}>
+                            {isEditing ? 'Save' : 'Edit'}
+                        </Text>
                     )}
                 </TouchableOpacity>
             </View>
@@ -130,11 +147,29 @@ export default function GeneralInfoScreen({ navigation }) {
                 >
                     {/* Name */}
                     <InputField
-                        label="Name"
+                        label="First Name"
+                        isEditing={isEditing}
+                        value={firstName}
+                        onChangeText={setFirstName}
+                        placeholder="John"
+                        error={showErrors ? errors.firstName : null}
+                    />
+
+                    <InputField
+                        label="Last Name"
+                        isEditing={isEditing}
+                        value={lastName}
+                        onChangeText={setLastName}
+                        placeholder="Smith"
+                        error={showErrors ? errors.lastName : null}
+                    />
+
+                    <InputField
+                        label="Display Name (Public)"
                         isEditing={isEditing}
                         value={displayName}
                         onChangeText={setDisplayName}
-                        placeholder="John Smith"
+                        placeholder="e.g. John D."
                     />
 
                     {/* Email — always read only */}
@@ -169,6 +204,7 @@ export default function GeneralInfoScreen({ navigation }) {
                         onCountryPress={() => setShowCountryPicker(true)}
                         phone={phone}
                         onPhoneChange={setPhone}
+                        error={showErrors ? errors.phone : null}
                     />
 
                 </ScrollView>
@@ -186,7 +222,6 @@ export default function GeneralInfoScreen({ navigation }) {
         </SafeAreaView>
     );
 }
-
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#0d0d0d' },

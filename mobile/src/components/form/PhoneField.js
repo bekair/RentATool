@@ -14,9 +14,10 @@ import { FIELD_HEIGHT, fieldStyles } from './styles';
  * @param {string}   phone
  * @param {function} onPhoneChange
  */
-export default function PhoneField({ label, isEditing, countryCode, onCountryPress, phone, onPhoneChange }) {
+export default function PhoneField({ label, isEditing, countryCode, onCountryPress, phone, onPhoneChange, error }) {
     const stateStyle = isEditing ? fieldStyles.editing : fieldStyles.readOnly;
     const textColor = isEditing ? '#fff' : '#888';
+    const errorStyle = error ? fieldStyles.error : null;
 
     return (
         <View style={fieldStyles.group}>
@@ -24,19 +25,21 @@ export default function PhoneField({ label, isEditing, countryCode, onCountryPre
             <View style={s.row}>
                 {/* Country code button */}
                 <TouchableOpacity
-                    style={[s.countryCode, stateStyle]}
+                    style={[s.countryCode, stateStyle, errorStyle]}
                     onPress={() => isEditing && onCountryPress?.()}
                     activeOpacity={isEditing ? 0.7 : 1}
                 >
-                    <Text style={[s.codeText, { color: textColor }]}>{countryCode?.code}</Text>
+                    <Text style={[s.codeText, { color: countryCode ? textColor : '#555' }]}>
+                        {countryCode ? countryCode.code : 'Code'}
+                    </Text>
                     {isEditing && (
-                        <Ionicons name="chevron-down" size={18} color="rgba(255,255,255,0.5)" />
+                        <Ionicons name="chevron-down" size={16} color="rgba(255,255,255,0.3)" />
                     )}
                 </TouchableOpacity>
 
                 {/* Phone number input */}
                 <TextInput
-                    style={[s.phoneInput, stateStyle]}
+                    style={[s.phoneInput, stateStyle, errorStyle]}
                     value={phone}
                     onChangeText={onPhoneChange}
                     placeholder="000 000 0000"
@@ -46,6 +49,9 @@ export default function PhoneField({ label, isEditing, countryCode, onCountryPre
                     color={textColor}
                 />
             </View>
+            {typeof error === 'string' && error.length > 0 && (
+                <Text style={fieldStyles.errorText}>{error}</Text>
+            )}
         </View>
     );
 }

@@ -32,4 +32,14 @@ export const fieldStyles = StyleSheet.create({
         shadowRadius: 10,
         elevation: 6,
     },
+    error: {
+        borderColor: '#ef4444',
+        borderWidth: 1.5,
+    },
+    errorText: {
+        color: '#ef4444',
+        fontSize: 12,
+        marginTop: 6,
+        fontWeight: '500',
+    }
 });

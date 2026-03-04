@@ -18,6 +18,7 @@ You can edit these rules at any time to update my behavior.
 - **Navigation:** Use standard React Navigation patterns. Ensure global state errors are cleared on screen blur using `useFocusEffect` (e.g. Auth flow).
 - **Form Submission:** Always ensure form submit buttons are `disabled` until all required fields on the specific page are filled and valid. Provide visual feedback (e.g., lower opacity or grayed out button) when disabled.
 - **Form Components:** Every form component (inputs, text areas, date pickers) and their styling should use the common components defined in `src/components/form/` to make styling strictly compatible and uniform across the application.
+- **Validation:** Always implement validation for required (not null) fields or specific business case checks on screens where data is saved. Provide real-time, contextual inline feedback using the `error` prop in common form components. Submit buttons must remain disabled (with visual feedback) until the form is valid.
 
 ## Backend (NestJS / Prisma)
 - Follow the standard internal NestJS architecture: Controllers, Services, DTOs, and Modules.

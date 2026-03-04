@@ -65,6 +65,10 @@ export const AuthProvider = ({ children }) => {
 
     const clearError = () => setError(null);
 
+    const updateCurrentUser = (updatedUser) => {
+        setUser(updatedUser);
+    };
+
     const forgotPassword = async (email) => {
         setError(null);
         try {
@@ -86,6 +90,7 @@ export const AuthProvider = ({ children }) => {
                 signup,
                 logout,
                 clearError,
+                updateCurrentUser,
                 forgotPassword,
                 isAuthenticated: !!user,
             }}
