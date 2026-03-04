@@ -10,7 +10,6 @@ import {
     Platform,
     Alert,
     ActivityIndicator,
-    Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,43 +17,6 @@ import { useAuth } from '../context/AuthContext';
 import api from '../api/client';
 import { InputField, PhoneField, CountryField, DateField } from '../components/form';
 
-const COUNTRIES = [
-    { code: '+1', label: 'US', name: 'United States' },
-    { code: '+32', label: 'BE', name: 'Belgium' },
-    { code: '+31', label: 'NL', name: 'Netherlands' },
-    { code: '+49', label: 'DE', name: 'Germany' },
-    { code: '+33', label: 'FR', name: 'France' },
-    { code: '+44', label: 'GB', name: 'United Kingdom' },
-    { code: '+90', label: 'TR', name: 'Turkey' },
-    { code: '+977', label: 'NP', name: 'Nepal' },
-    { code: '+91', label: 'IN', name: 'India' },
-    { code: '+86', label: 'CN', name: 'China' },
-];
-
-function PickerModal({ visible, title, options, onSelect, onClose }) {
-    return (
-        <Modal visible={visible} transparent animationType="slide">
-            <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={onClose}>
-                <View style={styles.pickerSheet}>
-                    <View style={styles.pickerHandle} />
-                    <Text style={styles.pickerTitle}>{title}</Text>
-                    {options.map((opt) => (
-                        <TouchableOpacity
-                            key={typeof opt === 'object' ? opt.code : opt}
-                            style={styles.pickerOption}
-                            onPress={() => onSelect(opt)}
-                        >
-                            <Text style={styles.pickerOptionText}>
-                                {typeof opt === 'object' ? `${opt.code}  ${opt.name}` : opt}
-                            </Text>
-                            <Ionicons name="checkmark" size={18} color="#6366f1" style={{ opacity: 0 }} />
-                        </TouchableOpacity>
-                    ))}
-                </View>
-            </TouchableOpacity>
-        </Modal>
-    );
-}
 
 export default function GeneralInfoScreen({ navigation }) {
     const { user, updateCurrentUser } = useAuth();
@@ -67,19 +29,14 @@ export default function GeneralInfoScreen({ navigation }) {
     const [displayName, setDisplayName] = useState(user?.profile?.displayName || '');
     const [dob, setDob] = useState(user?.profile?.birthDate || '');
     const [region, setRegion] = useState(user?.profile?.region || '');
-
-    const initialCountry = COUNTRIES.find(c => c.code === user?.profile?.phoneCode) || null;
-    const initialPhone = user?.profile?.phoneNumber || '';
-
-    const [countryCode, setCountryCode] = useState(initialCountry);
-    const [phone, setPhone] = useState(initialPhone);
-    const [showCountryPicker, setShowCountryPicker] = useState(false);
+    const [phone, setPhone] = useState(user?.profile?.phoneNumber || '');
+    const [phoneCode, setPhoneCode] = useState(user?.profile?.phoneCode || null);
 
     // Validation logic
     const errors = {
         firstName: firstName.trim().length < 2 ? 'First name is too short' : null,
         lastName: lastName.trim().length < 1 ? 'Last name is required' : null,
-        phone: (phone.trim().length > 0 && !countryCode) ? 'Country code required' : null,
+        phone: (phone.trim().length > 0 && !phoneCode) ? 'Country code required' : null,
     };
 
     const isFormValid = Object.values(errors).every(e => e === null);
@@ -97,7 +54,7 @@ export default function GeneralInfoScreen({ navigation }) {
                 displayName,
                 birthDate: dob,
                 region,
-                phoneCode: countryCode?.code || null,
+                phoneCode: phoneCode || null,
                 phoneNumber: phone || null,
             };
             console.log('[GeneralInfoScreen] Saving profile:', payload);
@@ -188,20 +145,20 @@ export default function GeneralInfoScreen({ navigation }) {
                         onChange={setDob}
                     />
 
-                    {/* Country / Region */}
+                    {/* Country */}
                     <CountryField
-                        label="Country/Region"
+                        label="Country"
                         isEditing={isEditing}
                         value={region}
-                        onSelect={setRegion}
+                        onSelect={(c) => setRegion(c.name)}
                     />
 
                     {/* Phone */}
                     <PhoneField
                         label="Phone"
                         isEditing={isEditing}
-                        countryCode={countryCode}
-                        onCountryPress={() => setShowCountryPicker(true)}
+                        phoneCode={phoneCode}
+                        onCountrySelect={(c) => setPhoneCode(c.countryCode)}
                         phone={phone}
                         onPhoneChange={setPhone}
                         error={showErrors ? errors.phone : null}
@@ -209,15 +166,6 @@ export default function GeneralInfoScreen({ navigation }) {
 
                 </ScrollView>
             </KeyboardAvoidingView>
-
-            {/* Pickers */}
-            <PickerModal
-                visible={showCountryPicker}
-                title="Select Country Code"
-                options={COUNTRIES}
-                onSelect={(c) => { setCountryCode(c); setShowCountryPicker(false); }}
-                onClose={() => setShowCountryPicker(false)}
-            />
 
         </SafeAreaView>
     );
@@ -243,46 +191,5 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         paddingTop: 24,
         paddingBottom: 50,
-    },
-
-    // ─── Picker Modal ────────────────────────────────────────────────────────────────
-    modalOverlay: {
-        flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.6)',
-        justifyContent: 'flex-end',
-    },
-    pickerSheet: {
-        backgroundColor: '#1a1a1a',
-        borderTopLeftRadius: 20,
-        borderTopRightRadius: 20,
-        paddingTop: 12,
-        paddingBottom: 40,
-        paddingHorizontal: 20,
-    },
-    pickerHandle: {
-        width: 40,
-        height: 4,
-        backgroundColor: '#444',
-        borderRadius: 2,
-        alignSelf: 'center',
-        marginBottom: 16,
-    },
-    pickerTitle: {
-        fontSize: 16,
-        fontWeight: '700',
-        color: '#fff',
-        marginBottom: 16,
-    },
-    pickerOption: {
-        paddingVertical: 14,
-        borderBottomWidth: 1,
-        borderBottomColor: '#262626',
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-    },
-    pickerOptionText: {
-        fontSize: 16,
-        color: '#ddd',
     },
 });

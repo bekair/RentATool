@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
     View,
     Text,
@@ -20,6 +20,7 @@ import MapView from 'react-native-maps';
 import * as Location from 'expo-location';
 import { useAuth } from '../context/AuthContext';
 import { InputField, CountryField } from '../components/form';
+import api from '../api/client';
 import { locationService } from '../services/locationService';
 import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
 import Constants from 'expo-constants';
@@ -218,6 +219,23 @@ export default function AddressesScreen({ navigation }) {
     const [addresses, setAddresses] = useState(user?.addresses || []);
     const [showAddModal, setShowAddModal] = useState(false);
     const [actionLoading, setActionLoading] = useState(false);
+    const [loadingAddresses, setLoadingAddresses] = useState(false);
+
+    // Fetch addresses from API on mount
+    useEffect(() => {
+        const fetchAddresses = async () => {
+            setLoadingAddresses(true);
+            try {
+                const response = await api.get('/auth/me');
+                setAddresses(response.data?.addresses || []);
+            } catch (err) {
+                console.error('[AddressesScreen] Failed to load addresses:', err);
+            } finally {
+                setLoadingAddresses(false);
+            }
+        };
+        fetchAddresses();
+    }, []);
 
     // Add-modal state
     const [addTab, setAddTab] = useState('manual'); // 'manual' | 'map'
@@ -443,7 +461,9 @@ export default function AddressesScreen({ navigation }) {
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={styles.scrollContent}
             >
-                {addresses.length === 0 ? (
+                {loadingAddresses ? (
+                    <ActivityIndicator size="large" color="#6366f1" style={{ marginTop: 60 }} />
+                ) : addresses.length === 0 ? (
                     <View style={styles.emptyState}>
                         <Ionicons name="location-outline" size={52} color="#333" />
                         <Text style={styles.emptyTitle}>No addresses yet</Text>
@@ -527,6 +547,7 @@ export default function AddressesScreen({ navigation }) {
                                 <Text style={modal.fieldLabel}>Label</Text>
                                 <LabelChips selected={label} onSelect={setLabel} />
 
+                                {/* Street Address — LogBox.ignoreLogs handles the VirtualizedList warning */}
                                 <View style={{ zIndex: 1, marginBottom: 16 }}>
                                     <Text style={modal.fieldLabel}>Street Address</Text>
                                     <GooglePlacesAutocomplete
@@ -667,6 +688,7 @@ export default function AddressesScreen({ navigation }) {
                             </ScrollView>
                         </KeyboardAvoidingView>
                     )}
+
 
                     {/* ── Map Tab ── */}
                     {addTab === 'map' && (
@@ -819,7 +841,7 @@ const modal = StyleSheet.create({
     tabTextActive: { color: '#fff' },
 
     scrollContent: { padding: 16, paddingBottom: 40 },
-    fieldLabel: { fontSize: 13, color: '#888', marginBottom: 8, fontWeight: '500' },
+    fieldLabel: { fontSize: 16, color: '#fff', marginBottom: 8, fontWeight: '600' },
     input: {
         height: FIELD_HEIGHT,
         backgroundColor: '#2c2c2e',
