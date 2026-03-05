@@ -251,12 +251,20 @@ export default function AddressesScreen({ navigation }) {
     const [postalCode, setPostalCode] = useState('');
     const [country, setCountry] = useState('');
     const [countryCode, setCountryCode] = useState('');
+    const [manualLat, setManualLat] = useState(null);
+    const [manualLng, setManualLng] = useState(null);
 
     // Map state
     const [mapReady, setMapReady] = useState(false);
     const [locationLoading, setLocationLoading] = useState(false);
     const [tempCoords, setTempCoords] = useState(null);
     const [mapLabel, setMapLabel] = useState('Home');
+
+    const handleManualChange = (setter) => (val) => {
+        setter(val);
+        setManualLat(null);
+        setManualLng(null);
+    };
 
     const resetForm = () => {
         setLabel('Home');
@@ -267,6 +275,8 @@ export default function AddressesScreen({ navigation }) {
         setPostalCode('');
         setCountry('');
         setCountryCode('');
+        setManualLat(null);
+        setManualLng(null);
         setTempCoords(null);
         setMapLabel('Home');
         setMapReady(false);
@@ -374,6 +384,24 @@ export default function AddressesScreen({ navigation }) {
             }
         }
 
+        let finalLat = manualLat;
+        let finalLng = manualLng;
+
+        if (!finalLat || !finalLng) {
+            try {
+                const query = [street, city, state, postalCode, country].filter(Boolean).join(', ');
+                if (query.length > 5) {
+                    const results = await Location.geocodeAsync(query);
+                    if (results && results.length > 0) {
+                        finalLat = results[0].latitude;
+                        finalLng = results[0].longitude;
+                    }
+                }
+            } catch (err) {
+                console.log('[confirmManualAddress] geocode fallback failed:', err.message);
+            }
+        }
+
         setActionLoading(true);
         try {
             const newAddr = {
@@ -384,6 +412,8 @@ export default function AddressesScreen({ navigation }) {
                 state: state.trim(),
                 postalCode: postalCode.trim(),
                 country: country.trim(),
+                latitude: finalLat,
+                longitude: finalLng,
                 isDefault: addresses.length === 0,
             };
             const response = await api.post('/users/me/addresses', newAddr);
@@ -607,6 +637,11 @@ export default function AddressesScreen({ navigation }) {
 
                                             if (computedCity) setCity(computedCity);
                                             setState(computedState);
+
+                                            if (details.geometry && details.geometry.location) {
+                                                setManualLat(details.geometry.location.lat);
+                                                setManualLng(details.geometry.location.lng);
+                                            }
                                         }}
                                         query={{
                                             key: GOOGLE_API_KEY,
@@ -655,7 +690,7 @@ export default function AddressesScreen({ navigation }) {
                                     label="Street"
                                     isEditing={true}
                                     value={street}
-                                    onChangeText={setStreet}
+                                    onChangeText={handleManualChange(setStreet)}
                                     placeholder="e.g. Rue de la Loi 16"
                                 />
 
@@ -663,7 +698,7 @@ export default function AddressesScreen({ navigation }) {
                                     label="Address Line 2"
                                     isEditing={true}
                                     value={addressLine2}
-                                    onChangeText={setAddressLine2}
+                                    onChangeText={handleManualChange(setAddressLine2)}
                                     placeholder="Apt, suite, floor, unit… (optional)"
                                 />
 
@@ -674,6 +709,8 @@ export default function AddressesScreen({ navigation }) {
                                     onSelect={(c) => {
                                         setCountry(c.name);
                                         setCountryCode(c.code);
+                                        setManualLat(null);
+                                        setManualLng(null);
                                     }}
                                 />
 
@@ -683,7 +720,7 @@ export default function AddressesScreen({ navigation }) {
                                             label="Postal Code"
                                             isEditing={true}
                                             value={postalCode}
-                                            onChangeText={setPostalCode}
+                                            onChangeText={handleManualChange(setPostalCode)}
                                             placeholder="3210"
                                         />
                                     </View>
@@ -695,7 +732,7 @@ export default function AddressesScreen({ navigation }) {
                                             label="City"
                                             isEditing={true}
                                             value={city}
-                                            onChangeText={setCity}
+                                            onChangeText={handleManualChange(setCity)}
                                             placeholder="Brussels"
                                         />
                                     </View>
@@ -705,7 +742,7 @@ export default function AddressesScreen({ navigation }) {
                                             label="State / Province"
                                             isEditing={true}
                                             value={state}
-                                            onChangeText={setState}
+                                            onChangeText={handleManualChange(setState)}
                                             placeholder="Vlaams-Brabant"
                                         />
                                     </View>
