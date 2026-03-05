@@ -69,6 +69,10 @@ export class CreateAddressDto {
 
   @IsOptional()
   @IsString()
+  addressLine2?: string;
+
+  @IsOptional()
+  @IsString()
   city?: string;
 
   @IsOptional()

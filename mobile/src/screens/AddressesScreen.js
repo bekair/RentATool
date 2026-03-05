@@ -21,7 +21,6 @@ import * as Location from 'expo-location';
 import { useAuth } from '../context/AuthContext';
 import { InputField, CountryField } from '../components/form';
 import api from '../api/client';
-import { locationService } from '../services/locationService';
 import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
 import Constants from 'expo-constants';
 
@@ -186,6 +185,9 @@ function AddressCard({ address, onDelete, onSetDefault }) {
                 {address.street ? (
                     <Text style={cardStyles.detail}>{address.street}</Text>
                 ) : null}
+                {address.addressLine2 ? (
+                    <Text style={cardStyles.detail}>{address.addressLine2}</Text>
+                ) : null}
                 {(address.city || address.country) ? (
                     <Text style={cardStyles.detail}>
                         {[address.city, address.state, address.postalCode, address.country].filter(Boolean).join(', ')}
@@ -243,12 +245,12 @@ export default function AddressesScreen({ navigation }) {
     // Manual form
     const [label, setLabel] = useState('Home');
     const [street, setStreet] = useState('');
+    const [addressLine2, setAddressLine2] = useState('');
     const [city, setCity] = useState('');
     const [state, setState] = useState('');
     const [postalCode, setPostalCode] = useState('');
     const [country, setCountry] = useState('');
     const [countryCode, setCountryCode] = useState('');
-    const [lookupLoading, setLookupLoading] = useState(false);
 
     // Map state
     const [mapReady, setMapReady] = useState(false);
@@ -259,6 +261,7 @@ export default function AddressesScreen({ navigation }) {
     const resetForm = () => {
         setLabel('Home');
         setStreet('');
+        setAddressLine2('');
         setCity('');
         setState('');
         setPostalCode('');
@@ -351,21 +354,6 @@ export default function AddressesScreen({ navigation }) {
         }
     };
 
-    const lookupPostalCode = async () => {
-        if (!postalCode.trim() || !countryCode || lookupLoading) return;
-
-        setLookupLoading(true);
-        try {
-            const locData = await locationService.lookupCityByPostalCode(postalCode, countryCode);
-            if (locData) {
-                if (locData.city && !city) setCity(locData.city);
-                if (locData.state && !state) setState(locData.state);
-            }
-        } finally {
-            setLookupLoading(false);
-        }
-    };
-
     // ── Manual helpers ───────────────────────────────────────────────────────
     const confirmManualAddress = async () => {
         if (!street.trim() && !city.trim()) {
@@ -375,14 +363,14 @@ export default function AddressesScreen({ navigation }) {
 
         // Validate Postal Code if country is selected
         if (postalCode.trim() && countryCode) {
-            // isPostalCode supported locales
-            const supported = ['AD', 'AT', 'AU', 'AZ', 'BE', 'BG', 'BR', 'BY', 'CA', 'CH', 'CL', 'CN', 'CZ', 'DE', 'DK', 'DO', 'DZ', 'EE', 'ES', 'FI', 'FR', 'GB', 'GR', 'HR', 'HU', 'ID', 'IE', 'IL', 'IN', 'IR', 'IS', 'IT', 'JP', 'KE', 'KR', 'LI', 'LT', 'LU', 'LV', 'MG', 'MX', 'MY', 'NL', 'NO', 'NZ', 'PL', 'PR', 'PT', 'RO', 'RU', 'SA', 'SE', 'SG', 'SI', 'SK', 'TH', 'TN', 'TR', 'UA', 'US', 'ZA', 'ZM'];
-
-            if (supported.includes(countryCode)) {
+            try {
                 if (!validator.isPostalCode(postalCode.trim(), countryCode)) {
                     Alert.alert('Invalid Postal Code', `The postal code format for ${country} is invalid.`);
                     return;
                 }
+            } catch (err) {
+                // validator throws an error if the countryCode locale isn't supported.
+                // If it's unsupported, we just skip validation rather than crashing.
             }
         }
 
@@ -391,6 +379,7 @@ export default function AddressesScreen({ navigation }) {
             const newAddr = {
                 label,
                 street: street.trim(),
+                addressLine2: addressLine2.trim() || undefined,
                 city: city.trim(),
                 state: state.trim(),
                 postalCode: postalCode.trim(),
@@ -547,14 +536,17 @@ export default function AddressesScreen({ navigation }) {
                                 <Text style={modal.fieldLabel}>Label</Text>
                                 <LabelChips selected={label} onSelect={setLabel} />
 
-                                {/* Street Address — LogBox.ignoreLogs handles the VirtualizedList warning */}
+                                {/* Address search — for lookup only, not saved directly */}
                                 <View style={{ zIndex: 1, marginBottom: 16 }}>
-                                    <Text style={modal.fieldLabel}>Street Address</Text>
+                                    <Text style={modal.fieldLabel}>Address</Text>
                                     <GooglePlacesAutocomplete
-                                        placeholder="Enter your street address..."
+                                        placeholder="Search your address..."
                                         fetchDetails={true}
+                                        debounce={400}
+                                        minLength={3}
                                         onPress={(data, details = null) => {
                                             if (!details) return;
+                                            console.log('[GPlaces] address_components:', JSON.stringify(details.address_components, null, 2));
                                             let stNumber = '';
                                             let stName = '';
                                             let tempLocality = '';
@@ -584,11 +576,37 @@ export default function AddressesScreen({ navigation }) {
                                             const computedStreet = `${stNumber} ${stName}`.trim();
                                             setStreet(computedStreet || data.description);
 
-                                            // Priority: locality > postal_town > administrative_area_level_2
-                                            const computedCity = tempLocality || tempPostalTown || tempAdminArea;
-                                            if (computedCity) setCity(computedCity);
+                                            // Smart city resolution:
+                                            // Google's hierarchy varies by country. For Turkey-style addresses:
+                                            //   - no locality at all
+                                            //   - admin_level_2 = district (Çankaya)
+                                            //   - admin_level_1 = province/city (Ankara)
+                                            // In that case admin_level_1 is what the user recognises as "the city".
+                                            //
+                                            // For Western-style addresses:
+                                            //   - locality = city (Brussels, San Francisco)
+                                            //   - admin_level_1 = state/region
+                                            //
+                                            // UK uses postal_town as the city equivalent.
+                                            const noLocalCity = !tempLocality && !tempPostalTown;
 
-                                            if (tempAdminAreaLevel1) setState(tempAdminAreaLevel1);
+                                            const computedCity =
+                                                tempPostalTown ||
+                                                tempLocality ||
+                                                (noLocalCity && tempAdminAreaLevel1
+                                                    ? tempAdminAreaLevel1
+                                                    : tempAdminArea) ||
+                                                tempAdminAreaLevel1 ||
+                                                '';
+
+                                            // State: only set if it differs from city (avoids "Ankara / Ankara")
+                                            const computedState =
+                                                tempAdminAreaLevel1 && tempAdminAreaLevel1 !== computedCity
+                                                    ? tempAdminAreaLevel1
+                                                    : '';
+
+                                            if (computedCity) setCity(computedCity);
+                                            setState(computedState);
                                         }}
                                         query={{
                                             key: GOOGLE_API_KEY,
@@ -596,8 +614,6 @@ export default function AddressesScreen({ navigation }) {
                                         }}
                                         textInputProps={{
                                             placeholderTextColor: '#555',
-                                            value: street,
-                                            onChangeText: setStreet
                                         }}
                                         styles={{
                                             textInput: {
@@ -635,6 +651,44 @@ export default function AddressesScreen({ navigation }) {
                                     />
                                 </View>
 
+                                <InputField
+                                    label="Street"
+                                    isEditing={true}
+                                    value={street}
+                                    onChangeText={setStreet}
+                                    placeholder="e.g. Rue de la Loi 16"
+                                />
+
+                                <InputField
+                                    label="Address Line 2"
+                                    isEditing={true}
+                                    value={addressLine2}
+                                    onChangeText={setAddressLine2}
+                                    placeholder="Apt, suite, floor, unit… (optional)"
+                                />
+
+                                <CountryField
+                                    label="Country"
+                                    isEditing={true}
+                                    value={country}
+                                    onSelect={(c) => {
+                                        setCountry(c.name);
+                                        setCountryCode(c.code);
+                                    }}
+                                />
+
+                                <View style={modal.rowFields}>
+                                    <View style={{ flex: 1 }}>
+                                        <InputField
+                                            label="Postal Code"
+                                            isEditing={true}
+                                            value={postalCode}
+                                            onChangeText={setPostalCode}
+                                            placeholder="3210"
+                                        />
+                                    </View>
+                                </View>
+
                                 <View style={modal.rowFields}>
                                     <View style={{ flex: 1 }}>
                                         <InputField
@@ -656,35 +710,6 @@ export default function AddressesScreen({ navigation }) {
                                         />
                                     </View>
                                 </View>
-                                <View style={modal.rowFields}>
-                                    <View style={{ flex: 1 }}>
-                                        <InputField
-                                            label="Postal Code"
-                                            isEditing={true}
-                                            value={postalCode}
-                                            onChangeText={setPostalCode}
-                                            onBlur={lookupPostalCode}
-                                            placeholder="1000"
-                                        />
-                                        {lookupLoading && (
-                                            <ActivityIndicator
-                                                size="small"
-                                                color="#6366f1"
-                                                style={{ position: 'absolute', right: 10, bottom: 18 }}
-                                            />
-                                        )}
-                                    </View>
-                                </View>
-
-                                <CountryField
-                                    label="Country"
-                                    isEditing={true}
-                                    value={country}
-                                    onSelect={(c) => {
-                                        setCountry(c.name);
-                                        setCountryCode(c.code);
-                                    }}
-                                />
                             </ScrollView>
                         </KeyboardAvoidingView>
                     )}
