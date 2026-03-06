@@ -14,19 +14,25 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/client';
-import { InputField } from '../components/form';
+import { InputField, PhoneField } from '../components/form';
 
 export default function ContactDetailsScreen({ navigation }) {
     const { user, updateCurrentUser } = useAuth();
     const [loading, setLoading] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
 
-    const [phone, setPhone] = useState(user?.profile?.phone || '');
+
+    const [phone, setPhone] = useState(user?.profile?.phoneNumber || '');
+    const [phoneCode, setPhoneCode] = useState(user?.profile?.phoneCode || null);
 
     const handleSave = async () => {
         try {
             setLoading(true);
-            const response = await api.patch('/users/me/profile', { phone });
+            const payload = {
+                phoneCode: phoneCode || null,
+                phoneNumber: phone || null,
+            };
+            const response = await api.patch('/users/me/profile', payload);
             if (updateCurrentUser) {
                 updateCurrentUser(response.data);
             }
@@ -75,13 +81,13 @@ export default function ContactDetailsScreen({ navigation }) {
                     />
 
                     {/* Phone */}
-                    <InputField
-                        label="Phone Number"
+                    <PhoneField
+                        label="Phone"
                         isEditing={isEditing}
-                        value={phone}
-                        onChangeText={setPhone}
-                        placeholder="+1 (555) 000-0000"
-                        keyboardType="phone-pad"
+                        phoneCode={phoneCode}
+                        onCountrySelect={(c) => setPhoneCode(c.countryCode)}
+                        phone={phone}
+                        onPhoneChange={setPhone}
                     />
 
                     <Text style={styles.helpText}>

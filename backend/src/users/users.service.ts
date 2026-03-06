@@ -11,7 +11,7 @@ import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class UsersService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   async create(createUserDto: CreateUserDto): Promise<User> {
     const existingUser = await this.findByEmail(createUserDto.email);
@@ -30,8 +30,7 @@ export class UsersService {
           create: {
             firstName: createUserDto.firstName,
             lastName: createUserDto.lastName,
-            displayName: `${createUserDto.firstName} ${createUserDto.lastName.charAt(0)}.`,
-          } as any,
+          },
         },
       },
       include: {
@@ -88,25 +87,9 @@ export class UsersService {
       updateData.birthDate = new Date(updateData.birthDate);
     }
 
-    // If names changed, we might want to update the auto-generated display name
-    if (
-      (updateData.firstName || updateData.lastName) &&
-      !updateData.displayName
-    ) {
-      const profile = await this.prisma.userProfile.findUnique({
-        where: { userId },
-      });
-      if (profile) {
-        const firstName = updateData.firstName || (profile as any).firstName;
-        const lastName = updateData.lastName || (profile as any).lastName;
-        if (firstName && lastName) {
-          updateData.displayName = `${firstName} ${lastName.charAt(0)}.`;
-        }
-      }
-    }
 
     // Sync phone fields
-    if (updateData.phoneCode || updateData.phoneNumber) {
+    if (updateData.phoneCode !== undefined || updateData.phoneNumber !== undefined) {
       const profile = await this.prisma.userProfile.findUnique({
         where: { userId },
       });
@@ -119,9 +102,6 @@ export class UsersService {
           ? updateData.phoneNumber
           : profile?.phoneNumber;
       updateData.phone = code && num ? `${code}${num}` : null;
-    } else if (updateData.phone === null) {
-      updateData.phoneCode = null;
-      updateData.phoneNumber = null;
     }
 
     return this.prisma.userProfile.update({

@@ -39,8 +39,8 @@ model UserProfile {
   userId      String    @unique
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   displayName String?
-  firstName   String?
-  lastName    String?
+  firstName   String
+  lastName    String
   birthDate   DateTime? @db.Date
   region      String?   // country name e.g. "Belgium"
   phone       String?   // full number with dial code e.g. "+32470000000"

@@ -15,7 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/client';
-import { InputField, PhoneField, CountryField, DateField } from '../components/form';
+import { InputField, CountryField, DateField } from '../components/form';
 
 
 export default function GeneralInfoScreen({ navigation }) {
@@ -29,14 +29,11 @@ export default function GeneralInfoScreen({ navigation }) {
     const [displayName, setDisplayName] = useState(user?.profile?.displayName || '');
     const [dob, setDob] = useState(user?.profile?.birthDate || '');
     const [region, setRegion] = useState(user?.profile?.region || '');
-    const [phone, setPhone] = useState(user?.profile?.phoneNumber || '');
-    const [phoneCode, setPhoneCode] = useState(user?.profile?.phoneCode || null);
 
     // Validation logic
     const errors = {
-        firstName: firstName.trim().length < 2 ? 'First name is too short' : null,
+        firstName: firstName.trim().length < 1 ? 'First name is required' : null,
         lastName: lastName.trim().length < 1 ? 'Last name is required' : null,
-        phone: (phone.trim().length > 0 && !phoneCode) ? 'Country code required' : null,
     };
 
     const isFormValid = Object.values(errors).every(e => e === null);
@@ -54,8 +51,6 @@ export default function GeneralInfoScreen({ navigation }) {
                 displayName,
                 birthDate: dob,
                 region,
-                phoneCode: phoneCode || null,
-                phoneNumber: phone || null,
             };
             console.log('[GeneralInfoScreen] Saving profile:', payload);
             const response = await api.patch('/users/me/profile', payload);
@@ -122,7 +117,7 @@ export default function GeneralInfoScreen({ navigation }) {
                     />
 
                     <InputField
-                        label="Display Name (Public)"
+                        label="Display Name"
                         isEditing={isEditing}
                         value={displayName}
                         onChangeText={setDisplayName}
@@ -153,16 +148,7 @@ export default function GeneralInfoScreen({ navigation }) {
                         onSelect={(c) => setRegion(c.name)}
                     />
 
-                    {/* Phone */}
-                    <PhoneField
-                        label="Phone"
-                        isEditing={isEditing}
-                        phoneCode={phoneCode}
-                        onCountrySelect={(c) => setPhoneCode(c.countryCode)}
-                        phone={phone}
-                        onPhoneChange={setPhone}
-                        error={showErrors ? errors.phone : null}
-                    />
+
 
                 </ScrollView>
             </KeyboardAvoidingView>
