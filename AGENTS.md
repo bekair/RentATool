@@ -28,3 +28,4 @@ This file defines the coding style and guidelines for the `rent_a_tool` monorepo
 ## Workflow Guidelines
 - Start by answering the user's specific question before jumping into code edits.
 - Test new packages locally when possible, and keep error handling robust, including API failure handling where the UI has a valid fallback.
+- If an integration is added, update [docs/integrations.md](C:\Users\bcbso\Repos\Own Repos\rent_a_tool\docs\integrations.md) using the same structure as the existing entries.

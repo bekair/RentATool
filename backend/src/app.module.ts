@@ -9,6 +9,7 @@ import { ToolsModule } from './tools/tools.module';
 import { BookingsModule } from './bookings/bookings.module';
 import { CategoriesModule } from './categories/categories.module';
 import { CountriesModule } from './countries/countries.module';
+import { PaymentsModule } from './payments/payments.module';
 
 @Module({
   imports: [
@@ -20,8 +21,10 @@ import { CountriesModule } from './countries/countries.module';
     BookingsModule,
     CategoriesModule,
     CountriesModule,
+    PaymentsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
 })
 export class AppModule {}
+

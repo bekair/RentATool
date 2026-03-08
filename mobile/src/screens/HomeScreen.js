@@ -44,7 +44,7 @@ export default function HomeScreen({ navigation }) {
     const menuItems = [
         { id: 'profile-info', title: 'Profile Information', icon: 'person-outline', screen: 'PersonalInformation' },
         { id: 'favorites', title: 'Your Favorites', icon: 'heart-outline', screen: null },
-        { id: 'payment', title: 'Payment details', icon: 'card-outline', screen: null },
+        { id: 'payment', title: 'Payment details', icon: 'card-outline', screen: 'PaymentDetails' },
         { id: 'trust', title: 'Trust & Verification', icon: 'shield-checkmark-outline', screen: null },
         { id: 'legal', title: 'Legal', icon: 'document-text-outline', screen: 'Legal' },
         { id: 'help', title: 'Help', icon: 'headset-outline', screen: null },
@@ -328,3 +328,4 @@ const styles = StyleSheet.create({
         paddingHorizontal: 20,
     },
 });
+

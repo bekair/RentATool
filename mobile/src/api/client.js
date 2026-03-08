@@ -61,6 +61,28 @@ export const toolsApi = {
     },
 };
 
+
+export const paymentsApi = {
+    getSummary: async () => {
+        const response = await api.get('/payments/me/summary');
+        return response.data;
+    },
+
+    createSetupIntent: async () => {
+        const response = await api.post('/payments/me/setup-intent');
+        return response.data;
+    },
+
+    createConnectAccountLink: async () => {
+        const response = await api.post('/payments/me/connect-account-link');
+        return response.data;
+    },
+
+    refreshStatus: async () => {
+        const response = await api.post('/payments/me/refresh-status');
+        return response.data;
+    },
+};
 export const saveToken = async (token) => {
     await SecureStore.setItemAsync('authToken', token);
 };
@@ -74,3 +96,4 @@ export const removeToken = async () => {
 };
 
 export default api;
+
