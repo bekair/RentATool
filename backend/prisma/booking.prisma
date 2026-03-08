@@ -1,0 +1,19 @@
+model Booking {
+  id            String        @id @default(uuid())
+  tool          Tool          @relation(fields: [toolId], references: [id])
+  toolId        String
+  toolVersion   ToolVersion   @relation(fields: [toolVersionId], references: [id])
+  toolVersionId String
+  renter        User          @relation("RenterBookings", fields: [renterId], references: [id])
+  renterId      String
+  owner         User          @relation("OwnerBookings", fields: [ownerId], references: [id])
+  ownerId       String
+  startDate     DateTime
+  endDate       DateTime
+  totalPrice    Float
+  status        BookingStatus @default(PENDING)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@map("bookings")
+}

@@ -1,0 +1,56 @@
+model PaymentProfile {
+  id              String                  @id @default(uuid())
+  userId          String                  @unique
+  user            User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider        PaymentProvider         @default(STRIPE)
+  customerProfile PaymentCustomerProfile?
+  payoutAccount   PaymentPayoutAccount?
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+
+  @@map("payment_profiles")
+}
+
+model PaymentCustomerProfile {
+  id                           String         @id @default(uuid())
+  paymentProfileId             String         @unique
+  paymentProfile               PaymentProfile @relation(fields: [paymentProfileId], references: [id], onDelete: Cascade)
+  providerCustomerId           String?        @unique
+  hasDefaultPaymentMethod      Boolean        @default(false)
+  defaultPaymentMethodBrand    String?
+  defaultPaymentMethodLast4    String?
+  defaultPaymentMethodExpMonth Int?
+  defaultPaymentMethodExpYear  Int?
+  createdAt                    DateTime       @default(now())
+  updatedAt                    DateTime       @updatedAt
+
+  @@map("payment_customer_profiles")
+}
+
+model PaymentPayoutAccount {
+  id                String                             @id @default(uuid())
+  paymentProfileId  String                             @unique
+  paymentProfile    PaymentProfile                     @relation(fields: [paymentProfileId], references: [id], onDelete: Cascade)
+  providerAccountId String?                            @unique
+  onboardingStatus  PayoutOnboardingStatus             @default(NOT_STARTED)
+  chargesEnabled    Boolean                            @default(false)
+  payoutsEnabled    Boolean                            @default(false)
+  requirements      PaymentProviderAccountRequirement[]
+  createdAt         DateTime                           @default(now())
+  updatedAt         DateTime                           @updatedAt
+
+  @@map("payment_payout_accounts")
+}
+
+model PaymentProviderAccountRequirement {
+  id                String                    @id @default(uuid())
+  payoutAccountId   String
+  payoutAccount     PaymentPayoutAccount      @relation(fields: [payoutAccountId], references: [id], onDelete: Cascade)
+  requirementKey    String
+  requirementStatus ProviderRequirementStatus @default(CURRENTLY_DUE)
+  createdAt         DateTime                  @default(now())
+  updatedAt         DateTime                  @updatedAt
+
+  @@unique([payoutAccountId, requirementKey, requirementStatus])
+  @@map("payment_provider_account_requirements")
+}

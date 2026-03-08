@@ -1,0 +1,29 @@
+enum VerificationTier {
+  UNVERIFIED
+  TIER_1 // Basic (ID verified)
+  TIER_2 // Advanced (Bank/Address verified)
+  TIER_3 // Premium (Background check)
+}
+
+enum PaymentProvider {
+  STRIPE
+}
+
+enum PayoutOnboardingStatus {
+  NOT_STARTED
+  PENDING_REVIEW
+  INCOMPLETE
+  COMPLETE
+}
+
+enum ProviderRequirementStatus {
+  CURRENTLY_DUE
+}
+
+enum BookingStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+  COMPLETED
+}
