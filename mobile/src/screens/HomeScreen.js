@@ -46,7 +46,7 @@ export default function HomeScreen({ navigation }) {
         { id: 'favorites', title: 'Your Favorites', icon: 'heart-outline', screen: null },
         { id: 'payment', title: 'Payment details', icon: 'card-outline', screen: null },
         { id: 'trust', title: 'Trust & Verification', icon: 'shield-checkmark-outline', screen: null },
-        { id: 'legal', title: 'Legal', icon: 'document-text-outline', screen: null },
+        { id: 'legal', title: 'Legal', icon: 'document-text-outline', screen: 'Legal' },
         { id: 'help', title: 'Help', icon: 'headset-outline', screen: null },
         { id: 'settings', title: 'Settings', icon: 'settings-outline', screen: null },
     ];

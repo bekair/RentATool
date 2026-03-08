@@ -25,6 +25,7 @@ import EditToolScreen from '../screens/EditToolScreen';
 import BookingDatesScreen from '../screens/BookingDatesScreen';
 import BrowseToolsScreen from '../screens/BrowseToolsScreen';
 import MyToolsScreen from '../screens/MyToolsScreen';
+import LegalScreen from '../screens/LegalScreen';
 
 
 const Stack = createNativeStackNavigator();
@@ -168,6 +169,7 @@ function AppStack() {
             <Stack.Screen name="ContactDetails" component={ContactDetailsScreen} />
             <Stack.Screen name="AccountSecurity" component={AccountSecurityScreen} />
             <Stack.Screen name="Addresses" component={AddressesScreen} />
+            <Stack.Screen name="Legal" component={LegalScreen} />
             <Stack.Screen
                 name="AddTool"
                 component={AddToolScreen}
