@@ -1,0 +1,3 @@
+display_name: New DB Migration
+short_description: Create a Prisma migration and validate the backend build.
+default_prompt: Add the requested backend schema change, run the Prisma migration workflow, and summarize the deployment-ready result.

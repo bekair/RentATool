@@ -1,0 +1,3 @@
+display_name: Create APK
+short_description: Build the Android Expo preview APK for this repo.
+default_prompt: Build or prepare the Android APK for the mobile app using the repo's Expo EAS preview profile.
