@@ -29,7 +29,7 @@ export class PaymentsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
-  ) {}
+  ) { }
 
   async getSummary(userId: string) {
     const user = await this.prisma.user.findUnique({
@@ -165,12 +165,8 @@ export class PaymentsService {
       });
     }
 
-    const refreshUrl =
-      this.config.get<string>('STRIPE_CONNECT_REFRESH_URL') ||
-      'https://example.com/stripe/refresh';
-    const returnUrl =
-      this.config.get<string>('STRIPE_CONNECT_RETURN_URL') ||
-      'https://example.com/stripe/return';
+    const refreshUrl = this.getRequiredEnv('STRIPE_CONNECT_REFRESH_URL');
+    const returnUrl = this.getRequiredEnv('STRIPE_CONNECT_RETURN_URL');
 
     const link = await this.stripeRequest('POST', '/v1/account_links', {
       account: connectAccountId,
@@ -348,11 +344,11 @@ export class PaymentsService {
       hasDefaultPaymentMethod: Boolean(customerProfile?.hasDefaultPaymentMethod),
       defaultPaymentMethod: customerProfile?.hasDefaultPaymentMethod
         ? {
-            brand: customerProfile.defaultPaymentMethodBrand,
-            last4: customerProfile.defaultPaymentMethodLast4,
-            expMonth: customerProfile.defaultPaymentMethodExpMonth,
-            expYear: customerProfile.defaultPaymentMethodExpYear,
-          }
+          brand: customerProfile.defaultPaymentMethodBrand,
+          last4: customerProfile.defaultPaymentMethodLast4,
+          expMonth: customerProfile.defaultPaymentMethodExpMonth,
+          expYear: customerProfile.defaultPaymentMethodExpYear,
+        }
         : null,
       hasConnectedPayoutAccount: Boolean(payoutAccount?.providerAccountId),
       payoutOnboardingStatus:
@@ -461,14 +457,15 @@ export class PaymentsService {
     return byName[upper] || null;
   }
 
-  private getStripeSecretKey(): string {
-    const key = this.config.get<string>('STRIPE_SECRET_KEY');
-    if (!key) {
+  private getRequiredEnv(key: string): string {
+    const value = this.config.get<string>(key);
+    if (!value) {
       throw new ServiceUnavailableException(
-        'Stripe is not configured. Add STRIPE_SECRET_KEY.',
+        `Missing required environment variable: ${key}.`,
       );
     }
-    return key;
+
+    return value;
   }
 
   private async stripeRequest(
@@ -477,7 +474,7 @@ export class PaymentsService {
     params: Record<string, StripeRequestValue> = {},
     options: StripeRequestOptions = {},
   ) {
-    const secretKey = this.getStripeSecretKey();
+    const secretKey = this.getRequiredEnv('STRIPE_SECRET_KEY');
     const searchParams = new URLSearchParams();
 
     for (const [key, value] of Object.entries(params)) {

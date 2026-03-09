@@ -11,9 +11,30 @@ import { CategoriesModule } from './categories/categories.module';
 import { CountriesModule } from './countries/countries.module';
 import { PaymentsModule } from './payments/payments.module';
 
+function validateEnv(config: Record<string, unknown>) {
+  const requiredEnvVars = [
+    'PORT',
+    'DATABASE_URL',
+    'JWT_SECRET',
+    'STRIPE_SECRET_KEY',
+    'STRIPE_CONNECT_REFRESH_URL',
+    'STRIPE_CONNECT_RETURN_URL',
+    'STRIPE_BILLING_RETURN_URL',
+  ];
+
+  for (const key of requiredEnvVars) {
+    const value = config[key];
+    if (typeof value !== 'string' || !value.trim()) {
+      throw new Error(`Missing required environment variable: ${key}`);
+    }
+  }
+
+  return config;
+}
+
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({ isGlobal: true, validate: validateEnv }),
     AuthModule,
     UsersModule,
     PrismaModule,
@@ -27,4 +48,3 @@ import { PaymentsModule } from './payments/payments.module';
   providers: [AppService],
 })
 export class AppModule {}
-
