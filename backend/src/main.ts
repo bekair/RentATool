@@ -5,11 +5,6 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.enableCors();
 
-  const port = process.env.PORT;
-  if (!port) {
-    throw new Error('Missing required environment variable: PORT');
-  }
-
-  await app.listen(port, '0.0.0.0');
+  await app.listen(process.env.PORT as string, '0.0.0.0');
 }
 bootstrap();

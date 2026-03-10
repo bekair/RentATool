@@ -5,7 +5,6 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { ActivityIndicator, View, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
-
 import { AuthProvider, useAuth } from '../context/AuthContext';
 import LoginScreen from '../screens/LoginScreen';
 import SignupScreen from '../screens/SignupScreen';
@@ -28,9 +27,18 @@ import MyToolsScreen from '../screens/MyToolsScreen';
 import LegalScreen from '../screens/LegalScreen';
 import PaymentDetailsScreen from '../screens/PaymentDetailsScreen';
 
-
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
+
+const linking = {
+    prefixes: ['shareatool://'],
+    config: {
+        screens: {
+            PaymentDetails: 'payment-details',
+            Legal: 'legal',
+        },
+    },
+};
 
 function AuthStack() {
     return (
@@ -76,11 +84,9 @@ const CustomTabBarButton = ({ children, onPress }) => (
 
 function TabNavigator({ navigation }) {
     const insets = useSafeAreaInsets();
-    // On Android, bottom insets account for the system nav bar (gesture strip / buttons)
-    // On iOS, this is handled automatically by the tab bar
     const tabBarBottomOffset = Platform.OS === 'android'
-        ? insets.bottom + 8   // just above the Android system nav bar
-        : 25;                 // iOS: standard floating offset
+        ? insets.bottom + 8
+        : 25;
 
     return (
         <Tab.Navigator
@@ -225,7 +231,7 @@ function RootNavigator() {
 export default function Navigation() {
     return (
         <SafeAreaProvider>
-            <NavigationContainer>
+            <NavigationContainer linking={linking}>
                 <AuthProvider>
                     <RootNavigator />
                 </AuthProvider>

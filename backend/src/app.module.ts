@@ -14,12 +14,10 @@ import { PaymentsModule } from './payments/payments.module';
 function validateEnv(config: Record<string, unknown>) {
   const requiredEnvVars = [
     'PORT',
+    'PUBLIC_BACKEND_URL',
     'DATABASE_URL',
     'JWT_SECRET',
     'STRIPE_SECRET_KEY',
-    'STRIPE_CONNECT_REFRESH_URL',
-    'STRIPE_CONNECT_RETURN_URL',
-    'STRIPE_BILLING_RETURN_URL',
   ];
 
   for (const key of requiredEnvVars) {

@@ -21,8 +21,10 @@ type StripeRequestValue =
   | undefined;
 
 type StripeRequestOptions = {
-  idempotencyKey?: string;
+  headers?: Record<string, string>;
 };
+
+const MOBILE_PAYMENT_DETAILS_DEEP_LINK = 'shareatool://payment-details';
 
 @Injectable()
 export class PaymentsService {
@@ -67,19 +69,12 @@ export class PaymentsService {
       paymentProfile.id,
     );
 
-    let customerId = customerProfile.providerCustomerId;
-    if (!customerId) {
-      const customer = await this.stripeRequest('POST', '/v1/customers', {
-        email: user.email,
-        'metadata[userId]': userId,
-      });
-
-      customerId = customer.id;
-      await this.prisma.paymentCustomerProfile.update({
-        where: { paymentProfileId: paymentProfile.id },
-        data: { providerCustomerId: customerId },
-      });
-    }
+    const customerId = await this.ensureStripeCustomer({
+      userId,
+      email: user.email,
+      paymentProfileId: paymentProfile.id,
+      existingCustomerId: customerProfile.providerCustomerId || null,
+    });
 
     const setupIntent = await this.stripeRequest('POST', '/v1/setup_intents', {
       customer: customerId,
@@ -88,28 +83,22 @@ export class PaymentsService {
       'metadata[userId]': userId,
     });
 
-    let billingPortalUrl: string | null = null;
-    const billingReturnUrl = this.config.get<string>(
-      'STRIPE_BILLING_RETURN_URL',
-    );
-
-    if (billingReturnUrl) {
-      const portal = await this.stripeRequest(
-        'POST',
-        '/v1/billing_portal/sessions',
-        {
-          customer: customerId,
-          return_url: billingReturnUrl,
+    const ephemeralKey = await this.stripeRequest(
+      'POST',
+      '/v1/ephemeral_keys',
+      { customer: customerId },
+      {
+        headers: {
+          'Stripe-Version': '2024-06-20',
         },
-      );
-      billingPortalUrl = portal.url;
-    }
+      },
+    );
 
     return {
       clientSecret: setupIntent.client_secret,
       setupIntentId: setupIntent.id,
-      billingPortalUrl,
       customerId,
+      ephemeralKeySecret: ephemeralKey.secret,
     };
   }
 
@@ -141,18 +130,7 @@ export class PaymentsService {
       const account = await this.stripeRequest(
         'POST',
         '/v1/accounts',
-        {
-          type: 'express',
-          country: stripeCountry,
-          email: user.email,
-          business_type: 'individual',
-          'capabilities[card_payments][requested]': true,
-          'capabilities[transfers][requested]': true,
-          'metadata[userId]': userId,
-        },
-        {
-          idempotencyKey: 'connect-account-create:' + userId,
-        },
+        this.buildStripeExpressAccountParams(user as any, userId, stripeCountry),
       );
 
       connectAccountId = account.id;
@@ -165,21 +143,47 @@ export class PaymentsService {
       });
     }
 
-    const refreshUrl = this.getRequiredEnv('STRIPE_CONNECT_REFRESH_URL');
-    const returnUrl = this.getRequiredEnv('STRIPE_CONNECT_RETURN_URL');
+    if (!connectAccountId) {
+      throw new ServiceUnavailableException('Unable to determine Stripe account id.');
+    }
 
-    const link = await this.stripeRequest('POST', '/v1/account_links', {
-      account: connectAccountId,
-      refresh_url: refreshUrl,
-      return_url: returnUrl,
-      type: 'account_onboarding',
-    });
+    const link = await this.createStripeAccountLink(connectAccountId);
 
     return {
       url: link.url,
       expiresAt: link.expires_at,
       accountId: connectAccountId,
     };
+  }
+
+  async handleConnectRefresh(accountId: string) {
+    if (!accountId) {
+      throw new BadRequestException('Missing required query parameter: account');
+    }
+
+    const payoutAccount = await this.prisma.paymentPayoutAccount.findUnique({
+      where: { providerAccountId: accountId },
+    });
+
+    if (!payoutAccount) {
+      throw new NotFoundException('Payout account not found');
+    }
+
+    const link = await this.createStripeAccountLink(accountId);
+    return link.url;
+  }
+
+  getConnectReturnRedirectUrl(accountId?: string) {
+    return this.buildMobilePaymentDetailsUrl({
+      stripe: 'connect-return',
+      account: accountId,
+    });
+  }
+
+  getBillingReturnRedirectUrl() {
+    return this.buildMobilePaymentDetailsUrl({
+      stripe: 'billing-return',
+    });
   }
 
   async refreshStatus(userId: string) {
@@ -212,32 +216,45 @@ export class PaymentsService {
     let requirementsDue: string[] = [];
 
     if (customerProfile.providerCustomerId) {
-      const customer = await this.stripeRequest(
-        'GET',
-        `/v1/customers/${customerProfile.providerCustomerId}`,
-        {
-          expand: ['invoice_settings.default_payment_method'],
-        },
-      );
-
-      let defaultPaymentMethod =
-        customer?.invoice_settings?.default_payment_method;
-
-      if (typeof defaultPaymentMethod === 'string' && defaultPaymentMethod) {
-        defaultPaymentMethod = await this.stripeRequest(
+      try {
+        const customer = await this.stripeRequest(
           'GET',
-          `/v1/payment_methods/${defaultPaymentMethod}`,
+          `/v1/customers/${customerProfile.providerCustomerId}`,
+          {
+            expand: ['invoice_settings.default_payment_method'],
+          },
         );
-      }
 
-      const card = defaultPaymentMethod?.card;
-      if (card) {
-        customerUpdate.hasDefaultPaymentMethod = true;
-        customerUpdate.defaultPaymentMethodBrand = card.brand || null;
-        customerUpdate.defaultPaymentMethodLast4 = card.last4 || null;
-        customerUpdate.defaultPaymentMethodExpMonth = card.exp_month || null;
-        customerUpdate.defaultPaymentMethodExpYear = card.exp_year || null;
-      } else {
+        let defaultPaymentMethod =
+          customer?.invoice_settings?.default_payment_method;
+
+        if (typeof defaultPaymentMethod === 'string' && defaultPaymentMethod) {
+          defaultPaymentMethod = await this.stripeRequest(
+            'GET',
+            `/v1/payment_methods/${defaultPaymentMethod}`,
+          );
+        }
+
+        const card = defaultPaymentMethod?.card;
+        if (card) {
+          customerUpdate.hasDefaultPaymentMethod = true;
+          customerUpdate.defaultPaymentMethodBrand = card.brand || null;
+          customerUpdate.defaultPaymentMethodLast4 = card.last4 || null;
+          customerUpdate.defaultPaymentMethodExpMonth = card.exp_month || null;
+          customerUpdate.defaultPaymentMethodExpYear = card.exp_year || null;
+        } else {
+          customerUpdate.hasDefaultPaymentMethod = false;
+          customerUpdate.defaultPaymentMethodBrand = null;
+          customerUpdate.defaultPaymentMethodLast4 = null;
+          customerUpdate.defaultPaymentMethodExpMonth = null;
+          customerUpdate.defaultPaymentMethodExpYear = null;
+        }
+      } catch (error) {
+        if (!this.isMissingStripeCustomerError(error)) {
+          throw error;
+        }
+
+        customerUpdate.providerCustomerId = null;
         customerUpdate.hasDefaultPaymentMethod = false;
         customerUpdate.defaultPaymentMethodBrand = null;
         customerUpdate.defaultPaymentMethodLast4 = null;
@@ -247,29 +264,52 @@ export class PaymentsService {
     }
 
     if (payoutAccount.providerAccountId) {
-      const account = await this.stripeRequest(
-        'GET',
-        `/v1/accounts/${payoutAccount.providerAccountId}`,
-      );
+      try {
+        const account = await this.stripeRequest(
+          'GET',
+          `/v1/accounts/${payoutAccount.providerAccountId}`,
+        );
 
-      requirementsDue = Array.isArray(account?.requirements?.currently_due)
-        ? account.requirements.currently_due
-        : [];
+        requirementsDue = Array.isArray(account?.requirements?.currently_due)
+          ? account.requirements.currently_due
+          : [];
 
-      const chargesEnabled = Boolean(account?.charges_enabled);
-      const payoutsEnabled = Boolean(account?.payouts_enabled);
+        const chargesEnabled = Boolean(account?.charges_enabled);
+        const payoutsEnabled = Boolean(account?.payouts_enabled);
 
-      let onboardingStatus: PayoutOnboardingStatus =
-        PayoutOnboardingStatus.PENDING_REVIEW;
-      if (chargesEnabled && payoutsEnabled) {
-        onboardingStatus = PayoutOnboardingStatus.COMPLETE;
-      } else if (requirementsDue.length > 0) {
-        onboardingStatus = PayoutOnboardingStatus.INCOMPLETE;
+        let onboardingStatus: PayoutOnboardingStatus =
+          PayoutOnboardingStatus.PENDING_REVIEW;
+        if (chargesEnabled && payoutsEnabled) {
+          onboardingStatus = PayoutOnboardingStatus.COMPLETE;
+        } else if (requirementsDue.length > 0) {
+          onboardingStatus = PayoutOnboardingStatus.INCOMPLETE;
+        }
+
+        payoutUpdate.chargesEnabled = chargesEnabled;
+        payoutUpdate.payoutsEnabled = payoutsEnabled;
+        payoutUpdate.onboardingStatus = onboardingStatus;
+      } catch (error) {
+        if (!this.isMissingStripeConnectedAccountError(error)) {
+          throw error;
+        }
+
+        await this.prisma.$transaction([
+          this.prisma.paymentPayoutAccount.update({
+            where: { paymentProfileId: paymentProfile.id },
+            data: {
+              providerAccountId: null,
+              onboardingStatus: PayoutOnboardingStatus.NOT_STARTED,
+              chargesEnabled: false,
+              payoutsEnabled: false,
+            },
+          }),
+          this.prisma.paymentProviderAccountRequirement.deleteMany({
+            where: { payoutAccountId: payoutAccount.id },
+          }),
+        ]);
+
+        requirementsDue = [];
       }
-
-      payoutUpdate.chargesEnabled = chargesEnabled;
-      payoutUpdate.payoutsEnabled = payoutsEnabled;
-      payoutUpdate.onboardingStatus = onboardingStatus;
     }
 
     if (Object.keys(customerUpdate).length > 0) {
@@ -308,6 +348,21 @@ export class PaymentsService {
     return this.getSummary(userId);
   }
 
+  private isMissingStripeConnectedAccountError(error: unknown): boolean {
+    const candidate = [
+      (error as any)?.message,
+      (error as any)?.response?.message,
+      (error as any)?.response?.error?.message,
+      (error as any)?.response?.error?.code,
+    ]
+      .filter((value) => typeof value === 'string')
+      .map((value) => String(value).toLowerCase());
+
+    return candidate.some(
+      (value) =>
+        value.includes('no such account') || value.includes('resource_missing'),
+    );
+  }
   private mapSummary(user: any) {
     const paymentProfile = user.paymentProfile;
     const customerProfile = paymentProfile?.customerProfile;
@@ -402,6 +457,137 @@ export class PaymentsService {
     });
   }
 
+  private async ensureStripeCustomer(params: {
+    userId: string;
+    email: string;
+    paymentProfileId: string;
+    existingCustomerId?: string | null;
+  }): Promise<string> {
+    const { userId, email, paymentProfileId, existingCustomerId } = params;
+
+    if (existingCustomerId) {
+      try {
+        await this.stripeRequest('GET', `/v1/customers/${existingCustomerId}`);
+        return existingCustomerId;
+      } catch (error) {
+        if (!this.isMissingStripeCustomerError(error)) {
+          throw error;
+        }
+      }
+    }
+
+    const customer = await this.stripeRequest('POST', '/v1/customers', {
+      email,
+      'metadata[userId]': userId,
+    });
+
+    const customerId = customer.id as string;
+    await this.prisma.paymentCustomerProfile.update({
+      where: { paymentProfileId },
+      data: {
+        providerCustomerId: customerId,
+        hasDefaultPaymentMethod: false,
+        defaultPaymentMethodBrand: null,
+        defaultPaymentMethodLast4: null,
+        defaultPaymentMethodExpMonth: null,
+        defaultPaymentMethodExpYear: null,
+      },
+    });
+
+    return customerId;
+  }
+
+  private isMissingStripeCustomerError(error: unknown): boolean {
+    const candidate = [
+      (error as any)?.message,
+      (error as any)?.response?.message,
+      (error as any)?.response?.error?.message,
+      (error as any)?.response?.error?.code,
+    ]
+      .filter((value) => typeof value === 'string')
+      .map((value) => String(value).toLowerCase());
+
+    return candidate.some(
+      (value) =>
+        value.includes('no such customer') || value.includes('resource_missing'),
+    );
+  }
+  private buildStripeExpressAccountParams(
+    user: any,
+    userId: string,
+    stripeCountry: string,
+  ): Record<string, StripeRequestValue> {
+    const params: Record<string, StripeRequestValue> = {
+      type: 'express',
+      country: stripeCountry,
+      email: user?.email,
+      business_type: 'individual',
+      'capabilities[card_payments][requested]': true,
+      'capabilities[transfers][requested]': true,
+      'metadata[userId]': userId,
+    };
+
+    const profile = user?.profile;
+    const address = this.resolvePrimaryAddress(user);
+
+    if (profile?.firstName) {
+      params['individual[first_name]'] = profile.firstName;
+    }
+    if (profile?.lastName) {
+      params['individual[last_name]'] = profile.lastName;
+    }
+    if (profile?.phone) {
+      params['individual[phone]'] = profile.phone;
+    }
+    if (user?.email) {
+      params['individual[email]'] = user.email;
+    }
+
+    if (profile?.birthDate) {
+      const birthDate = new Date(profile.birthDate);
+      if (!Number.isNaN(birthDate.getTime())) {
+        params['individual[dob][day]'] = birthDate.getUTCDate();
+        params['individual[dob][month]'] = birthDate.getUTCMonth() + 1;
+        params['individual[dob][year]'] = birthDate.getUTCFullYear();
+      }
+    }
+
+    const countryCode =
+      this.normalizeCountryCode(address?.country) || stripeCountry;
+    if (countryCode) {
+      params['individual[address][country]'] = countryCode;
+    }
+    if (address?.street) {
+      params['individual[address][line1]'] = address.street;
+    }
+    if (address?.addressLine2) {
+      params['individual[address][line2]'] = address.addressLine2;
+    }
+    if (address?.city) {
+      params['individual[address][city]'] = address.city;
+    }
+    if (address?.state) {
+      params['individual[address][state]'] = address.state;
+    }
+    if (address?.postalCode) {
+      params['individual[address][postal_code]'] = address.postalCode;
+    }
+
+    return params;
+  }
+
+  private resolvePrimaryAddress(user: any): any | null {
+    if (!Array.isArray(user?.addresses) || user.addresses.length === 0) {
+      return null;
+    }
+
+    const byDefault = user.addresses.find((item: any) => item?.isDefault);
+    if (byDefault) {
+      return byDefault;
+    }
+
+    return user.addresses[0] || null;
+  }
   private resolveConnectCountryCode(user: any): string | null {
     const candidates: Array<string | undefined | null> = [
       user?.profile?.region,
@@ -468,13 +654,64 @@ export class PaymentsService {
     return value;
   }
 
+  private getStripeSecretKey(): string {
+    return this.getRequiredEnv('STRIPE_SECRET_KEY');
+  }
+
+  private buildStripeConnectRefreshUrl(accountId: string): string {
+    const baseUrl = this.buildPublicBackendUrl('/payments/stripe/refresh');
+    return this.appendQueryParams(baseUrl, { account: accountId });
+  }
+
+  private buildStripeConnectReturnUrl(accountId: string): string {
+    const baseUrl = this.buildPublicBackendUrl('/payments/stripe/return');
+    return this.appendQueryParams(baseUrl, { account: accountId });
+  }
+
+  private buildPublicBackendUrl(path: string): string {
+    const baseUrl = this.getRequiredEnv('PUBLIC_BACKEND_URL').replace(/\/$/, '');
+    return `${baseUrl}${path}`;
+  }
+
+  private buildMobilePaymentDetailsUrl(
+    params: Record<string, string | undefined>,
+  ): string {
+    return this.appendQueryParams(MOBILE_PAYMENT_DETAILS_DEEP_LINK, params);
+  }
+
+  private appendQueryParams(
+    baseUrl: string,
+    params: Record<string, string | undefined>,
+  ): string {
+    const entries = Object.entries(params).filter(([, value]) => Boolean(value));
+    if (entries.length === 0) {
+      return baseUrl;
+    }
+
+    const separator = baseUrl.includes('?') ? '&' : '?';
+    const query = entries
+      .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value as string)}`)
+      .join('&');
+
+    return `${baseUrl}${separator}${query}`;
+  }
+
+  private async createStripeAccountLink(accountId: string) {
+    return this.stripeRequest('POST', '/v1/account_links', {
+      account: accountId,
+      refresh_url: this.buildStripeConnectRefreshUrl(accountId),
+      return_url: this.buildStripeConnectReturnUrl(accountId),
+      type: 'account_onboarding',
+    });
+  }
+
   private async stripeRequest(
     method: 'GET' | 'POST',
     path: string,
     params: Record<string, StripeRequestValue> = {},
     options: StripeRequestOptions = {},
   ) {
-    const secretKey = this.getRequiredEnv('STRIPE_SECRET_KEY');
+    const secretKey = this.getStripeSecretKey();
     const searchParams = new URLSearchParams();
 
     for (const [key, value] of Object.entries(params)) {
@@ -495,6 +732,7 @@ export class PaymentsService {
     let url = `https://api.stripe.com${path}`;
     const headers: Record<string, string> = {
       Authorization: `Bearer ${secretKey}`,
+      ...(options.headers || {}),
     };
 
     const init: RequestInit = { method, headers };
@@ -506,9 +744,6 @@ export class PaymentsService {
       }
     } else {
       headers['Content-Type'] = 'application/x-www-form-urlencoded';
-      if (options.idempotencyKey) {
-        headers['Idempotency-Key'] = options.idempotencyKey;
-      }
       init.body = searchParams.toString();
     }
 
@@ -523,6 +758,20 @@ export class PaymentsService {
     return data;
   }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

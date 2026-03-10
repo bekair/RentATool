@@ -1,8 +1,8 @@
 import axios from 'axios';
+import Constants from 'expo-constants';
 import * as SecureStore from 'expo-secure-store';
 
-// Use environment variable for API URL (set in .env or EAS Build)
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
+const API_URL = Constants.expoConfig.extra.apiUrl;
 
 const api = axios.create({
     baseURL: API_URL,
@@ -61,7 +61,6 @@ export const toolsApi = {
     },
 };
 
-
 export const paymentsApi = {
     getSummary: async () => {
         const response = await api.get('/payments/me/summary');
@@ -83,6 +82,7 @@ export const paymentsApi = {
         return response.data;
     },
 };
+
 export const saveToken = async (token) => {
     await SecureStore.setItemAsync('authToken', token);
 };
@@ -96,4 +96,3 @@ export const removeToken = async () => {
 };
 
 export default api;
-
