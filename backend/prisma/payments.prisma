@@ -35,22 +35,8 @@ model PaymentPayoutAccount {
   onboardingStatus  PayoutOnboardingStatus             @default(NOT_STARTED)
   chargesEnabled    Boolean                            @default(false)
   payoutsEnabled    Boolean                            @default(false)
-  requirements      PaymentProviderAccountRequirement[]
   createdAt         DateTime                           @default(now())
   updatedAt         DateTime                           @updatedAt
 
   @@map("payment_payout_accounts")
-}
-
-model PaymentProviderAccountRequirement {
-  id                String                    @id @default(uuid())
-  payoutAccountId   String
-  payoutAccount     PaymentPayoutAccount      @relation(fields: [payoutAccountId], references: [id], onDelete: Cascade)
-  requirementKey    String
-  requirementStatus ProviderRequirementStatus @default(CURRENTLY_DUE)
-  createdAt         DateTime                  @default(now())
-  updatedAt         DateTime                  @updatedAt
-
-  @@unique([payoutAccountId, requirementKey, requirementStatus])
-  @@map("payment_provider_account_requirements")
 }

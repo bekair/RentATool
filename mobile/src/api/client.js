@@ -77,6 +77,11 @@ export const paymentsApi = {
         return response.data;
     },
 
+    createPayoutDashboardLink: async () => {
+        const response = await api.post('/payments/me/payout-dashboard-link');
+        return response.data;
+    },
+
     refreshStatus: async () => {
         const response = await api.post('/payments/me/refresh-status');
         return response.data;
@@ -96,3 +101,4 @@ export const removeToken = async () => {
 };
 
 export default api;
+

@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+ï»¿import React, { useCallback, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
@@ -18,53 +18,6 @@ import { paymentsApi } from '../api/client';
 import AppButton from '../components/ui/AppButton';
 
 const PAYMENT_DETAILS_DEEP_LINK = 'shareatool://payment-details';
-
-const REQUIREMENT_LABELS = {
-    'business_profile.mcc': 'Select your activity category.',
-    'business_profile.product_description': 'Add a short description.',
-    'business_profile.url': 'Add a website link.',
-    'business_type': 'Confirm account holder type.',
-    'company.address.city': 'Add your city.',
-    'company.address.country': 'Add your country.',
-    'company.address.line1': 'Add your street address.',
-    'company.address.postal_code': 'Add your postal code.',
-    'company.address.state': 'Add your state or region.',
-    'company.name': 'Add your legal name.',
-    'company.phone': 'Add your phone number.',
-    'company.tax_id': 'Add your tax ID.',
-    'external_account': 'Add a bank account.',
-    'individual.address.city': 'Add your city.',
-    'individual.address.country': 'Add your country.',
-    'individual.address.line1': 'Add your street address.',
-    'individual.address.postal_code': 'Add your postal code.',
-    'individual.address.state': 'Add your state or region.',
-    'individual.dob.day': 'Add your birth day.',
-    'individual.dob.month': 'Add your birth month.',
-    'individual.dob.year': 'Add your birth year.',
-    'individual.email': 'Add your email address.',
-    'individual.first_name': 'Add your first name.',
-    'individual.id_number': 'Add your national ID number.',
-    'individual.last_name': 'Add your last name.',
-    'individual.phone': 'Add your phone number.',
-    'individual.ssn_last_4': 'Add the last 4 digits of your SSN.',
-    'tos_acceptance.date': 'Accept Stripe terms to continue.',
-    'tos_acceptance.ip': 'Accept Stripe terms to continue.',
-};
-
-function toReadableRequirement(value) {
-    if (!value) {
-        return 'Verification required.';
-    }
-
-    if (REQUIREMENT_LABELS[value]) {
-        return REQUIREMENT_LABELS[value];
-    }
-
-    return `Complete: ${value
-        .replace(/\./g, ' > ')
-        .replace(/_/g, ' ')
-        .replace(/\b\w/g, (char) => char.toUpperCase())}`;
-}
 
 function toReadableStatus(status) {
     if (!status) {
@@ -175,6 +128,23 @@ export default function PaymentDetailsScreen({ navigation }) {
         }
     };
 
+    const runManagePayoutAccount = async () => {
+        try {
+            setIsPayoutActionLoading(true);
+            const data = await paymentsApi.createPayoutDashboardLink();
+            if (!data?.url) {
+                Alert.alert('Payouts', 'Unable to open payout management right now.');
+                return;
+            }
+
+            await openExternalUrl(data.url);
+        } catch (error) {
+            Alert.alert('Payouts', error?.response?.data?.message || 'Unable to open payout management.');
+        } finally {
+            setIsPayoutActionLoading(false);
+        }
+    };
+
     const handlePayoutSetup = () => {
         Alert.alert(
             'Payout setup',
@@ -200,6 +170,7 @@ export default function PaymentDetailsScreen({ navigation }) {
     const hasMethod = summary?.hasDefaultPaymentMethod;
     const method = summary?.defaultPaymentMethod;
     const hasPayout = summary?.hasConnectedPayoutAccount;
+    const isPayoutReady = hasPayout && summary?.payoutOnboardingStatus === 'COMPLETE';
     const blockers = summary?.readinessBlockers || [];
 
     return (
@@ -266,22 +237,10 @@ export default function PaymentDetailsScreen({ navigation }) {
                             />
                         </View>
 
-                        {Array.isArray(summary?.requirementsDue) && summary.requirementsDue.length > 0 ? (
-                            <View style={styles.requirementsWrap}>
-                                <Text style={styles.secondaryText}>Required to continue:</Text>
-                                {summary.requirementsDue.slice(0, 5).map((req) => (
-                                    <Text key={req} style={styles.requirementItem}>• {toReadableRequirement(req)}</Text>
-                                ))}
-                                {summary.requirementsDue.length > 5 ? (
-                                    <Text style={styles.requirementItem}>• +{summary.requirementsDue.length - 5} more item(s)</Text>
-                                ) : null}
-                            </View>
-                        ) : null}
-
                         <AppButton
-                            title={hasPayout ? 'Continue payout setup' : 'Start payout setup'}
+                            title={isPayoutReady ? 'Manage payout account' : hasPayout ? 'Continue payout setup' : 'Start payout setup'}
                             iconName="cash-outline"
-                            onPress={handlePayoutSetup}
+                            onPress={isPayoutReady ? runManagePayoutAccount : handlePayoutSetup}
                             loading={isPayoutActionLoading}
                             disabled={isActionInProgress}
                         />
@@ -373,19 +332,6 @@ const styles = StyleSheet.create({
     secondaryText: {
         color: '#9ca3af',
         fontSize: 13,
-        marginTop: 4,
-    },
-    requirementsWrap: {
-        marginTop: 10,
-        backgroundColor: '#101010',
-        borderRadius: 10,
-        borderWidth: 1,
-        borderColor: '#27272a',
-        padding: 10,
-    },
-    requirementItem: {
-        color: '#d1d5db',
-        fontSize: 12,
         marginTop: 4,
     },
     blockerRow: {

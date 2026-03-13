@@ -16,10 +16,6 @@ enum PayoutOnboardingStatus {
   COMPLETE
 }
 
-enum ProviderRequirementStatus {
-  CURRENTLY_DUE
-}
-
 enum BookingStatus {
   PENDING
   APPROVED

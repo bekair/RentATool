@@ -5,10 +5,7 @@ import {
   NotFoundException,
   ServiceUnavailableException,
 } from '@nestjs/common';
-import {
-  PayoutOnboardingStatus,
-  ProviderRequirementStatus,
-} from '@prisma/client';
+import { PayoutOnboardingStatus } from '@prisma/client';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -42,7 +39,7 @@ export class PaymentsService {
         paymentProfile: {
           include: {
             customerProfile: true,
-            payoutAccount: { include: { requirements: true } },
+            payoutAccount: true,
           },
         },
       },
@@ -156,6 +153,47 @@ export class PaymentsService {
     };
   }
 
+  async createPayoutDashboardLink(userId: string) {
+    const paymentProfile = await this.getOrCreatePaymentProfile(userId);
+    const payoutAccount = await this.getOrCreatePayoutAccount(paymentProfile.id);
+
+    if (!payoutAccount.providerAccountId) {
+      throw new BadRequestException(
+        'Start payout onboarding before opening payout management.',
+      );
+    }
+
+    try {
+      const link = await this.createStripeDashboardLoginLink(
+        payoutAccount.providerAccountId,
+      );
+
+      return {
+        url: link.url,
+        created: link.created,
+      };
+    } catch (error) {
+      if (!this.isMissingStripeConnectedAccountError(error)) {
+        throw error;
+      }
+
+      await this.prisma.$transaction([
+        this.prisma.paymentPayoutAccount.update({
+          where: { paymentProfileId: paymentProfile.id },
+          data: {
+            providerAccountId: null,
+            onboardingStatus: PayoutOnboardingStatus.NOT_STARTED,
+            chargesEnabled: false,
+            payoutsEnabled: false,
+          },
+        }),
+      ]);
+
+      throw new BadRequestException(
+        'Your payout account was reset. Please start payout onboarding again.',
+      );
+    }
+  }
   async handleConnectRefresh(accountId: string) {
     if (!accountId) {
       throw new BadRequestException('Missing required query parameter: account');
@@ -213,7 +251,6 @@ export class PaymentsService {
 
     const customerUpdate: any = {};
     const payoutUpdate: any = {};
-    let requirementsDue: string[] = [];
 
     if (customerProfile.providerCustomerId) {
       try {
@@ -270,7 +307,7 @@ export class PaymentsService {
           `/v1/accounts/${payoutAccount.providerAccountId}`,
         );
 
-        requirementsDue = Array.isArray(account?.requirements?.currently_due)
+        const requirementsDue = Array.isArray(account?.requirements?.currently_due)
           ? account.requirements.currently_due
           : [];
 
@@ -303,12 +340,7 @@ export class PaymentsService {
               payoutsEnabled: false,
             },
           }),
-          this.prisma.paymentProviderAccountRequirement.deleteMany({
-            where: { payoutAccountId: payoutAccount.id },
-          }),
         ]);
-
-        requirementsDue = [];
       }
     }
 
@@ -324,25 +356,6 @@ export class PaymentsService {
         where: { paymentProfileId: paymentProfile.id },
         data: payoutUpdate,
       });
-    }
-
-    if (payoutAccount.providerAccountId) {
-      await this.prisma.paymentProviderAccountRequirement.deleteMany({
-        where: {
-          payoutAccountId: payoutAccount.id,
-          requirementStatus: ProviderRequirementStatus.CURRENTLY_DUE,
-        },
-      });
-
-      if (requirementsDue.length > 0) {
-        await this.prisma.paymentProviderAccountRequirement.createMany({
-          data: requirementsDue.map((requirementKey) => ({
-            payoutAccountId: payoutAccount.id,
-            requirementKey,
-            requirementStatus: ProviderRequirementStatus.CURRENTLY_DUE,
-          })),
-        });
-      }
     }
 
     return this.getSummary(userId);
@@ -367,10 +380,6 @@ export class PaymentsService {
     const paymentProfile = user.paymentProfile;
     const customerProfile = paymentProfile?.customerProfile;
     const payoutAccount = paymentProfile?.payoutAccount;
-    const requirementsDue =
-      payoutAccount?.requirements
-        ?.filter((req: any) => req.requirementStatus === 'CURRENTLY_DUE')
-        .map((req: any) => req.requirementKey) || [];
 
     const readinessBlockers: string[] = [];
 
@@ -410,7 +419,6 @@ export class PaymentsService {
         payoutAccount?.onboardingStatus || PayoutOnboardingStatus.NOT_STARTED,
       chargesEnabled: Boolean(payoutAccount?.chargesEnabled),
       payoutsEnabled: Boolean(payoutAccount?.payoutsEnabled),
-      requirementsDue,
       readinessBlockers,
     };
   }
@@ -705,6 +713,10 @@ export class PaymentsService {
     });
   }
 
+  private async createStripeDashboardLoginLink(accountId: string) {
+    return this.stripeRequest('POST', `/v1/accounts/${accountId}/login_links`);
+  }
+
   private async stripeRequest(
     method: 'GET' | 'POST',
     path: string,
@@ -758,6 +770,8 @@ export class PaymentsService {
     return data;
   }
 }
+
+
 
 
 

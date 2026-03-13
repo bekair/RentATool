@@ -34,6 +34,12 @@ export class PaymentsController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @Post('me/payout-dashboard-link')
+  createPayoutDashboardLink(@Req() req: Request) {
+    return this.paymentsService.createPayoutDashboardLink((req.user as any).id);
+  }
+
+  @UseGuards(JwtAuthGuard)
   @Post('me/refresh-status')
   refreshStatus(@Req() req: Request) {
     return this.paymentsService.refreshStatus((req.user as any).id);
@@ -63,3 +69,4 @@ export class PaymentsController {
     };
   }
 }
+
