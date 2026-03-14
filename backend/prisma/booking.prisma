@@ -1,19 +1,83 @@
 model Booking {
-  id            String        @id @default(uuid())
-  tool          Tool          @relation(fields: [toolId], references: [id])
-  toolId        String
-  toolVersion   ToolVersion   @relation(fields: [toolVersionId], references: [id])
-  toolVersionId String
-  renter        User          @relation("RenterBookings", fields: [renterId], references: [id])
-  renterId      String
-  owner         User          @relation("OwnerBookings", fields: [ownerId], references: [id])
-  ownerId       String
-  startDate     DateTime
-  endDate       DateTime
-  totalPrice    Float
-  status        BookingStatus @default(PENDING)
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  id                    String          @id @default(uuid())
+  tool                  Tool            @relation(fields: [toolId], references: [id])
+  toolId                String
+  toolVersion           ToolVersion     @relation(fields: [toolVersionId], references: [id])
+  toolVersionId         String
+  renter                User            @relation("RenterBookings", fields: [renterId], references: [id])
+  renterId              String
+  owner                 User            @relation("OwnerBookings", fields: [ownerId], references: [id])
+  ownerId               String
+  startDate             DateTime
+  endDate               DateTime
+  totalPrice            Float
+  currency              String          @default("eur")
+  status                BookingStatus   @default(PENDING)
+  paymentAmountCents    Int?
+  stripePaymentIntentId String?         @unique
+  stripePaymentStatus   String?
+  paidAt                DateTime?
+  stripeTransferId      String?         @unique
+  payoutReleasedAt      DateTime?
+  stripeRefundId        String?         @unique
+  refundedAt            DateTime?
+  payment               BookingPayment?
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
 
   @@map("bookings")
+}
+
+model BookingPayment {
+  id                      String               @id @default(uuid())
+  bookingId               String               @unique
+  booking                 Booking              @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  provider                PaymentProvider      @default(STRIPE)
+  providerPaymentIntentId String?              @unique
+  amount                  Int
+  currency                String
+  status                  BookingPaymentStatus @default(REQUIRES_PAYMENT_METHOD)
+  paidAt                  DateTime?
+  createdAt               DateTime             @default(now())
+  updatedAt               DateTime             @updatedAt
+
+  payouts BookingPayout[]
+  refunds BookingRefund[]
+
+  @@map("booking_payments")
+}
+
+model BookingPayout {
+  id                           String              @id @default(uuid())
+  bookingPaymentId             String
+  bookingPayment               BookingPayment      @relation(fields: [bookingPaymentId], references: [id], onDelete: Cascade)
+  provider                     PaymentProvider     @default(STRIPE)
+  destinationProviderAccountId String
+  providerTransferId           String?             @unique
+  amount                       Int
+  currency                     String
+  status                       BookingPayoutStatus @default(PENDING)
+  releasedAt                   DateTime?
+  createdAt                    DateTime            @default(now())
+  updatedAt                    DateTime            @updatedAt
+
+  @@index([bookingPaymentId])
+  @@map("booking_payouts")
+}
+
+model BookingRefund {
+  id               String          @id @default(uuid())
+  bookingPaymentId String
+  bookingPayment   BookingPayment  @relation(fields: [bookingPaymentId], references: [id], onDelete: Cascade)
+  provider         PaymentProvider @default(STRIPE)
+  providerRefundId String?         @unique
+  amount           Int
+  currency         String
+  status           String
+  refundedAt       DateTime?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  @@index([bookingPaymentId])
+  @@map("booking_refunds")
 }

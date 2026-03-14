@@ -195,6 +195,11 @@ const AddToolScreen = ({ navigation }) => {
             return;
         }
 
+        if (!locationAddress?.country) {
+            Alert.alert('Country Missing', 'Please pick a location with a valid country before listing.');
+            return;
+        }
+
         setLoading(true);
         try {
             const response = await api.post('/tools', {
@@ -206,6 +211,13 @@ const AddToolScreen = ({ navigation }) => {
                 condition: condition || undefined,
                 latitude,
                 longitude,
+                label: 'Tool Location',
+                street: locationAddress?.street || undefined,
+                addressLine2: undefined,
+                city: locationAddress?.city || undefined,
+                state: undefined,
+                postalCode: undefined,
+                country: locationAddress?.country || undefined,
             });
             const createdTool = response.data;
 

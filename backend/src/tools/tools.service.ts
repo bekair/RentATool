@@ -22,8 +22,29 @@ export class ToolsService {
       latitude,
       longitude,
       images,
+      label,
+      street,
+      addressLine2,
+      city,
+      state,
+      postalCode,
+      country,
       ...toolData
     } = createToolDto;
+
+    const normalizedCountry = this.normalizeCountryCode(country);
+    if (!normalizedCountry) {
+      throw new BadRequestException(
+        'Tool country is required before listing your tool.',
+      );
+    }
+
+    const currency = this.currencyForCountry(normalizedCountry);
+    if (!currency) {
+      throw new BadRequestException(
+        `No supported currency mapping found for country: ${normalizedCountry}.`,
+      );
+    }
 
     return this.prisma.$transaction(async (tx) => {
       // Create the parent Tool
@@ -44,9 +65,25 @@ export class ToolsService {
           pricePerDay,
           replacementValue,
           condition,
+          currency,
           latitude,
           longitude,
           images: images || [],
+        },
+      });
+
+      await tx.toolAddress.create({
+        data: {
+          toolVersionId: version.id,
+          label: label || null,
+          street: street || null,
+          addressLine2: addressLine2 || null,
+          city: city || null,
+          state: state || null,
+          postalCode: postalCode || null,
+          country: normalizedCountry,
+          latitude: latitude ?? null,
+          longitude: longitude ?? null,
         },
       });
 
@@ -54,7 +91,14 @@ export class ToolsService {
       return tx.tool.update({
         where: { id: tool.id },
         data: { activeVersionId: version.id },
-        include: { activeVersion: { include: { category: true } } },
+        include: {
+          activeVersion: {
+            include: {
+              category: true,
+              address: true,
+            },
+          },
+        },
       });
     });
   }
@@ -76,6 +120,7 @@ export class ToolsService {
         activeVersion: {
           include: {
             category: true,
+            address: true,
           },
         },
       },
@@ -106,6 +151,7 @@ export class ToolsService {
         activeVersion: {
           include: {
             category: true,
+            address: true,
           },
         },
         blocks: true,
@@ -136,6 +182,7 @@ export class ToolsService {
         activeVersion: {
           include: {
             category: true,
+            address: true,
           },
         },
         blocks: true,
@@ -176,6 +223,24 @@ export class ToolsService {
 
       // 2. Map existing active version data, overridden by the incoming changes
       if (Object.keys(versionData).length > 0) {
+        const currentAddress = tool.address || {};
+        const nextCountry =
+          this.normalizeCountryCode(versionData.country) ||
+          this.normalizeCountryCode(currentAddress.country);
+
+        if (!nextCountry) {
+          throw new BadRequestException(
+            'Tool country is required before updating this listing.',
+          );
+        }
+
+        const nextCurrency = this.currencyForCountry(nextCountry);
+        if (!nextCurrency) {
+          throw new BadRequestException(
+            `No supported currency mapping found for country: ${nextCountry}.`,
+          );
+        }
+
         const newVersion = await tx.toolVersion.create({
           data: {
             toolId: id,
@@ -186,9 +251,27 @@ export class ToolsService {
             replacementValue:
               versionData.replacementValue ?? tool.replacementValue,
             condition: versionData.condition ?? tool.condition,
+            currency: nextCurrency,
             latitude: versionData.latitude ?? tool.latitude,
             longitude: versionData.longitude ?? tool.longitude,
             images: versionData.images ?? tool.images,
+          },
+        });
+
+        await tx.toolAddress.create({
+          data: {
+            toolVersionId: newVersion.id,
+            label: versionData.label ?? currentAddress.label ?? null,
+            street: versionData.street ?? currentAddress.street ?? null,
+            addressLine2:
+              versionData.addressLine2 ?? currentAddress.addressLine2 ?? null,
+            city: versionData.city ?? currentAddress.city ?? null,
+            state: versionData.state ?? currentAddress.state ?? null,
+            postalCode:
+              versionData.postalCode ?? currentAddress.postalCode ?? null,
+            country: nextCountry,
+            latitude: versionData.latitude ?? tool.latitude ?? null,
+            longitude: versionData.longitude ?? tool.longitude ?? null,
           },
         });
 
@@ -339,5 +422,65 @@ export class ToolsService {
     ]);
 
     return this.getAvailability(id);
+  }
+
+  private normalizeCountryCode(raw?: string | null): string | null {
+    if (!raw || typeof raw !== 'string') {
+      return null;
+    }
+
+    const normalized = raw.trim();
+    if (!normalized) {
+      return null;
+    }
+
+    const upper = normalized.toUpperCase();
+    if (/^[A-Z]{2}$/.test(upper)) {
+      return upper;
+    }
+
+    const byName: Record<string, string> = {
+      BELGIUM: 'BE',
+      NETHERLANDS: 'NL',
+      LUXEMBOURG: 'LU',
+      FRANCE: 'FR',
+      GERMANY: 'DE',
+      SPAIN: 'ES',
+      ITALY: 'IT',
+      PORTUGAL: 'PT',
+      AUSTRIA: 'AT',
+      IRELAND: 'IE',
+      'UNITED KINGDOM': 'GB',
+      UK: 'GB',
+      'UNITED STATES': 'US',
+      USA: 'US',
+      CANADA: 'CA',
+      JAPAN: 'JP',
+      SWITZERLAND: 'CH',
+    };
+
+    return byName[upper] || null;
+  }
+
+  private currencyForCountry(countryCode: string): string | null {
+    const byCountry: Record<string, string> = {
+      BE: 'eur',
+      NL: 'eur',
+      LU: 'eur',
+      FR: 'eur',
+      DE: 'eur',
+      ES: 'eur',
+      IT: 'eur',
+      PT: 'eur',
+      AT: 'eur',
+      IE: 'eur',
+      GB: 'gbp',
+      US: 'usd',
+      CA: 'cad',
+      JP: 'jpy',
+      CH: 'chf',
+    };
+
+    return byCountry[countryCode] || null;
   }
 }

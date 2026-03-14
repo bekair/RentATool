@@ -1,6 +1,7 @@
 import {
   Controller,
   Get,
+  Param,
   Post,
   Query,
   Redirect,
@@ -45,6 +46,30 @@ export class PaymentsController {
     return this.paymentsService.refreshStatus((req.user as any).id);
   }
 
+  @UseGuards(JwtAuthGuard)
+  @Post('bookings/:bookingId/payment-intent')
+  createBookingPaymentIntent(
+    @Req() req: Request,
+    @Param('bookingId') bookingId: string,
+  ) {
+    return this.paymentsService.createBookingPaymentIntent(
+      (req.user as any).id,
+      bookingId,
+    );
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('bookings/:bookingId/sync-payment')
+  syncBookingPayment(
+    @Req() req: Request,
+    @Param('bookingId') bookingId: string,
+  ) {
+    return this.paymentsService.syncBookingPayment(
+      (req.user as any).id,
+      bookingId,
+    );
+  }
+
   @Get('stripe/refresh')
   @Redirect()
   async stripeRefresh(@Query('account') accountId?: string) {
@@ -69,4 +94,3 @@ export class PaymentsController {
     };
   }
 }
-

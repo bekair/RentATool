@@ -5,8 +5,9 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useStripe } from '@stripe/stripe-react-native';
 // expo-linear-gradient not installed — using plain View fade instead
-import api from '../api/client';
+import api, { paymentsApi } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 
 const { width } = Dimensions.get('window');
@@ -26,9 +27,11 @@ const C = {
     gold: '#FFB400',
     teal: '#00BFA5',
 };
+const PAYMENT_SHEET_RETURN_URL = 'shareatool://payment-details';
 
 const ToolDetailsScreen = ({ route, navigation }) => {
     const { toolId } = route.params;
+    const { initPaymentSheet, presentPaymentSheet, confirmPaymentSheetPayment } = useStripe();
     const { user } = useAuth();
     const [tool, setTool] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -76,18 +79,80 @@ const ToolDetailsScreen = ({ route, navigation }) => {
         return () => sub.remove();
     }, [toolId]);
 
+
     const handleReserve = async () => {
         if (!selectedStartDate || isReserving) return;
         const effectiveEnd = selectedEndDate || selectedStartDate;
 
         setIsReserving(true);
+        let bookingId = null;
+
+        const cancelBookingIfNeeded = async () => {
+            if (!bookingId) {
+                return;
+            }
+
+            try {
+                await api.patch(`/bookings/${bookingId}/status`, {
+                    status: 'CANCELLED',
+                });
+            } catch {
+                // Keep the original checkout error.
+            }
+        };
+
         try {
-            await api.post('/bookings', {
+            const bookingResponse = await api.post('/bookings', {
                 toolId: tool.id,
                 startDate: new Date(`${selectedStartDate}T00:00:00Z`).toISOString(),
                 endDate: new Date(`${effectiveEnd}T23:59:59Z`).toISOString(),
                 totalPrice,
             });
+            bookingId = bookingResponse?.data?.id;
+
+            if (!bookingId) {
+                throw new Error('Booking was created without an id.');
+            }
+
+            const paymentSetup = await paymentsApi.createBookingPaymentIntent(bookingId);
+            const initResult = await initPaymentSheet({
+                merchantDisplayName: 'Share a Tool',
+                customerId: paymentSetup.customerId,
+                customerEphemeralKeySecret: paymentSetup.ephemeralKeySecret,
+                paymentIntentClientSecret: paymentSetup.clientSecret,
+                customFlow: true,
+                allowsDelayedPaymentMethods: false,
+                returnURL: PAYMENT_SHEET_RETURN_URL,
+            });
+
+            if (initResult.error) {
+                await cancelBookingIfNeeded();
+                Alert.alert('Payment', initResult.error.message || 'Unable to prepare checkout.');
+                return;
+            }
+
+            const presentResult = await presentPaymentSheet();
+            if (presentResult.error) {
+                if (presentResult.error.code !== 'Canceled') {
+                    await cancelBookingIfNeeded();
+                    Alert.alert('Payment', presentResult.error.message || 'Unable to complete payment method step.');
+                }
+                return;
+            }
+
+            const confirmResult = await confirmPaymentSheetPayment();
+            if (confirmResult.error) {
+                await cancelBookingIfNeeded();
+                Alert.alert('Payment', confirmResult.error.message || 'Unable to confirm payment.');
+                return;
+            }
+
+            const paymentStatus = await paymentsApi.syncBookingPayment(bookingId);
+            if (!paymentStatus?.isPaid) {
+                await cancelBookingIfNeeded();
+                Alert.alert('Payment', 'Payment was not completed. Please try again.');
+                return;
+            }
 
             Alert.alert(
                 'Request Sent! 🎉',
@@ -97,7 +162,7 @@ const ToolDetailsScreen = ({ route, navigation }) => {
             setSelectedStartDate(null);
             setSelectedEndDate(null);
         } catch (err) {
-            Alert.alert('Error', err.response?.data?.message || 'Failed to send rental request');
+            Alert.alert('Error', err.response?.data?.message || err.message || 'Failed to send rental request');
         } finally {
             setIsReserving(false);
         }
@@ -513,3 +578,4 @@ const styles = StyleSheet.create({
 });
 
 export default ToolDetailsScreen;
+

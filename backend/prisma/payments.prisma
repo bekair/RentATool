@@ -5,8 +5,11 @@ model PaymentProfile {
   provider        PaymentProvider         @default(STRIPE)
   customerProfile PaymentCustomerProfile?
   payoutAccount   PaymentPayoutAccount?
-  createdAt       DateTime                @default(now())
-  updatedAt       DateTime                @updatedAt
+
+  providerAccounts PaymentProviderAccount[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("payment_profiles")
 }
@@ -28,15 +31,41 @@ model PaymentCustomerProfile {
 }
 
 model PaymentPayoutAccount {
-  id                String                             @id @default(uuid())
-  paymentProfileId  String                             @unique
-  paymentProfile    PaymentProfile                     @relation(fields: [paymentProfileId], references: [id], onDelete: Cascade)
-  providerAccountId String?                            @unique
-  onboardingStatus  PayoutOnboardingStatus             @default(NOT_STARTED)
-  chargesEnabled    Boolean                            @default(false)
-  payoutsEnabled    Boolean                            @default(false)
-  createdAt         DateTime                           @default(now())
-  updatedAt         DateTime                           @updatedAt
+  id                String                 @id @default(uuid())
+  paymentProfileId  String                 @unique
+  paymentProfile    PaymentProfile         @relation(fields: [paymentProfileId], references: [id], onDelete: Cascade)
+  providerAccountId String?                @unique
+  onboardingStatus  PayoutOnboardingStatus @default(NOT_STARTED)
+  chargesEnabled    Boolean                @default(false)
+  payoutsEnabled    Boolean                @default(false)
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
 
   @@map("payment_payout_accounts")
+}
+
+model PaymentProviderAccount {
+  id                String              @id @default(uuid())
+  paymentProfileId  String
+  paymentProfile    PaymentProfile      @relation(fields: [paymentProfileId], references: [id], onDelete: Cascade)
+  provider          PaymentProvider
+  accountType       ProviderAccountType
+  providerAccountId String?             @unique
+
+  country        String
+  status         ProviderAccountStatus @default(NOT_STARTED)
+  chargesEnabled Boolean               @default(false)
+  payoutsEnabled Boolean               @default(false)
+
+  hasDefaultPaymentMethod      Boolean @default(false)
+  defaultPaymentMethodBrand    String?
+  defaultPaymentMethodLast4    String?
+  defaultPaymentMethodExpMonth Int?
+  defaultPaymentMethodExpYear  Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([paymentProfileId, provider, accountType])
+  @@map("payment_provider_accounts")
 }

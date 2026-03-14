@@ -6,10 +6,14 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateBookingDto, UpdateBookingStatusDto } from './dto/booking.dto';
 import { Booking, BookingStatus } from '@prisma/client';
+import { PaymentsService } from '../payments/payments.service';
 
 @Injectable()
 export class BookingsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private paymentsService: PaymentsService,
+  ) {}
 
   async create(
     renterId: string,
@@ -17,6 +21,13 @@ export class BookingsService {
   ): Promise<Booking> {
     const tool = await this.prisma.tool.findUnique({
       where: { id: createBookingDto.toolId },
+      include: {
+        activeVersion: {
+          select: {
+            currency: true,
+          },
+        },
+      },
     });
 
     if (!tool) {
@@ -42,6 +53,7 @@ export class BookingsService {
         startDate: new Date(createBookingDto.startDate),
         endDate: new Date(createBookingDto.endDate),
         totalPrice: createBookingDto.totalPrice,
+        currency: tool.activeVersion?.currency || 'eur',
         status: BookingStatus.PENDING,
       },
     });
@@ -118,15 +130,52 @@ export class BookingsService {
       }
     }
 
+    if (updateDto.status === 'APPROVED') {
+      const paymentSync = await this.paymentsService.syncBookingPayment(
+        booking.renterId,
+        booking.id,
+      );
+      if (!paymentSync.isPaid) {
+        throw new BadRequestException(
+          'Payment is not completed yet. The renter must finish checkout first.',
+        );
+      }
+    }
+
     if (updateDto.status === 'CANCELLED') {
       if (booking.renterId !== userId && booking.ownerId !== userId) {
         throw new BadRequestException('Not authorized to cancel this booking');
       }
     }
 
-    return this.prisma.booking.update({
+    if (updateDto.status === 'COMPLETED' && booking.ownerId !== userId) {
+      throw new BadRequestException(
+        'Only the tool owner can mark bookings as completed',
+      );
+    }
+
+    const updated = await this.prisma.booking.update({
       where: { id },
       data: { status: BookingStatus[updateDto.status] },
     });
+
+    if (updateDto.status === 'COMPLETED') {
+      try {
+        await this.paymentsService.releaseBookingPayoutForCompletedBooking(id);
+      } catch (error) {
+        await this.prisma.booking.update({
+          where: { id },
+          data: { status: booking.status },
+        });
+        throw error;
+      }
+      return updated;
+    }
+
+    if (updateDto.status === 'REJECTED' || updateDto.status === 'CANCELLED') {
+      await this.paymentsService.refundBookingPaymentIfNeeded(id);
+    }
+
+    return updated;
   }
 }

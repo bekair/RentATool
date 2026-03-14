@@ -229,6 +229,11 @@ const EditToolScreen = ({ route, navigation }) => {
             return;
         }
 
+        if (!locationAddress?.country) {
+            Alert.alert('Country Missing', 'Please pick a location with a valid country before updating.');
+            return;
+        }
+
         setLoading(true);
         try {
             await api.patch(`/tools/${tool.id}`, {
@@ -240,6 +245,13 @@ const EditToolScreen = ({ route, navigation }) => {
                 condition: condition || undefined,
                 latitude,
                 longitude,
+                label: 'Tool Location',
+                street: locationAddress?.street || undefined,
+                addressLine2: undefined,
+                city: locationAddress?.city || undefined,
+                state: undefined,
+                postalCode: undefined,
+                country: locationAddress?.country || undefined,
             });
 
             // If user selected any calendar dates, patch them immediately

@@ -28,7 +28,7 @@ export class PaymentsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
-  ) { }
+  ) {}
 
   async getSummary(userId: string) {
     const user = await this.prisma.user.findUnique({
@@ -113,7 +113,9 @@ export class PaymentsService {
     }
 
     const paymentProfile = await this.getOrCreatePaymentProfile(userId);
-    const payoutAccount = await this.getOrCreatePayoutAccount(paymentProfile.id);
+    const payoutAccount = await this.getOrCreatePayoutAccount(
+      paymentProfile.id,
+    );
 
     let connectAccountId = payoutAccount.providerAccountId;
     if (!connectAccountId) {
@@ -127,7 +129,11 @@ export class PaymentsService {
       const account = await this.stripeRequest(
         'POST',
         '/v1/accounts',
-        this.buildStripeExpressAccountParams(user as any, userId, stripeCountry),
+        this.buildStripeExpressAccountParams(
+          user as any,
+          userId,
+          stripeCountry,
+        ),
       );
 
       connectAccountId = account.id;
@@ -141,7 +147,9 @@ export class PaymentsService {
     }
 
     if (!connectAccountId) {
-      throw new ServiceUnavailableException('Unable to determine Stripe account id.');
+      throw new ServiceUnavailableException(
+        'Unable to determine Stripe account id.',
+      );
     }
 
     const link = await this.createStripeAccountLink(connectAccountId);
@@ -155,7 +163,9 @@ export class PaymentsService {
 
   async createPayoutDashboardLink(userId: string) {
     const paymentProfile = await this.getOrCreatePaymentProfile(userId);
-    const payoutAccount = await this.getOrCreatePayoutAccount(paymentProfile.id);
+    const payoutAccount = await this.getOrCreatePayoutAccount(
+      paymentProfile.id,
+    );
 
     if (!payoutAccount.providerAccountId) {
       throw new BadRequestException(
@@ -196,7 +206,9 @@ export class PaymentsService {
   }
   async handleConnectRefresh(accountId: string) {
     if (!accountId) {
-      throw new BadRequestException('Missing required query parameter: account');
+      throw new BadRequestException(
+        'Missing required query parameter: account',
+      );
     }
 
     const payoutAccount = await this.prisma.paymentPayoutAccount.findUnique({
@@ -222,6 +234,311 @@ export class PaymentsService {
     return this.buildMobilePaymentDetailsUrl({
       stripe: 'billing-return',
     });
+  }
+
+  async createBookingPaymentIntent(userId: string, bookingId: string) {
+    const booking = await this.prisma.booking.findUnique({
+      where: { id: bookingId },
+      include: {
+        renter: {
+          select: { email: true },
+        },
+      },
+    });
+
+    if (!booking) {
+      throw new NotFoundException('Booking not found');
+    }
+
+    if (booking.renterId !== userId) {
+      throw new BadRequestException('Only the renter can pay this booking.');
+    }
+
+    if (
+      booking.status === 'REJECTED' ||
+      booking.status === 'CANCELLED' ||
+      booking.status === 'COMPLETED'
+    ) {
+      throw new BadRequestException('This booking is not payable.');
+    }
+
+    if (booking.stripeTransferId) {
+      throw new BadRequestException('Payout has already been released.');
+    }
+
+    const paymentProfile = await this.getOrCreatePaymentProfile(userId);
+    const customerProfile = await this.getOrCreateCustomerProfile(
+      paymentProfile.id,
+    );
+    const customerId = await this.ensureStripeCustomer({
+      userId,
+      email: booking.renter.email,
+      paymentProfileId: paymentProfile.id,
+      existingCustomerId: customerProfile.providerCustomerId || null,
+    });
+
+    const amount = this.toStripeAmountCents(booking.totalPrice);
+    let paymentIntent: any = null;
+
+    if (booking.stripePaymentIntentId) {
+      try {
+        paymentIntent = await this.stripeRequest(
+          'GET',
+          `/v1/payment_intents/${booking.stripePaymentIntentId}`,
+        );
+      } catch (error) {
+        if (!this.isMissingStripePaymentIntentError(error)) {
+          throw error;
+        }
+
+        paymentIntent = null;
+      }
+    }
+
+    if (
+      !paymentIntent ||
+      paymentIntent.status === 'canceled' ||
+      paymentIntent.status === 'requires_payment_method'
+    ) {
+      paymentIntent = await this.stripeRequest(
+        'POST',
+        '/v1/payment_intents',
+        {
+          amount,
+          currency: (booking.currency || 'eur').toLowerCase(),
+          customer: customerId,
+          transfer_group: `booking_${booking.id}`,
+          'automatic_payment_methods[enabled]': true,
+          'metadata[bookingId]': booking.id,
+          'metadata[renterId]': booking.renterId,
+          'metadata[ownerId]': booking.ownerId,
+        },
+        {
+          headers: {
+            'Idempotency-Key': `booking-payment-intent-${booking.id}`,
+          },
+        },
+      );
+
+      await this.prisma.booking.update({
+        where: { id: booking.id },
+        data: {
+          stripePaymentIntentId: paymentIntent.id,
+          stripePaymentStatus: paymentIntent.status,
+          paymentAmountCents: amount,
+          currency: (booking.currency || 'eur').toLowerCase(),
+        },
+      });
+    }
+
+    const ephemeralKey = await this.stripeRequest(
+      'POST',
+      '/v1/ephemeral_keys',
+      { customer: customerId },
+      {
+        headers: {
+          'Stripe-Version': '2024-06-20',
+        },
+      },
+    );
+
+    return {
+      bookingId: booking.id,
+      customerId,
+      paymentIntentId: paymentIntent.id,
+      paymentIntentStatus: paymentIntent.status,
+      clientSecret: paymentIntent.client_secret,
+      ephemeralKeySecret: ephemeralKey.secret,
+    };
+  }
+
+  async syncBookingPayment(userId: string, bookingId: string) {
+    const booking = await this.prisma.booking.findUnique({
+      where: { id: bookingId },
+    });
+
+    if (!booking) {
+      throw new NotFoundException('Booking not found');
+    }
+
+    if (booking.renterId !== userId) {
+      throw new BadRequestException('Only the renter can sync payment status.');
+    }
+
+    if (!booking.stripePaymentIntentId) {
+      throw new BadRequestException(
+        'No payment intent exists for this booking.',
+      );
+    }
+
+    const paymentIntent = await this.stripeRequest(
+      'GET',
+      `/v1/payment_intents/${booking.stripePaymentIntentId}`,
+    );
+
+    const isPaid = paymentIntent.status === 'succeeded';
+    await this.prisma.booking.update({
+      where: { id: booking.id },
+      data: {
+        stripePaymentStatus: paymentIntent.status,
+        paidAt: isPaid ? new Date() : booking.paidAt,
+        paymentAmountCents:
+          typeof paymentIntent.amount_received === 'number' &&
+          paymentIntent.amount_received > 0
+            ? paymentIntent.amount_received
+            : booking.paymentAmountCents,
+      },
+    });
+
+    return {
+      bookingId: booking.id,
+      paymentIntentId: paymentIntent.id,
+      paymentIntentStatus: paymentIntent.status,
+      isPaid,
+    };
+  }
+
+  async releaseBookingPayoutForCompletedBooking(bookingId: string) {
+    const booking = await this.prisma.booking.findUnique({
+      where: { id: bookingId },
+      include: {
+        owner: {
+          include: {
+            paymentProfile: {
+              include: {
+                payoutAccount: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!booking) {
+      throw new NotFoundException('Booking not found');
+    }
+
+    if (booking.status !== 'COMPLETED') {
+      throw new BadRequestException(
+        'Booking must be completed before releasing payout.',
+      );
+    }
+
+    if (booking.stripeTransferId) {
+      return {
+        bookingId: booking.id,
+        transferId: booking.stripeTransferId,
+        alreadyReleased: true,
+      };
+    }
+
+    if (!booking.stripePaymentIntentId) {
+      throw new BadRequestException('No payment found for this booking.');
+    }
+
+    const payoutAccountId =
+      booking.owner?.paymentProfile?.payoutAccount?.providerAccountId;
+    if (!payoutAccountId) {
+      throw new BadRequestException(
+        'Owner payout account is not ready. Complete payout setup first.',
+      );
+    }
+
+    const paymentIntent = await this.stripeRequest(
+      'GET',
+      `/v1/payment_intents/${booking.stripePaymentIntentId}`,
+    );
+
+    if (paymentIntent.status !== 'succeeded') {
+      throw new BadRequestException(
+        `Payment is not completed yet (status: ${paymentIntent.status}).`,
+      );
+    }
+
+    const sourceTransaction =
+      typeof paymentIntent.latest_charge === 'string'
+        ? paymentIntent.latest_charge
+        : null;
+    if (!sourceTransaction) {
+      throw new ServiceUnavailableException(
+        'Unable to release payout: source charge not found.',
+      );
+    }
+
+    const amount =
+      booking.paymentAmountCents ||
+      this.toStripeAmountCents(booking.totalPrice);
+
+    const transfer = await this.stripeRequest('POST', '/v1/transfers', {
+      amount,
+      currency: (booking.currency || 'eur').toLowerCase(),
+      destination: payoutAccountId,
+      source_transaction: sourceTransaction,
+      transfer_group: `booking_${booking.id}`,
+      'metadata[bookingId]': booking.id,
+      'metadata[ownerId]': booking.ownerId,
+      'metadata[renterId]': booking.renterId,
+    });
+
+    await this.prisma.booking.update({
+      where: { id: booking.id },
+      data: {
+        stripeTransferId: transfer.id,
+        payoutReleasedAt: new Date(),
+      },
+    });
+
+    return {
+      bookingId: booking.id,
+      transferId: transfer.id,
+      released: true,
+    };
+  }
+
+  async refundBookingPaymentIfNeeded(bookingId: string) {
+    const booking = await this.prisma.booking.findUnique({
+      where: { id: bookingId },
+    });
+
+    if (!booking || !booking.stripePaymentIntentId) {
+      return { skipped: true, reason: 'no_payment' };
+    }
+
+    if (booking.stripeTransferId) {
+      return { skipped: true, reason: 'transfer_already_released' };
+    }
+
+    if (booking.stripeRefundId) {
+      return { skipped: true, reason: 'already_refunded' };
+    }
+
+    const paymentIntent = await this.stripeRequest(
+      'GET',
+      `/v1/payment_intents/${booking.stripePaymentIntentId}`,
+    );
+
+    if (paymentIntent.status !== 'succeeded') {
+      return { skipped: true, reason: 'payment_not_succeeded' };
+    }
+
+    const refund = await this.stripeRequest('POST', '/v1/refunds', {
+      payment_intent: booking.stripePaymentIntentId,
+    });
+
+    await this.prisma.booking.update({
+      where: { id: booking.id },
+      data: {
+        stripeRefundId: refund.id,
+        refundedAt: new Date(),
+        stripePaymentStatus: 'refunded',
+      },
+    });
+
+    return {
+      bookingId: booking.id,
+      refundId: refund.id,
+      refunded: true,
+    };
   }
 
   async refreshStatus(userId: string) {
@@ -307,7 +624,9 @@ export class PaymentsService {
           `/v1/accounts/${payoutAccount.providerAccountId}`,
         );
 
-        const requirementsDue = Array.isArray(account?.requirements?.currently_due)
+        const requirementsDue = Array.isArray(
+          account?.requirements?.currently_due,
+        )
           ? account.requirements.currently_due
           : [];
 
@@ -405,14 +724,16 @@ export class PaymentsService {
     }
 
     return {
-      hasDefaultPaymentMethod: Boolean(customerProfile?.hasDefaultPaymentMethod),
+      hasDefaultPaymentMethod: Boolean(
+        customerProfile?.hasDefaultPaymentMethod,
+      ),
       defaultPaymentMethod: customerProfile?.hasDefaultPaymentMethod
         ? {
-          brand: customerProfile.defaultPaymentMethodBrand,
-          last4: customerProfile.defaultPaymentMethodLast4,
-          expMonth: customerProfile.defaultPaymentMethodExpMonth,
-          expYear: customerProfile.defaultPaymentMethodExpYear,
-        }
+            brand: customerProfile.defaultPaymentMethodBrand,
+            last4: customerProfile.defaultPaymentMethodLast4,
+            expMonth: customerProfile.defaultPaymentMethodExpMonth,
+            expYear: customerProfile.defaultPaymentMethodExpYear,
+          }
         : null,
       hasConnectedPayoutAccount: Boolean(payoutAccount?.providerAccountId),
       payoutOnboardingStatus:
@@ -517,9 +838,37 @@ export class PaymentsService {
 
     return candidate.some(
       (value) =>
-        value.includes('no such customer') || value.includes('resource_missing'),
+        value.includes('no such customer') ||
+        value.includes('resource_missing'),
     );
   }
+
+  private isMissingStripePaymentIntentError(error: unknown): boolean {
+    const candidate = [
+      (error as any)?.message,
+      (error as any)?.response?.message,
+      (error as any)?.response?.error?.message,
+      (error as any)?.response?.error?.code,
+    ]
+      .filter((value) => typeof value === 'string')
+      .map((value) => String(value).toLowerCase());
+
+    return candidate.some(
+      (value) =>
+        value.includes('no such paymentintent') ||
+        value.includes('no such payment_intent') ||
+        value.includes('resource_missing'),
+    );
+  }
+
+  private toStripeAmountCents(amount: number): number {
+    if (!Number.isFinite(amount) || amount <= 0) {
+      throw new BadRequestException('Invalid booking amount.');
+    }
+
+    return Math.round(amount * 100);
+  }
+
   private buildStripeExpressAccountParams(
     user: any,
     userId: string,
@@ -677,7 +1026,10 @@ export class PaymentsService {
   }
 
   private buildPublicBackendUrl(path: string): string {
-    const baseUrl = this.getRequiredEnv('PUBLIC_BACKEND_URL').replace(/\/$/, '');
+    const baseUrl = this.getRequiredEnv('PUBLIC_BACKEND_URL').replace(
+      /\/$/,
+      '',
+    );
     return `${baseUrl}${path}`;
   }
 
@@ -691,14 +1043,19 @@ export class PaymentsService {
     baseUrl: string,
     params: Record<string, string | undefined>,
   ): string {
-    const entries = Object.entries(params).filter(([, value]) => Boolean(value));
+    const entries = Object.entries(params).filter(([, value]) =>
+      Boolean(value),
+    );
     if (entries.length === 0) {
       return baseUrl;
     }
 
     const separator = baseUrl.includes('?') ? '&' : '?';
     const query = entries
-      .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value as string)}`)
+      .map(
+        ([key, value]) =>
+          `${encodeURIComponent(key)}=${encodeURIComponent(value as string)}`,
+      )
       .join('&');
 
     return `${baseUrl}${separator}${query}`;
@@ -770,23 +1127,3 @@ export class PaymentsService {
     return data;
   }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

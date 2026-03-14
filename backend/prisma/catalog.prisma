@@ -13,10 +13,10 @@ model Category {
 }
 
 model Tool {
-  id          String          @id @default(uuid())
+  id          String  @id @default(uuid())
   ownerId     String
-  owner       User            @relation(fields: [ownerId], references: [id])
-  isAvailable Boolean         @default(true)
+  owner       User    @relation(fields: [ownerId], references: [id])
+  isAvailable Boolean @default(true)
 
   // The spotlight pointer to the currently active content version
   activeVersionId String?      @unique
@@ -27,8 +27,8 @@ model Tool {
 
   bookings  Booking[] // The meta relationship
   blocks    ToolDateBlock[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
 
   @@map("tools")
 }
@@ -42,13 +42,15 @@ model ToolVersion {
   name             String
   description      String
   categoryId       String
-  category         Category @relation(fields: [categoryId], references: [id])
+  category         Category     @relation(fields: [categoryId], references: [id])
   pricePerDay      Float
   replacementValue Float?
   condition        String?
+  currency         String       @default("eur")
   latitude         Float?
   longitude        Float?
-  images           String[] @default([])
+  images           String[]     @default([])
+  address          ToolAddress?
 
   // Inverse relationship for the active spotlight
   activeForTool Tool? @relation("ActiveVersion")
@@ -59,6 +61,25 @@ model ToolVersion {
   createdAt DateTime @default(now())
 
   @@map("tool_versions")
+}
+
+model ToolAddress {
+  id            String      @id @default(uuid())
+  toolVersionId String      @unique
+  toolVersion   ToolVersion @relation(fields: [toolVersionId], references: [id], onDelete: Cascade)
+  label         String?
+  street        String?
+  addressLine2  String?
+  city          String?
+  state         String?
+  postalCode    String?
+  country       String
+  latitude      Float?
+  longitude     Float?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@map("tool_addresses")
 }
 
 model ToolDateBlock {

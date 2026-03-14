@@ -82,6 +82,16 @@ export const paymentsApi = {
         return response.data;
     },
 
+    createBookingPaymentIntent: async (bookingId) => {
+        const response = await api.post(`/payments/bookings/${bookingId}/payment-intent`);
+        return response.data;
+    },
+
+    syncBookingPayment: async (bookingId) => {
+        const response = await api.post(`/payments/bookings/${bookingId}/sync-payment`);
+        return response.data;
+    },
+
     refreshStatus: async () => {
         const response = await api.post('/payments/me/refresh-status');
         return response.data;

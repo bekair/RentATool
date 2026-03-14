@@ -9,11 +9,41 @@ enum PaymentProvider {
   STRIPE
 }
 
+enum ProviderAccountType {
+  CUSTOMER
+  CONNECT
+}
+
 enum PayoutOnboardingStatus {
   NOT_STARTED
   PENDING_REVIEW
   INCOMPLETE
   COMPLETE
+}
+
+enum ProviderAccountStatus {
+  NOT_STARTED
+  PENDING_REVIEW
+  INCOMPLETE
+  COMPLETE
+  RESTRICTED
+}
+
+enum BookingPaymentStatus {
+  REQUIRES_PAYMENT_METHOD
+  REQUIRES_CONFIRMATION
+  PROCESSING
+  SUCCEEDED
+  CANCELED
+  REFUNDED
+  FAILED
+}
+
+enum BookingPayoutStatus {
+  PENDING
+  RELEASED
+  FAILED
+  REVERSED
 }
 
 enum BookingStatus {

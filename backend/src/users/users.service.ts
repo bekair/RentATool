@@ -11,7 +11,7 @@ import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class UsersService {
-  constructor(private prisma: PrismaService) { }
+  constructor(private prisma: PrismaService) {}
 
   async create(createUserDto: CreateUserDto): Promise<User> {
     const existingUser = await this.findByEmail(createUserDto.email);
@@ -87,9 +87,11 @@ export class UsersService {
       updateData.birthDate = new Date(updateData.birthDate);
     }
 
-
     // Sync phone fields
-    if (updateData.phoneCode !== undefined || updateData.phoneNumber !== undefined) {
+    if (
+      updateData.phoneCode !== undefined ||
+      updateData.phoneNumber !== undefined
+    ) {
       const profile = await this.prisma.userProfile.findUnique({
         where: { userId },
       });
