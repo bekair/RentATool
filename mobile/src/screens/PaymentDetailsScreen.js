@@ -177,19 +177,7 @@ export default function PaymentDetailsScreen({ navigation }) {
     const method = summary?.defaultPaymentMethod;
     const hasPayout = summary?.hasConnectedPayoutAccount;
     const isPayoutReady = hasPayout && summary?.payoutOnboardingStatus === 'COMPLETE';
-    const blockers = summary?.readinessBlockers || [];
-    const isProfileReady = blockers.length === 0;
-
-    const payMeta = getStatusMeta(Boolean(hasMethod));
     const payoutMeta = getStatusMeta(Boolean(isPayoutReady));
-    const profileMeta = getStatusMeta(Boolean(isProfileReady));
-
-    const completedCount =
-        Number(Boolean(hasMethod)) +
-        Number(Boolean(isPayoutReady)) +
-        Number(Boolean(isProfileReady));
-
-    const progressWidth = `${Math.round((completedCount / 3) * 100)}%`;
 
     const payoutButtonTitle = isPayoutReady
         ? 'Manage payout account'
@@ -226,31 +214,6 @@ export default function PaymentDetailsScreen({ navigation }) {
                         />
                     )}
                 >
-                    <View style={styles.card}>
-                        <View style={styles.rowBetween}>
-                            <Text style={styles.sectionTitle}>Setup progress</Text>
-                            <Text style={styles.progressLabel}>{completedCount}/3 complete</Text>
-                        </View>
-                        <View style={styles.progressTrack}>
-                            <View style={[styles.progressFill, { width: progressWidth }]} />
-                        </View>
-
-                        <View style={styles.statusRow}>
-                            <View style={styles.statusCell}>
-                                <Ionicons name={payMeta.icon} size={14} color={payMeta.color} />
-                                <Text style={styles.statusCellText}>Pay: {payMeta.label}</Text>
-                            </View>
-                            <View style={styles.statusCell}>
-                                <Ionicons name={payoutMeta.icon} size={14} color={payoutMeta.color} />
-                                <Text style={styles.statusCellText}>Earn: {payoutMeta.label}</Text>
-                            </View>
-                            <View style={styles.statusCell}>
-                                <Ionicons name={profileMeta.icon} size={14} color={profileMeta.color} />
-                                <Text style={styles.statusCellText}>Profile: {profileMeta.label}</Text>
-                            </View>
-                        </View>
-                    </View>
-
                     <View style={styles.card}>
                         <View style={styles.cardHeaderRow}>
                             <View style={styles.iconWrap}>
@@ -316,23 +279,6 @@ export default function PaymentDetailsScreen({ navigation }) {
                             disabled={isActionInProgress}
                         />
                     </View>
-
-                    <View style={styles.card}>
-                        <Text style={styles.sectionTitle}>Checks to complete</Text>
-                        {blockers.length === 0 ? (
-                            <View style={styles.checkRow}>
-                                <Ionicons name="checkmark-circle" size={16} color="#10b981" />
-                                <Text style={styles.checkText}>All checks completed.</Text>
-                            </View>
-                        ) : (
-                            blockers.map((item) => (
-                                <View key={item} style={styles.checkRow}>
-                                    <Ionicons name="alert-circle-outline" size={16} color="#f59e0b" />
-                                    <Text style={styles.checkText}>{item}</Text>
-                                </View>
-                            ))
-                        )}
-                    </View>
                 </ScrollView>
             )}
         </SafeAreaView>
@@ -350,7 +296,7 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         paddingHorizontal: 20,
         paddingTop: 10,
-        paddingBottom: 20,
+        paddingBottom: 12,
     },
     backButton: {
         padding: 5,
@@ -373,8 +319,8 @@ const styles = StyleSheet.create({
     },
     scrollContent: {
         paddingHorizontal: 20,
-        paddingBottom: 40,
-        gap: 14,
+        paddingBottom: 24,
+        gap: 12,
     },
     card: {
         backgroundColor: '#161616',
@@ -387,46 +333,6 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: '#fff',
         fontWeight: '700',
-    },
-    progressLabel: {
-        color: '#9ca3af',
-        fontSize: 12,
-        fontWeight: '600',
-    },
-    progressTrack: {
-        marginTop: 10,
-        height: 8,
-        borderRadius: 999,
-        backgroundColor: '#101010',
-        borderWidth: 1,
-        borderColor: '#27272a',
-        overflow: 'hidden',
-    },
-    progressFill: {
-        height: '100%',
-        backgroundColor: '#6366f1',
-    },
-    statusRow: {
-        marginTop: 12,
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: 8,
-    },
-    statusCell: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
-        paddingHorizontal: 10,
-        paddingVertical: 6,
-        borderRadius: 999,
-        borderWidth: 1,
-        borderColor: '#27272a',
-        backgroundColor: '#101010',
-    },
-    statusCellText: {
-        color: '#f3f4f6',
-        fontSize: 12,
-        fontWeight: '600',
     },
     cardHeaderRow: {
         flexDirection: 'row',
@@ -483,16 +389,5 @@ const styles = StyleSheet.create({
         color: '#f3f4f6',
         fontSize: 12,
         fontWeight: '600',
-    },
-    checkRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-        marginTop: 10,
-    },
-    checkText: {
-        color: '#f3f4f6',
-        fontSize: 13,
-        flex: 1,
     },
 });
