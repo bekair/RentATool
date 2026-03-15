@@ -196,6 +196,102 @@ export class PaymentsService {
     };
   }
 
+  async setDefaultPaymentMethod(userId: string, paymentMethodId: string) {
+    const normalizedPaymentMethodId = paymentMethodId?.trim();
+    if (!normalizedPaymentMethodId) {
+      throw new BadRequestException('Missing payment method id.');
+    }
+
+    const paymentProfile = await this.prisma.paymentProfile.findUnique({
+      where: { userId },
+      include: {
+        customerProfile: true,
+      },
+    });
+
+    const customerProfile = paymentProfile?.customerProfile;
+    if (!paymentProfile || !customerProfile?.providerCustomerId) {
+      throw new BadRequestException(
+        'Add a card first before selecting a default payment method.',
+      );
+    }
+
+    const customerId = customerProfile.providerCustomerId;
+
+    try {
+      const paymentMethod = await this.stripeRequest(
+        'GET',
+        `/v1/payment_methods/${normalizedPaymentMethodId}`,
+      );
+
+      if (paymentMethod?.type !== 'card') {
+        throw new BadRequestException(
+          'Only card payment methods can be selected as default.',
+        );
+      }
+
+      if (paymentMethod?.customer !== customerId) {
+        throw new BadRequestException(
+          'This payment method does not belong to your account.',
+        );
+      }
+
+      await this.stripeRequest('POST', `/v1/customers/${customerId}`, {
+        'invoice_settings[default_payment_method]': normalizedPaymentMethodId,
+      });
+
+      await this.prisma.paymentCustomerProfile.update({
+        where: { paymentProfileId: paymentProfile.id },
+        data: {
+          hasDefaultPaymentMethod: true,
+          defaultPaymentMethodBrand: paymentMethod?.card?.brand || null,
+          defaultPaymentMethodLast4: paymentMethod?.card?.last4 || null,
+          defaultPaymentMethodExpMonth: paymentMethod?.card?.exp_month || null,
+          defaultPaymentMethodExpYear: paymentMethod?.card?.exp_year || null,
+        },
+      });
+
+      return {
+        success: true,
+        defaultPaymentMethod: {
+          id: normalizedPaymentMethodId,
+          brand: paymentMethod?.card?.brand || null,
+          last4: paymentMethod?.card?.last4 || null,
+          expMonth: paymentMethod?.card?.exp_month || null,
+          expYear: paymentMethod?.card?.exp_year || null,
+        },
+      };
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+
+      if (this.isMissingStripeCustomerError(error)) {
+        await this.prisma.paymentCustomerProfile.update({
+          where: { paymentProfileId: paymentProfile.id },
+          data: {
+            providerCustomerId: null,
+            hasDefaultPaymentMethod: false,
+            defaultPaymentMethodBrand: null,
+            defaultPaymentMethodLast4: null,
+            defaultPaymentMethodExpMonth: null,
+            defaultPaymentMethodExpYear: null,
+          },
+        });
+
+        throw new BadRequestException(
+          'Customer account was reset. Add a card again.',
+        );
+      }
+
+      if (this.isMissingStripePaymentMethodError(error)) {
+        throw new BadRequestException('Selected payment method no longer exists.');
+      }
+
+      throw error;
+    }
+  }
+
   async createConnectAccountLink(userId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
@@ -995,6 +1091,24 @@ export class PaymentsService {
       (value) =>
         value.includes('no such paymentintent') ||
         value.includes('no such payment_intent') ||
+        value.includes('resource_missing'),
+    );
+  }
+
+  private isMissingStripePaymentMethodError(error: unknown): boolean {
+    const candidate = [
+      (error as any)?.message,
+      (error as any)?.response?.message,
+      (error as any)?.response?.error?.message,
+      (error as any)?.response?.error?.code,
+    ]
+      .filter((value) => typeof value === 'string')
+      .map((value) => String(value).toLowerCase());
+
+    return candidate.some(
+      (value) =>
+        value.includes('no such paymentmethod') ||
+        value.includes('no such payment_method') ||
         value.includes('resource_missing'),
     );
   }

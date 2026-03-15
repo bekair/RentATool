@@ -1,4 +1,4 @@
-﻿import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
@@ -12,22 +12,14 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { useStripe } from '@stripe/stripe-react-native';
+import { CustomerSheet } from '@stripe/stripe-react-native';
 import * as WebBrowser from 'expo-web-browser';
 import { paymentsApi } from '../api/client';
+import CardBrandMark from '../components/payments/CardBrandMark';
 import AppButton from '../components/ui/AppButton';
+import { formatCardExpiry, formatCardMainLabel } from '../utils/paymentCards';
 
 const PAYMENT_DETAILS_DEEP_LINK = 'shareatool://payment-details';
-
-const CARD_BRAND_META = {
-    visa: { label: 'Visa', badge: 'VISA', badgeBackground: '#1a5fd0' },
-    mastercard: { label: 'Mastercard', badge: 'MC', badgeBackground: '#d1432f' },
-    amex: { label: 'Amex', badge: 'AMEX', badgeBackground: '#1478a6' },
-    discover: { label: 'Discover', badge: 'DISC', badgeBackground: '#f59e0b' },
-    diners: { label: 'Diners', badge: 'DINERS', badgeBackground: '#2563eb' },
-    jcb: { label: 'JCB', badge: 'JCB', badgeBackground: '#16a34a' },
-    unionpay: { label: 'UnionPay', badge: 'UP', badgeBackground: '#dc2626' },
-};
 
 function toReadableStatus(status) {
     if (!status) {
@@ -42,28 +34,7 @@ function getStatusMeta(isReady) {
     };
 }
 
-function getCardBrandMeta(brand) {
-    const key = typeof brand === 'string' ? brand.toLowerCase() : '';
-    return CARD_BRAND_META[key] || { label: 'Card', badge: 'CARD', badgeBackground: '#374151' };
-}
-
-function formatCardMainLabel(card) {
-    const brand = getCardBrandMeta(card?.brand).label;
-    const last4 = card?.last4 || '----';
-    return `${brand} •••• ${last4}`;
-}
-
-function formatCardExpiry(card) {
-    if (!card?.expMonth || !card?.expYear) {
-        return 'Expiry not available';
-    }
-
-    const month = String(card.expMonth).padStart(2, '0');
-    return `Expires ${month}/${card.expYear}`;
-}
-
 export default function PaymentDetailsScreen({ navigation }) {
-    const { initPaymentSheet, presentPaymentSheet } = useStripe();
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [summary, setSummary] = useState(null);
@@ -74,8 +45,12 @@ export default function PaymentDetailsScreen({ navigation }) {
     const [isLoadingMoreCards, setIsLoadingMoreCards] = useState(false);
     const [isCardActionLoading, setIsCardActionLoading] = useState(false);
     const [isPayoutActionLoading, setIsPayoutActionLoading] = useState(false);
+    const [isDefaultUpdateCardId, setIsDefaultUpdateCardId] = useState(null);
 
-    const isActionInProgress = isCardActionLoading || isPayoutActionLoading;
+    const isActionInProgress =
+        isCardActionLoading ||
+        isPayoutActionLoading ||
+        Boolean(isDefaultUpdateCardId);
 
     const applyCardPage = useCallback((page, append) => {
         const incomingCards = Array.isArray(page?.items) ? page.items : [];
@@ -95,6 +70,11 @@ export default function PaymentDetailsScreen({ navigation }) {
                     return null;
                 }
 
+                const defaultCard = nextCards.find((card) => card.isDefault);
+                if (defaultCard?.id) {
+                    return defaultCard.id;
+                }
+
                 if (
                     currentSelectedId &&
                     nextCards.some((card) => card.id === currentSelectedId)
@@ -102,8 +82,7 @@ export default function PaymentDetailsScreen({ navigation }) {
                     return currentSelectedId;
                 }
 
-                const defaultCard = nextCards.find((card) => card.isDefault);
-                return defaultCard?.id || nextCards[0].id;
+                return nextCards[0].id;
             });
 
             return nextCards;
@@ -161,32 +140,36 @@ export default function PaymentDetailsScreen({ navigation }) {
             setIsCardActionLoading(true);
             const data = await paymentsApi.createSetupIntent();
 
-            const initResult = await initPaymentSheet({
+            const initResult = await CustomerSheet.initialize({
                 merchantDisplayName: 'Share a Tool',
                 customerId: data.customerId,
                 customerEphemeralKeySecret: data.ephemeralKeySecret,
                 setupIntentClientSecret: data.clientSecret,
-                allowsDelayedPaymentMethods: false,
                 returnURL: PAYMENT_DETAILS_DEEP_LINK,
+                headerTextForSelectionScreen: 'Payment methods',
             });
 
             if (initResult.error) {
-                Alert.alert('Card setup', initResult.error.message || 'Unable to prepare card setup.');
+                Alert.alert('Cards', initResult.error.message || 'Unable to prepare card settings.');
                 return;
             }
 
-            const presentResult = await presentPaymentSheet();
+            const presentResult = await CustomerSheet.present();
             if (presentResult.error) {
                 if (presentResult.error.code !== 'Canceled') {
-                    Alert.alert('Card setup', presentResult.error.message || 'Unable to complete card setup.');
+                    Alert.alert('Cards', presentResult.error.message || 'Unable to update saved cards.');
                 }
                 return;
+            }
+
+            if (presentResult.paymentMethod?.id) {
+                setSelectedCardId(presentResult.paymentMethod.id);
             }
 
             await paymentsApi.refreshStatus();
             await loadSummary(false, false);
         } catch (error) {
-            Alert.alert('Card setup', error?.response?.data?.message || 'Unable to start card setup.');
+            Alert.alert('Cards', error?.response?.data?.message || 'Unable to open card settings.');
         } finally {
             setIsCardActionLoading(false);
         }
@@ -208,6 +191,38 @@ export default function PaymentDetailsScreen({ navigation }) {
             Alert.alert('Payment methods', error?.response?.data?.message || 'Unable to load more cards.');
         } finally {
             setIsLoadingMoreCards(false);
+        }
+    };
+
+    const handleSelectDefaultCard = async (cardId) => {
+        if (!cardId || selectedCardId === cardId || isActionInProgress) {
+            return;
+        }
+
+        const previousSelectedCardId = selectedCardId;
+
+        setSelectedCardId(cardId);
+        setIsDefaultUpdateCardId(cardId);
+        setSavedCards((currentCards) =>
+            currentCards.map((card) => ({
+                ...card,
+                isDefault: card.id === cardId,
+            })),
+        );
+
+        try {
+            await paymentsApi.setDefaultPaymentMethod(cardId);
+            await paymentsApi.refreshStatus();
+            await loadSummary(false, false);
+        } catch (error) {
+            setSelectedCardId(previousSelectedCardId || null);
+            await loadSummary(false, false);
+            Alert.alert(
+                'Cards',
+                error?.response?.data?.message || 'Unable to update default payment method.',
+            );
+        } finally {
+            setIsDefaultUpdateCardId(null);
         }
     };
 
@@ -275,8 +290,8 @@ export default function PaymentDetailsScreen({ navigation }) {
     const payoutButtonTitle = isPayoutReady
         ? 'Manage payout account'
         : hasPayout
-            ? 'Continue payout setup'
-            : 'Start payout setup';
+            ? 'Continue setup'
+            : 'Start setup';
 
     const payoutButtonAction = isPayoutReady ? runManagePayoutAccount : handlePayoutSetup;
 
@@ -315,50 +330,33 @@ export default function PaymentDetailsScreen({ navigation }) {
                             {hasMethod ? (
                                 savedCards.map((card) => {
                                     const isSelected = selectedCardId === card.id;
-                                    const brandMeta = getCardBrandMeta(card.brand);
+                                    const isUpdatingDefault = isDefaultUpdateCardId === card.id;
 
                                     return (
                                         <TouchableOpacity
                                             key={card.id}
                                             style={[styles.listRow, isSelected && styles.listRowSelected]}
                                             activeOpacity={0.85}
-                                            onPress={() => setSelectedCardId(card.id)}
+                                            onPress={() => handleSelectDefaultCard(card.id)}
+                                            disabled={isActionInProgress}
                                         >
-                                            <View style={styles.rowIconWrap}>
-                                                <Ionicons
-                                                    name="card-outline"
-                                                    size={18}
-                                                    color={isSelected ? '#c4b5fd' : '#9ca3af'}
-                                                />
-                                            </View>
                                             <View style={styles.rowTextWrap}>
                                                 <Text style={styles.rowTitle}>{formatCardMainLabel(card)}</Text>
                                                 <Text style={styles.rowSubtitle}>{formatCardExpiry(card)}</Text>
                                             </View>
-                                            <View
-                                                style={[
-                                                    styles.brandBadge,
-                                                    { backgroundColor: brandMeta.badgeBackground },
-                                                ]}
-                                            >
-                                                <Text style={styles.brandBadgeText}>{brandMeta.badge}</Text>
-                                            </View>
-                                            <View
-                                                style={[
-                                                    styles.radioOuter,
-                                                    isSelected && styles.radioOuterSelected,
-                                                ]}
-                                            >
-                                                {isSelected ? <View style={styles.radioInner} /> : null}
-                                            </View>
+                                            <CardBrandMark brand={card.brand} />
+                                            {isUpdatingDefault ? (
+                                                <ActivityIndicator size="small" color="#6366f1" />
+                                            ) : isSelected ? (
+                                                <View style={styles.defaultPill}>
+                                                    <Text style={styles.defaultPillText}>Default</Text>
+                                                </View>
+                                            ) : null}
                                         </TouchableOpacity>
                                     );
                                 })
                             ) : (
                                 <View style={styles.listRow}>
-                                    <View style={styles.rowIconWrap}>
-                                        <Ionicons name="card-outline" size={18} color="#9ca3af" />
-                                    </View>
                                     <View style={styles.rowTextWrap}>
                                         <Text style={styles.rowTitle}>No card added</Text>
                                         <Text style={styles.rowSubtitle}>Add one card to pay for rentals</Text>
@@ -378,8 +376,8 @@ export default function PaymentDetailsScreen({ navigation }) {
                             ) : null}
 
                             <AppButton
-                                title={hasMethod ? 'Replace card' : 'Add new card'}
-                                iconName="add"
+                                title={hasMethod ? 'Manage cards' : 'Add card'}
+                                iconName={!hasMethod ? 'add' : 'card'}
                                 onPress={handleAddOrReplaceCard}
                                 loading={isCardActionLoading}
                                 disabled={isActionInProgress}
@@ -529,37 +527,20 @@ const styles = StyleSheet.create({
         fontSize: 12,
         marginTop: 3,
     },
-    brandBadge: {
-        minWidth: 52,
+    defaultPill: {
+        borderRadius: 999,
+        paddingHorizontal: 10,
         height: 24,
-        borderRadius: 6,
-        paddingHorizontal: 8,
         alignItems: 'center',
         justifyContent: 'center',
-    },
-    brandBadgeText: {
-        color: '#fff',
-        fontSize: 11,
-        fontWeight: '700',
-    },
-    radioOuter: {
-        width: 20,
-        height: 20,
-        borderRadius: 10,
-        borderWidth: 2,
-        borderColor: '#6b7280',
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginLeft: 2,
-    },
-    radioOuterSelected: {
+        backgroundColor: '#312e81',
+        borderWidth: 1,
         borderColor: '#6366f1',
     },
-    radioInner: {
-        width: 9,
-        height: 9,
-        borderRadius: 5,
-        backgroundColor: '#6366f1',
+    defaultPillText: {
+        color: '#e0e7ff',
+        fontSize: 11,
+        fontWeight: '700',
     },
     statusDot: {
         width: 10,

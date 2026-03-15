@@ -82,6 +82,13 @@ export const paymentsApi = {
         return response.data;
     },
 
+    setDefaultPaymentMethod: async (paymentMethodId) => {
+        const response = await api.post('/payments/me/default-payment-method', {
+            paymentMethodId,
+        });
+        return response.data;
+    },
+
     createConnectAccountLink: async () => {
         const response = await api.post('/payments/me/connect-account-link');
         return response.data;
