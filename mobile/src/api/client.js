@@ -67,6 +67,16 @@ export const paymentsApi = {
         return response.data;
     },
 
+    listPaymentMethods: async ({ limit = 3, startingAfter } = {}) => {
+        const params = { limit };
+        if (startingAfter) {
+            params.startingAfter = startingAfter;
+        }
+
+        const response = await api.get('/payments/me/payment-methods', { params });
+        return response.data;
+    },
+
     createSetupIntent: async () => {
         const response = await api.post('/payments/me/setup-intent');
         return response.data;

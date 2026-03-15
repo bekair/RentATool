@@ -52,6 +52,103 @@ export class PaymentsService {
     return this.mapSummary(user as any);
   }
 
+  async listMyPaymentMethods(
+    userId: string,
+    options?: { limit?: number; startingAfter?: string },
+  ) {
+    const limit = this.clampPaymentMethodLimit(options?.limit);
+    const startingAfter = options?.startingAfter?.trim() || undefined;
+
+    const paymentProfile = await this.prisma.paymentProfile.findUnique({
+      where: { userId },
+      include: {
+        customerProfile: true,
+      },
+    });
+
+    const customerId = paymentProfile?.customerProfile?.providerCustomerId;
+    if (!customerId) {
+      return {
+        items: [],
+        hasMore: false,
+        nextCursor: null,
+      };
+    }
+
+    try {
+      const customer = await this.stripeRequest('GET', `/v1/customers/${customerId}`, {
+        expand: ['invoice_settings.default_payment_method'],
+      });
+
+      const stripePaymentMethods = await this.stripeRequest(
+        'GET',
+        '/v1/payment_methods',
+        {
+          customer: customerId,
+          type: 'card',
+          limit,
+          ...(startingAfter ? { starting_after: startingAfter } : {}),
+        },
+      );
+
+      const defaultPaymentMethod =
+        customer?.invoice_settings?.default_payment_method;
+      const defaultPaymentMethodId =
+        typeof defaultPaymentMethod === 'string'
+          ? defaultPaymentMethod
+          : defaultPaymentMethod?.id || null;
+
+      const methods = Array.isArray(stripePaymentMethods?.data)
+        ? stripePaymentMethods.data
+        : [];
+
+      const items = methods
+        .filter((method: any) => Boolean(method?.id && method?.card))
+        .map((method: any) => ({
+          id: method.id as string,
+          brand: method.card.brand || null,
+          last4: method.card.last4 || null,
+          expMonth: method.card.exp_month || null,
+          expYear: method.card.exp_year || null,
+          isDefault:
+            Boolean(defaultPaymentMethodId) && method.id === defaultPaymentMethodId,
+        }));
+
+      return {
+        items,
+        hasMore: Boolean(stripePaymentMethods?.has_more),
+        nextCursor:
+          stripePaymentMethods?.has_more && items.length > 0
+            ? items[items.length - 1].id
+            : null,
+      };
+    } catch (error) {
+      if (!this.isMissingStripeCustomerError(error)) {
+        throw error;
+      }
+
+      if (paymentProfile) {
+        await this.prisma.paymentCustomerProfile.update({
+          where: { paymentProfileId: paymentProfile.id },
+          data: {
+            providerCustomerId: null,
+            hasDefaultPaymentMethod: false,
+            defaultPaymentMethodBrand: null,
+            defaultPaymentMethodLast4: null,
+            defaultPaymentMethodExpMonth: null,
+            defaultPaymentMethodExpYear: null,
+          },
+        });
+      }
+
+      return {
+        items: [],
+        hasMore: false,
+        nextCursor: null,
+      };
+    }
+  }
+
   async createSetupIntent(userId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
@@ -581,6 +678,10 @@ export class PaymentsService {
 
         let defaultPaymentMethod =
           customer?.invoice_settings?.default_payment_method;
+        let defaultPaymentMethodId: string | null =
+          typeof defaultPaymentMethod === 'string' && defaultPaymentMethod
+            ? defaultPaymentMethod
+            : null;
 
         if (typeof defaultPaymentMethod === 'string' && defaultPaymentMethod) {
           defaultPaymentMethod = await this.stripeRequest(
@@ -589,7 +690,44 @@ export class PaymentsService {
           );
         }
 
-        const card = defaultPaymentMethod?.card;
+        let card = defaultPaymentMethod?.card;
+        if (!card) {
+          const paymentMethods = await this.stripeRequest(
+            'GET',
+            '/v1/payment_methods',
+            {
+              customer: customerProfile.providerCustomerId,
+              type: 'card',
+              limit: 1,
+            },
+          );
+
+          const firstCardMethod =
+            Array.isArray(paymentMethods?.data) && paymentMethods.data.length > 0
+              ? paymentMethods.data[0]
+              : null;
+
+          if (firstCardMethod?.card) {
+            card = firstCardMethod.card;
+            defaultPaymentMethodId = firstCardMethod.id || null;
+
+            // Ensure Stripe customer has a default card so future reads are consistent.
+            if (
+              defaultPaymentMethodId &&
+              !customer?.invoice_settings?.default_payment_method
+            ) {
+              await this.stripeRequest(
+                'POST',
+                `/v1/customers/${customerProfile.providerCustomerId}`,
+                {
+                  'invoice_settings[default_payment_method]':
+                    defaultPaymentMethodId,
+                },
+              );
+            }
+          }
+        }
+
         if (card) {
           customerUpdate.hasDefaultPaymentMethod = true;
           customerUpdate.defaultPaymentMethodBrand = card.brand || null;
@@ -1125,5 +1263,13 @@ export class PaymentsService {
     }
 
     return data;
+  }
+
+  private clampPaymentMethodLimit(value: number | undefined): number {
+    if (!Number.isFinite(value)) {
+      return 3;
+    }
+
+    return Math.min(Math.max(Math.trunc(value as number), 1), 20);
   }
 }

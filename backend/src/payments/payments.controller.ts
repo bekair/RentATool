@@ -23,6 +23,21 @@ export class PaymentsController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @Get('me/payment-methods')
+  listMyPaymentMethods(
+    @Req() req: Request,
+    @Query('limit') limit?: string,
+    @Query('startingAfter') startingAfter?: string,
+  ) {
+    const parsedLimit = this.parseListLimit(limit);
+
+    return this.paymentsService.listMyPaymentMethods((req.user as any).id, {
+      limit: parsedLimit,
+      startingAfter,
+    });
+  }
+
+  @UseGuards(JwtAuthGuard)
   @Post('me/setup-intent')
   createSetupIntent(@Req() req: Request) {
     return this.paymentsService.createSetupIntent((req.user as any).id);
@@ -92,5 +107,18 @@ export class PaymentsController {
     return {
       url: this.paymentsService.getBillingReturnRedirectUrl(),
     };
+  }
+
+  private parseListLimit(limit?: string): number {
+    if (!limit) {
+      return 3;
+    }
+
+    const parsed = Number.parseInt(limit, 10);
+    if (Number.isNaN(parsed)) {
+      return 3;
+    }
+
+    return Math.min(Math.max(parsed, 1), 20);
   }
 }
