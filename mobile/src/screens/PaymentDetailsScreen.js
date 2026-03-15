@@ -302,10 +302,13 @@ export default function PaymentDetailsScreen({ navigation }) {
                     <Ionicons name="arrow-back" size={24} color="#fff" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Payment Details</Text>
-                <TouchableOpacity onPress={handleRefreshStatus} style={styles.refreshButtonHeader}>
-                    <Ionicons name="refresh" size={18} color="#c4b5fd" />
-                </TouchableOpacity>
+                <View style={styles.headerRightSpacer} />
             </View>
+            {refreshing && (
+                <View style={styles.topLoader}>
+                    <ActivityIndicator size="small" color="#6366f1" />
+                </View>
+            )}
 
             {loading ? (
                 <View style={styles.loadingWrap}>
@@ -316,15 +319,18 @@ export default function PaymentDetailsScreen({ navigation }) {
                     contentContainerStyle={styles.scrollContent}
                     refreshControl={(
                         <RefreshControl
-                            refreshing={refreshing}
+                            refreshing={false}
                             onRefresh={handleRefreshStatus}
-                            tintColor="#6366f1"
+                            tintColor="transparent"
+                            colors={['transparent']}
                         />
                     )}
                 >
                     <View style={styles.sectionWrap}>
-                        <Text style={styles.sectionTitle}>How you pay</Text>
-                        <Text style={styles.sectionDescription}>Use your saved card for rentals.</Text>
+                        <Text style={styles.sectionTitle}>Payment methods</Text>
+                        <Text style={styles.sectionDescription}>
+                            Tap a card to set it as your default payment method for rentals.
+                        </Text>
 
                         <View style={styles.listCard}>
                             {hasMethod ? (
@@ -347,10 +353,6 @@ export default function PaymentDetailsScreen({ navigation }) {
                                             <CardBrandMark brand={card.brand} />
                                             {isUpdatingDefault ? (
                                                 <ActivityIndicator size="small" color="#6366f1" />
-                                            ) : isSelected ? (
-                                                <View style={styles.defaultPill}>
-                                                    <Text style={styles.defaultPillText}>Default</Text>
-                                                </View>
                                             ) : null}
                                         </TouchableOpacity>
                                     );
@@ -386,8 +388,8 @@ export default function PaymentDetailsScreen({ navigation }) {
                         </View>
                     </View>
 
-                    <View style={styles.sectionWrap}>
-                        <Text style={styles.sectionTitle}>How you get paid</Text>
+                    <View style={[styles.sectionWrap, styles.sectionWrapSpaced]}>
+                        <Text style={styles.sectionTitle}>Payout account</Text>
                         <Text style={styles.sectionDescription}>Set up payouts for your lending earnings.</Text>
 
                         <View style={styles.listCard}>
@@ -449,10 +451,12 @@ const styles = StyleSheet.create({
         padding: 5,
         marginLeft: -5,
     },
-    refreshButtonHeader: {
+    headerRightSpacer: {
         width: 34,
-        alignItems: 'flex-end',
-        paddingRight: 2,
+    },
+    topLoader: {
+        paddingVertical: 10,
+        alignItems: 'center',
     },
     headerTitle: {
         fontSize: 18,
@@ -467,10 +471,13 @@ const styles = StyleSheet.create({
     scrollContent: {
         paddingHorizontal: 20,
         paddingBottom: 24,
-        gap: 18,
+        gap: 24,
     },
     sectionWrap: {
         gap: 10,
+    },
+    sectionWrapSpaced: {
+        marginTop: 6,
     },
     sectionTitle: {
         fontSize: 16,
@@ -526,21 +533,6 @@ const styles = StyleSheet.create({
         color: '#9ca3af',
         fontSize: 12,
         marginTop: 3,
-    },
-    defaultPill: {
-        borderRadius: 999,
-        paddingHorizontal: 10,
-        height: 24,
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: '#312e81',
-        borderWidth: 1,
-        borderColor: '#6366f1',
-    },
-    defaultPillText: {
-        color: '#e0e7ff',
-        fontSize: 11,
-        fontWeight: '700',
     },
     statusDot: {
         width: 10,
