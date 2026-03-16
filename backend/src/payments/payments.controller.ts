@@ -1,5 +1,4 @@
 import {
-  Body,
   Controller,
   Get,
   Param,
@@ -11,7 +10,6 @@ import {
 } from '@nestjs/common';
 import type { Request } from 'express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { SetDefaultPaymentMethodDto } from './dto/set-default-payment-method.dto';
 import { PaymentsService } from './payments.service';
 
 @Controller('payments')
@@ -43,18 +41,6 @@ export class PaymentsController {
   @Post('me/setup-intent')
   createSetupIntent(@Req() req: Request) {
     return this.paymentsService.createSetupIntent((req.user as any).id);
-  }
-
-  @UseGuards(JwtAuthGuard)
-  @Post('me/default-payment-method')
-  setMyDefaultPaymentMethod(
-    @Req() req: Request,
-    @Body() body: SetDefaultPaymentMethodDto,
-  ) {
-    return this.paymentsService.setDefaultPaymentMethod(
-      (req.user as any).id,
-      body.paymentMethodId,
-    );
   }
 
   @UseGuards(JwtAuthGuard)

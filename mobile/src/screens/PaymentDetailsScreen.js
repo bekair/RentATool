@@ -45,12 +45,7 @@ export default function PaymentDetailsScreen({ navigation }) {
     const [isLoadingMoreCards, setIsLoadingMoreCards] = useState(false);
     const [isCardActionLoading, setIsCardActionLoading] = useState(false);
     const [isPayoutActionLoading, setIsPayoutActionLoading] = useState(false);
-    const [isDefaultUpdateCardId, setIsDefaultUpdateCardId] = useState(null);
-
-    const isActionInProgress =
-        isCardActionLoading ||
-        isPayoutActionLoading ||
-        Boolean(isDefaultUpdateCardId);
+    const isActionInProgress = isCardActionLoading || isPayoutActionLoading;
 
     const applyCardPage = useCallback((page, append) => {
         const incomingCards = Array.isArray(page?.items) ? page.items : [];
@@ -76,6 +71,7 @@ export default function PaymentDetailsScreen({ navigation }) {
                 }
 
                 if (
+                    append &&
                     currentSelectedId &&
                     nextCards.some((card) => card.id === currentSelectedId)
                 ) {
@@ -92,20 +88,25 @@ export default function PaymentDetailsScreen({ navigation }) {
         setNextCardsCursor(page?.nextCursor || null);
     }, []);
 
-    const loadSummary = useCallback(async (showSpinner = true, syncStripeStatus = true) => {
+    const loadSummary = useCallback(async (showSpinner = true, syncStripeStatus = false) => {
         if (showSpinner) {
             setLoading(true);
         }
 
         try {
-            if (syncStripeStatus) {
-                await paymentsApi.refreshStatus();
-            }
+            let summaryData;
+            let cardsPage;
 
-            const [summaryData, cardsPage] = await Promise.all([
-                paymentsApi.getSummary(),
-                paymentsApi.listPaymentMethods({ limit: 3 }),
-            ]);
+            if (syncStripeStatus) {
+                // Keep sync deterministic: reconcile Stripe first, then fetch the first cards page.
+                summaryData = await paymentsApi.refreshStatus();
+                cardsPage = await paymentsApi.listPaymentMethods({ limit: 3 });
+            } else {
+                [summaryData, cardsPage] = await Promise.all([
+                    paymentsApi.getSummary(),
+                    paymentsApi.listPaymentMethods({ limit: 3 }),
+                ]);
+            }
 
             setSummary(summaryData);
             applyCardPage(cardsPage, false);
@@ -121,15 +122,14 @@ export default function PaymentDetailsScreen({ navigation }) {
 
     useFocusEffect(
         useCallback(() => {
-            loadSummary(true, true);
+            loadSummary(true, false);
         }, [loadSummary]),
     );
 
     const openExternalUrl = async (url) => {
         try {
             await WebBrowser.openAuthSessionAsync(url, PAYMENT_DETAILS_DEEP_LINK);
-            await paymentsApi.refreshStatus();
-            await loadSummary(false, false);
+            await loadSummary(false, true);
         } catch (error) {
             Alert.alert('Payment details', error?.response?.data?.message || 'Unable to open secure payment flow.');
         }
@@ -159,15 +159,11 @@ export default function PaymentDetailsScreen({ navigation }) {
                 if (presentResult.error.code !== 'Canceled') {
                     Alert.alert('Cards', presentResult.error.message || 'Unable to update saved cards.');
                 }
+                await loadSummary(false, true);
                 return;
             }
 
-            if (presentResult.paymentMethod?.id) {
-                setSelectedCardId(presentResult.paymentMethod.id);
-            }
-
-            await paymentsApi.refreshStatus();
-            await loadSummary(false, false);
+            await loadSummary(false, true);
         } catch (error) {
             Alert.alert('Cards', error?.response?.data?.message || 'Unable to open card settings.');
         } finally {
@@ -191,38 +187,6 @@ export default function PaymentDetailsScreen({ navigation }) {
             Alert.alert('Payment methods', error?.response?.data?.message || 'Unable to load more cards.');
         } finally {
             setIsLoadingMoreCards(false);
-        }
-    };
-
-    const handleSelectDefaultCard = async (cardId) => {
-        if (!cardId || selectedCardId === cardId || isActionInProgress) {
-            return;
-        }
-
-        const previousSelectedCardId = selectedCardId;
-
-        setSelectedCardId(cardId);
-        setIsDefaultUpdateCardId(cardId);
-        setSavedCards((currentCards) =>
-            currentCards.map((card) => ({
-                ...card,
-                isDefault: card.id === cardId,
-            })),
-        );
-
-        try {
-            await paymentsApi.setDefaultPaymentMethod(cardId);
-            await paymentsApi.refreshStatus();
-            await loadSummary(false, false);
-        } catch (error) {
-            setSelectedCardId(previousSelectedCardId || null);
-            await loadSummary(false, false);
-            Alert.alert(
-                'Cards',
-                error?.response?.data?.message || 'Unable to update default payment method.',
-            );
-        } finally {
-            setIsDefaultUpdateCardId(null);
         }
     };
 
@@ -274,8 +238,7 @@ export default function PaymentDetailsScreen({ navigation }) {
     const handleRefreshStatus = async () => {
         try {
             setRefreshing(true);
-            await paymentsApi.refreshStatus();
-            await loadSummary(false, false);
+            await loadSummary(false, true);
         } catch (error) {
             setRefreshing(false);
             Alert.alert('Refresh status', error?.response?.data?.message || 'Unable to refresh payment status.');
@@ -329,32 +292,25 @@ export default function PaymentDetailsScreen({ navigation }) {
                     <View style={styles.sectionWrap}>
                         <Text style={styles.sectionTitle}>Payment methods</Text>
                         <Text style={styles.sectionDescription}>
-                            Tap a card to set it as your default payment method for rentals.
+                            Manage cards in Stripe. Set your default payment method from Manage cards.
                         </Text>
 
                         <View style={styles.listCard}>
                             {hasMethod ? (
                                 savedCards.map((card) => {
                                     const isSelected = selectedCardId === card.id;
-                                    const isUpdatingDefault = isDefaultUpdateCardId === card.id;
 
                                     return (
-                                        <TouchableOpacity
+                                        <View
                                             key={card.id}
                                             style={[styles.listRow, isSelected && styles.listRowSelected]}
-                                            activeOpacity={0.85}
-                                            onPress={() => handleSelectDefaultCard(card.id)}
-                                            disabled={isActionInProgress}
                                         >
                                             <View style={styles.rowTextWrap}>
                                                 <Text style={styles.rowTitle}>{formatCardMainLabel(card)}</Text>
                                                 <Text style={styles.rowSubtitle}>{formatCardExpiry(card)}</Text>
                                             </View>
                                             <CardBrandMark brand={card.brand} />
-                                            {isUpdatingDefault ? (
-                                                <ActivityIndicator size="small" color="#6366f1" />
-                                            ) : null}
-                                        </TouchableOpacity>
+                                        </View>
                                     );
                                 })
                             ) : (
