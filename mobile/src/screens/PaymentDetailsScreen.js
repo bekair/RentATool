@@ -122,7 +122,8 @@ export default function PaymentDetailsScreen({ navigation }) {
 
     useFocusEffect(
         useCallback(() => {
-            loadSummary(true, false);
+            // Always sync on focus so card list/default stay fresh when returning.
+            loadSummary(true, true);
         }, [loadSummary]),
     );
 
@@ -159,10 +160,16 @@ export default function PaymentDetailsScreen({ navigation }) {
                 if (presentResult.error.code !== 'Canceled') {
                     Alert.alert('Cards', presentResult.error.message || 'Unable to update saved cards.');
                 }
+                // Always re-sync after closing Stripe UI so default-card changes are reflected.
                 await loadSummary(false, true);
                 return;
             }
 
+            if (presentResult.paymentMethod?.id) {
+                await paymentsApi.setDefaultPaymentMethod(presentResult.paymentMethod.id);
+            }
+
+            // Success path: force sync to reflect Stripe-managed default card updates.
             await loadSummary(false, true);
         } catch (error) {
             Alert.alert('Cards', error?.response?.data?.message || 'Unable to open card settings.');
@@ -292,7 +299,7 @@ export default function PaymentDetailsScreen({ navigation }) {
                     <View style={styles.sectionWrap}>
                         <Text style={styles.sectionTitle}>Payment methods</Text>
                         <Text style={styles.sectionDescription}>
-                            Manage cards in Stripe. Set your default payment method from Manage cards.
+                            Manage cards in Stripe. The default card is highlighted below.
                         </Text>
 
                         <View style={styles.listCard}>
@@ -305,11 +312,21 @@ export default function PaymentDetailsScreen({ navigation }) {
                                             key={card.id}
                                             style={[styles.listRow, isSelected && styles.listRowSelected]}
                                         >
+                                            <View style={styles.cardBrandSlot}>
+                                                <CardBrandMark brand={card.brand} />
+                                            </View>
                                             <View style={styles.rowTextWrap}>
                                                 <Text style={styles.rowTitle}>{formatCardMainLabel(card)}</Text>
                                                 <Text style={styles.rowSubtitle}>{formatCardExpiry(card)}</Text>
                                             </View>
-                                            <CardBrandMark brand={card.brand} />
+                                            {isSelected ? (
+                                                <View style={styles.rowRight}>
+                                                    <View style={styles.defaultBadge}>
+                                                        <Text style={styles.defaultBadgeText}>Default</Text>
+                                                    </View>
+                                                    <Ionicons name="checkmark-circle" size={20} color="#6366f1" />
+                                                </View>
+                                            ) : null}
                                         </View>
                                     );
                                 })
@@ -449,23 +466,29 @@ const styles = StyleSheet.create({
         borderRadius: 16,
         borderWidth: 1,
         borderColor: '#262626',
-        padding: 12,
-        gap: 10,
+        padding: 14,
+        gap: 12,
     },
     listRow: {
         flexDirection: 'row',
         alignItems: 'center',
         borderWidth: 1,
-        borderColor: '#2b2b2f',
-        borderRadius: 12,
-        backgroundColor: '#111114',
-        minHeight: 64,
+        borderColor: '#303036',
+        borderRadius: 14,
+        backgroundColor: '#121217',
+        minHeight: 72,
         paddingHorizontal: 12,
-        paddingVertical: 10,
-        gap: 10,
+        paddingVertical: 12,
+        gap: 12,
     },
     listRowSelected: {
-        borderColor: '#4f46e5',
+        borderColor: '#6366f1',
+        backgroundColor: '#171729',
+    },
+    cardBrandSlot: {
+        width: 56,
+        alignItems: 'flex-start',
+        justifyContent: 'center',
     },
     rowIconWrap: {
         width: 34,
@@ -480,6 +503,11 @@ const styles = StyleSheet.create({
     rowTextWrap: {
         flex: 1,
     },
+    rowRight: {
+        alignItems: 'flex-end',
+        justifyContent: 'center',
+        gap: 6,
+    },
     rowTitle: {
         color: '#f3f4f6',
         fontSize: 15,
@@ -489,6 +517,21 @@ const styles = StyleSheet.create({
         color: '#9ca3af',
         fontSize: 12,
         marginTop: 3,
+    },
+    defaultBadge: {
+        height: 24,
+        borderRadius: 999,
+        paddingHorizontal: 10,
+        backgroundColor: '#312e81',
+        borderWidth: 1,
+        borderColor: '#6366f1',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    defaultBadgeText: {
+        color: '#c7d2fe',
+        fontSize: 11,
+        fontWeight: '700',
     },
     statusDot: {
         width: 10,

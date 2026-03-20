@@ -268,6 +268,96 @@ export class PaymentsService {
     };
   }
 
+  async setDefaultPaymentMethod(userId: string, paymentMethodId: string) {
+    const normalizedPaymentMethodId = paymentMethodId?.trim();
+    if (!normalizedPaymentMethodId) {
+      throw new BadRequestException('Missing payment method id.');
+    }
+
+    const paymentProfile = await this.prisma.paymentProfile.findUnique({
+      where: { userId },
+      include: {
+        customerProfile: true,
+      },
+    });
+
+    const customerProfile = paymentProfile?.customerProfile;
+    if (!paymentProfile || !customerProfile?.providerCustomerId) {
+      throw new BadRequestException(
+        'Add a card first before selecting a default payment method.',
+      );
+    }
+
+    const customerId = customerProfile.providerCustomerId;
+
+    try {
+      const paymentMethod = await this.stripeRequest(
+        'GET',
+        `/v1/payment_methods/${normalizedPaymentMethodId}`,
+      );
+
+      if (paymentMethod?.type !== 'card') {
+        throw new BadRequestException(
+          'Only card payment methods can be selected as default.',
+        );
+      }
+
+      if (paymentMethod?.customer !== customerId) {
+        throw new BadRequestException(
+          'This payment method does not belong to your account.',
+        );
+      }
+
+      await this.stripeRequest('POST', `/v1/customers/${customerId}`, {
+        'invoice_settings[default_payment_method]': normalizedPaymentMethodId,
+      });
+
+      await this.persistDefaultPaymentMethodSnapshot(
+        paymentProfile.id,
+        paymentMethod,
+      );
+
+      return {
+        success: true,
+        defaultPaymentMethod: {
+          id: normalizedPaymentMethodId,
+          brand: paymentMethod?.card?.brand || null,
+          last4: paymentMethod?.card?.last4 || null,
+          expMonth: paymentMethod?.card?.exp_month || null,
+          expYear: paymentMethod?.card?.exp_year || null,
+        },
+      };
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+
+      if (this.isMissingStripeCustomerError(error)) {
+        await this.prisma.paymentCustomerProfile.update({
+          where: { paymentProfileId: paymentProfile.id },
+          data: {
+            providerCustomerId: null,
+            hasDefaultPaymentMethod: false,
+            defaultPaymentMethodBrand: null,
+            defaultPaymentMethodLast4: null,
+            defaultPaymentMethodExpMonth: null,
+            defaultPaymentMethodExpYear: null,
+          },
+        });
+
+        throw new BadRequestException(
+          'Customer account was reset. Add a card again.',
+        );
+      }
+
+      if (this.isMissingStripePaymentMethodError(error)) {
+        throw new BadRequestException('Selected payment method no longer exists.');
+      }
+
+      throw error;
+    }
+  }
+
   async createConnectAccountLink(userId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
@@ -970,7 +1060,8 @@ export class PaymentsService {
     paymentProfileId: string;
     existingCustomerId?: string | null;
   }): Promise<string> {
-    const { userId, email, paymentProfileId, existingCustomerId } = params;
+    const { email, paymentProfileId, existingCustomerId } = params;
+    const environment = this.getStripeEnvironmentTag();
 
     if (existingCustomerId) {
       try {
@@ -983,9 +1074,25 @@ export class PaymentsService {
       }
     }
 
+    const existingCustomer = await this.findStripeCustomerByMetadata(
+      email,
+      environment,
+    );
+
+    if (existingCustomer?.id) {
+      await this.prisma.paymentCustomerProfile.update({
+        where: { paymentProfileId },
+        data: {
+          providerCustomerId: existingCustomer.id,
+        },
+      });
+
+      return existingCustomer.id as string;
+    }
+
     const customer = await this.stripeRequest('POST', '/v1/customers', {
       email,
-      'metadata[userId]': userId,
+      'metadata[environment]': environment,
     });
 
     const customerId = customer.id as string;
@@ -1002,6 +1109,70 @@ export class PaymentsService {
     });
 
     return customerId;
+  }
+
+  private async findStripeCustomerByMetadata(
+    email: string,
+    environment: string,
+  ): Promise<any | null> {
+    if (!email) {
+      return null;
+    }
+
+    const response = await this.stripeRequest('GET', '/v1/customers', {
+      email,
+      limit: 100,
+    });
+
+    const customers = Array.isArray(response?.data) ? response.data : [];
+
+    const exactMatch =
+      customers.find(
+        (customer: any) =>
+          String(customer?.email || '').toLowerCase() ===
+            String(email).toLowerCase() &&
+          String(customer?.metadata?.environment || '').toLowerCase() ===
+            environment.toLowerCase(),
+      ) || null;
+
+    if (exactMatch) {
+      return exactMatch;
+    }
+
+    const legacyMatch =
+      customers.find(
+        (customer: any) =>
+          String(customer?.email || '').toLowerCase() ===
+            String(email).toLowerCase() &&
+          !customer?.metadata?.environment,
+      ) || null;
+
+    if (!legacyMatch?.id) {
+      return null;
+    }
+
+    await this.stripeRequest('POST', `/v1/customers/${legacyMatch.id}`, {
+      'metadata[environment]': environment,
+    });
+
+    return legacyMatch;
+  }
+
+  private getStripeEnvironmentTag(): string {
+    const candidates = [
+      this.config.get<string>('APP_ENV'),
+      this.config.get<string>('RAILWAY_ENVIRONMENT_NAME'),
+      this.config.get<string>('NODE_ENV'),
+      'development',
+    ];
+
+    for (const value of candidates) {
+      if (typeof value === 'string' && value.trim()) {
+        return value.trim().toLowerCase();
+      }
+    }
+
+    return 'development';
   }
 
   private isMissingStripeCustomerError(error: unknown): boolean {
