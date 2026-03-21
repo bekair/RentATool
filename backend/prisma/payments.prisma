@@ -19,11 +19,6 @@ model PaymentCustomerProfile {
   paymentProfileId             String         @unique
   paymentProfile               PaymentProfile @relation(fields: [paymentProfileId], references: [id], onDelete: Cascade)
   providerCustomerId           String?        @unique
-  hasDefaultPaymentMethod      Boolean        @default(false)
-  defaultPaymentMethodBrand    String?
-  defaultPaymentMethodLast4    String?
-  defaultPaymentMethodExpMonth Int?
-  defaultPaymentMethodExpYear  Int?
   createdAt                    DateTime       @default(now())
   updatedAt                    DateTime       @updatedAt
 
@@ -56,12 +51,6 @@ model PaymentProviderAccount {
   status         ProviderAccountStatus @default(NOT_STARTED)
   chargesEnabled Boolean               @default(false)
   payoutsEnabled Boolean               @default(false)
-
-  hasDefaultPaymentMethod      Boolean @default(false)
-  defaultPaymentMethodBrand    String?
-  defaultPaymentMethodLast4    String?
-  defaultPaymentMethodExpMonth Int?
-  defaultPaymentMethodExpYear  Int?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

@@ -49,7 +49,20 @@ export class PaymentsService {
       throw new NotFoundException('User not found');
     }
 
-    return this.mapSummary(user as any);
+    const paymentProfileId = user.paymentProfile?.id;
+    const customerId = user.paymentProfile?.customerProfile?.providerCustomerId;
+    const paymentMethodSummary =
+      customerId && paymentProfileId
+        ? await this.getStripeDefaultPaymentMethodSummary(
+            paymentProfileId,
+            customerId,
+          )
+        : {
+            hasDefaultPaymentMethod: false,
+            defaultPaymentMethod: null,
+          };
+
+    return this.mapSummary(user as any, paymentMethodSummary);
   }
 
   async listMyPaymentMethods(
@@ -77,9 +90,13 @@ export class PaymentsService {
     }
 
     try {
-      const customer = await this.stripeRequest('GET', `/v1/customers/${customerId}`, {
-        expand: ['invoice_settings.default_payment_method'],
-      });
+      const customer = await this.stripeRequest(
+        'GET',
+        `/v1/customers/${customerId}`,
+        {
+          expand: ['invoice_settings.default_payment_method'],
+        },
+      );
 
       const customerDefaultPaymentMethod =
         customer?.invoice_settings?.default_payment_method;
@@ -147,11 +164,6 @@ export class PaymentsService {
           defaultPaymentMethodId = null;
           defaultPaymentMethod = null;
         }
-
-        await this.persistDefaultPaymentMethodSnapshot(
-          paymentProfile.id,
-          defaultPaymentMethod?.card ? defaultPaymentMethod : null,
-        );
       }
 
       const items = methods
@@ -162,7 +174,9 @@ export class PaymentsService {
           last4: method.card.last4 || null,
           expMonth: method.card.exp_month || null,
           expYear: method.card.exp_year || null,
-          isDefault: Boolean(defaultPaymentMethodId) && method.id === defaultPaymentMethodId,
+          isDefault:
+            Boolean(defaultPaymentMethodId) &&
+            method.id === defaultPaymentMethodId,
         }));
 
       if (!startingAfter && defaultPaymentMethodId) {
@@ -204,11 +218,6 @@ export class PaymentsService {
           where: { paymentProfileId: paymentProfile.id },
           data: {
             providerCustomerId: null,
-            hasDefaultPaymentMethod: false,
-            defaultPaymentMethodBrand: null,
-            defaultPaymentMethodLast4: null,
-            defaultPaymentMethodExpMonth: null,
-            defaultPaymentMethodExpYear: null,
           },
         });
       }
@@ -281,14 +290,12 @@ export class PaymentsService {
       },
     });
 
-    const customerProfile = paymentProfile?.customerProfile;
-    if (!paymentProfile || !customerProfile?.providerCustomerId) {
+    const customerId = paymentProfile?.customerProfile?.providerCustomerId;
+    if (!paymentProfile || !customerId) {
       throw new BadRequestException(
         'Add a card first before selecting a default payment method.',
       );
     }
-
-    const customerId = customerProfile.providerCustomerId;
 
     try {
       const paymentMethod = await this.stripeRequest(
@@ -312,20 +319,8 @@ export class PaymentsService {
         'invoice_settings[default_payment_method]': normalizedPaymentMethodId,
       });
 
-      await this.persistDefaultPaymentMethodSnapshot(
-        paymentProfile.id,
-        paymentMethod,
-      );
-
       return {
         success: true,
-        defaultPaymentMethod: {
-          id: normalizedPaymentMethodId,
-          brand: paymentMethod?.card?.brand || null,
-          last4: paymentMethod?.card?.last4 || null,
-          expMonth: paymentMethod?.card?.exp_month || null,
-          expYear: paymentMethod?.card?.exp_year || null,
-        },
       };
     } catch (error) {
       if (error instanceof BadRequestException) {
@@ -337,11 +332,6 @@ export class PaymentsService {
           where: { paymentProfileId: paymentProfile.id },
           data: {
             providerCustomerId: null,
-            hasDefaultPaymentMethod: false,
-            defaultPaymentMethodBrand: null,
-            defaultPaymentMethodLast4: null,
-            defaultPaymentMethodExpMonth: null,
-            defaultPaymentMethodExpYear: null,
           },
         });
 
@@ -830,58 +820,16 @@ export class PaymentsService {
 
     if (customerProfile.providerCustomerId) {
       try {
-        const customer = await this.stripeRequest(
+        await this.stripeRequest(
           'GET',
           `/v1/customers/${customerProfile.providerCustomerId}`,
-          {
-            expand: ['invoice_settings.default_payment_method'],
-          },
         );
-
-        let defaultPaymentMethod =
-          customer?.invoice_settings?.default_payment_method;
-
-        if (typeof defaultPaymentMethod === 'string' && defaultPaymentMethod) {
-          try {
-            defaultPaymentMethod = await this.stripeRequest(
-              'GET',
-              `/v1/payment_methods/${defaultPaymentMethod}`,
-            );
-          } catch (error) {
-            if (!this.isMissingStripePaymentMethodError(error)) {
-              throw error;
-            }
-
-            defaultPaymentMethod = null;
-          }
-        }
-
-        const card = defaultPaymentMethod?.card || null;
-
-        if (card) {
-          customerUpdate.hasDefaultPaymentMethod = true;
-          customerUpdate.defaultPaymentMethodBrand = card.brand || null;
-          customerUpdate.defaultPaymentMethodLast4 = card.last4 || null;
-          customerUpdate.defaultPaymentMethodExpMonth = card.exp_month || null;
-          customerUpdate.defaultPaymentMethodExpYear = card.exp_year || null;
-        } else {
-          customerUpdate.hasDefaultPaymentMethod = false;
-          customerUpdate.defaultPaymentMethodBrand = null;
-          customerUpdate.defaultPaymentMethodLast4 = null;
-          customerUpdate.defaultPaymentMethodExpMonth = null;
-          customerUpdate.defaultPaymentMethodExpYear = null;
-        }
       } catch (error) {
         if (!this.isMissingStripeCustomerError(error)) {
           throw error;
         }
 
         customerUpdate.providerCustomerId = null;
-        customerUpdate.hasDefaultPaymentMethod = false;
-        customerUpdate.defaultPaymentMethodBrand = null;
-        customerUpdate.defaultPaymentMethodLast4 = null;
-        customerUpdate.defaultPaymentMethodExpMonth = null;
-        customerUpdate.defaultPaymentMethodExpYear = null;
       }
     }
 
@@ -963,9 +911,19 @@ export class PaymentsService {
         value.includes('no such account') || value.includes('resource_missing'),
     );
   }
-  private mapSummary(user: any) {
+  private mapSummary(
+    user: any,
+    paymentMethodSummary: {
+      hasDefaultPaymentMethod: boolean;
+      defaultPaymentMethod: {
+        brand: string | null;
+        last4: string | null;
+        expMonth: number | null;
+        expYear: number | null;
+      } | null;
+    },
+  ) {
     const paymentProfile = user.paymentProfile;
-    const customerProfile = paymentProfile?.customerProfile;
     const payoutAccount = paymentProfile?.payoutAccount;
 
     const readinessBlockers: string[] = [];
@@ -979,7 +937,7 @@ export class PaymentsService {
     if (!Array.isArray(user.addresses) || user.addresses.length === 0) {
       readinessBlockers.push('Add at least one address.');
     }
-    if (!customerProfile?.hasDefaultPaymentMethod) {
+    if (!paymentMethodSummary.hasDefaultPaymentMethod) {
       readinessBlockers.push('Add a default payment method for renting.');
     }
     if (!this.resolveConnectCountryCode(user)) {
@@ -992,17 +950,8 @@ export class PaymentsService {
     }
 
     return {
-      hasDefaultPaymentMethod: Boolean(
-        customerProfile?.hasDefaultPaymentMethod,
-      ),
-      defaultPaymentMethod: customerProfile?.hasDefaultPaymentMethod
-        ? {
-            brand: customerProfile.defaultPaymentMethodBrand,
-            last4: customerProfile.defaultPaymentMethodLast4,
-            expMonth: customerProfile.defaultPaymentMethodExpMonth,
-            expYear: customerProfile.defaultPaymentMethodExpYear,
-          }
-        : null,
+      hasDefaultPaymentMethod: paymentMethodSummary.hasDefaultPaymentMethod,
+      defaultPaymentMethod: paymentMethodSummary.defaultPaymentMethod,
       hasConnectedPayoutAccount: Boolean(payoutAccount?.providerAccountId),
       payoutOnboardingStatus:
         payoutAccount?.onboardingStatus || PayoutOnboardingStatus.NOT_STARTED,
@@ -1100,11 +1049,6 @@ export class PaymentsService {
       where: { paymentProfileId },
       data: {
         providerCustomerId: customerId,
-        hasDefaultPaymentMethod: false,
-        defaultPaymentMethodBrand: null,
-        defaultPaymentMethodLast4: null,
-        defaultPaymentMethodExpMonth: null,
-        defaultPaymentMethodExpYear: null,
       },
     });
 
@@ -1143,8 +1087,7 @@ export class PaymentsService {
       customers.find(
         (customer: any) =>
           String(customer?.email || '').toLowerCase() ===
-            String(email).toLowerCase() &&
-          !customer?.metadata?.environment,
+            String(email).toLowerCase() && !customer?.metadata?.environment,
       ) || null;
 
     if (!legacyMatch?.id) {
@@ -1228,37 +1171,79 @@ export class PaymentsService {
     );
   }
 
-  private async persistDefaultPaymentMethodSnapshot(
+  private async getStripeDefaultPaymentMethodSummary(
     paymentProfileId: string,
-    defaultPaymentMethod: any | null,
-  ) {
-    const card = defaultPaymentMethod?.card;
+    customerId: string,
+  ): Promise<{
+    hasDefaultPaymentMethod: boolean;
+    defaultPaymentMethod: {
+      brand: string | null;
+      last4: string | null;
+      expMonth: number | null;
+      expYear: number | null;
+    } | null;
+  }> {
+    try {
+      const customer = await this.stripeRequest(
+        'GET',
+        `/v1/customers/${customerId}`,
+        {
+          expand: ['invoice_settings.default_payment_method'],
+        },
+      );
 
-    if (!card) {
+      let defaultPaymentMethod =
+        customer?.invoice_settings?.default_payment_method;
+
+      if (typeof defaultPaymentMethod === 'string' && defaultPaymentMethod) {
+        try {
+          defaultPaymentMethod = await this.stripeRequest(
+            'GET',
+            `/v1/payment_methods/${defaultPaymentMethod}`,
+          );
+        } catch (error) {
+          if (!this.isMissingStripePaymentMethodError(error)) {
+            throw error;
+          }
+
+          defaultPaymentMethod = null;
+        }
+      }
+
+      const card = defaultPaymentMethod?.card;
+      if (!card) {
+        return {
+          hasDefaultPaymentMethod: false,
+          defaultPaymentMethod: null,
+        };
+      }
+
+      return {
+        hasDefaultPaymentMethod: true,
+        defaultPaymentMethod: {
+          brand: card.brand || null,
+          last4: card.last4 || null,
+          expMonth: card.exp_month ?? card.expMonth ?? null,
+          expYear: card.exp_year ?? card.expYear ?? null,
+        },
+      };
+    } catch (error) {
+      if (!this.isMissingStripeCustomerError(error)) {
+        throw error;
+      }
+
       await this.prisma.paymentCustomerProfile.update({
         where: { paymentProfileId },
         data: {
-          hasDefaultPaymentMethod: false,
-          defaultPaymentMethodBrand: null,
-          defaultPaymentMethodLast4: null,
-          defaultPaymentMethodExpMonth: null,
-          defaultPaymentMethodExpYear: null,
+          providerCustomerId: null,
         },
       });
-      return;
-    }
 
-    await this.prisma.paymentCustomerProfile.update({
-      where: { paymentProfileId },
-      data: {
-        hasDefaultPaymentMethod: true,
-        defaultPaymentMethodBrand: card.brand || null,
-        defaultPaymentMethodLast4: card.last4 || null,
-        defaultPaymentMethodExpMonth:
-          card.exp_month ?? card.expMonth ?? null,
-        defaultPaymentMethodExpYear: card.exp_year ?? card.expYear ?? null,
-      },
-    });
+      return {
+        hasDefaultPaymentMethod: false,
+        defaultPaymentMethod: null,
+      };
+    }
   }
 
   private toStripeAmountCents(amount: number): number {
