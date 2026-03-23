@@ -26,6 +26,8 @@ import BrowseToolsScreen from '../screens/BrowseToolsScreen';
 import MyToolsScreen from '../screens/MyToolsScreen';
 import LegalScreen from '../screens/LegalScreen';
 import PaymentDetailsScreen from '../screens/PaymentDetailsScreen';
+import HelpScreen from '../screens/HelpScreen';
+import SettingsScreen from '../screens/SettingsScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -177,6 +179,8 @@ function AppStack() {
             <Stack.Screen name="AccountSecurity" component={AccountSecurityScreen} />
             <Stack.Screen name="Addresses" component={AddressesScreen} />
             <Stack.Screen name="Legal" component={LegalScreen} />
+            <Stack.Screen name="Help" component={HelpScreen} />
+            <Stack.Screen name="Settings" component={SettingsScreen} />
             <Stack.Screen name="PaymentDetails" component={PaymentDetailsScreen} />
             <Stack.Screen
                 name="AddTool"
@@ -258,5 +262,3 @@ const styles = StyleSheet.create({
         elevation: 5,
     }
 });
-
-

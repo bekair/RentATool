@@ -47,8 +47,8 @@ export default function HomeScreen({ navigation }) {
         { id: 'payment', title: 'Payment details', icon: 'card-outline', screen: 'PaymentDetails' },
         { id: 'trust', title: 'Trust & Verification', icon: 'shield-checkmark-outline', screen: null },
         { id: 'legal', title: 'Legal', icon: 'document-text-outline', screen: 'Legal' },
-        { id: 'help', title: 'Help', icon: 'headset-outline', screen: null },
-        { id: 'settings', title: 'Settings', icon: 'settings-outline', screen: null },
+        { id: 'help', title: 'Help', icon: 'headset-outline', screen: 'Help' },
+        { id: 'settings', title: 'Settings', icon: 'settings-outline', screen: 'Settings' },
     ];
 
     const renderMenuItem = (item) => (
