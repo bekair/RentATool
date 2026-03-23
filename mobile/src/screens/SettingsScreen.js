@@ -12,9 +12,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import AppButton from '../components/ui/AppButton';
 import { getAppSettings, updateAppSettings } from '../services/appSettingsService';
-import { useAuth } from '../context/AuthContext';
 
 const PUSH_NOTIFICATION_ITEMS = [
     {
@@ -42,8 +40,13 @@ const TOGGLE_ITEMS = [
     },
 ];
 
+const THEME_ITEMS = [
+    { id: 'light', label: 'Light' },
+    { id: 'dark', label: 'Dark' },
+    { id: 'system', label: 'System' },
+];
+
 export default function SettingsScreen({ navigation }) {
-    const { logout } = useAuth();
     const [loading, setLoading] = useState(true);
     const [savingKey, setSavingKey] = useState(null);
     const [isPushSectionExpanded, setIsPushSectionExpanded] = useState(true);
@@ -243,67 +246,169 @@ export default function SettingsScreen({ navigation }) {
 
                             {TOGGLE_ITEMS.map(renderTogglePreference)}
 
-                            <View style={styles.row}>
-                                <View style={styles.rowTextWrap}>
-                                    <Text style={styles.rowTitle}>Theme</Text>
-                                    <Text style={styles.rowSubtitle}>Choose your app appearance</Text>
-                                </View>
-                                <View style={styles.themeSwitchWrap}>
-                                    <TouchableOpacity
-                                        style={[
-                                            styles.themeOption,
-                                            settings.themeMode === 'dark' && styles.themeOptionSelected,
-                                        ]}
-                                        onPress={() => handleToggle('themeMode', 'dark')}
-                                        activeOpacity={0.8}
-                                        disabled={savingKey === 'themeMode'}
-                                    >
-                                        <Text
-                                            style={[
-                                                styles.themeOptionText,
-                                                settings.themeMode === 'dark' && styles.themeOptionTextSelected,
-                                            ]}
-                                        >
-                                            Dark
-                                        </Text>
-                                    </TouchableOpacity>
-                                    <TouchableOpacity
-                                        style={[
-                                            styles.themeOption,
-                                            settings.themeMode === 'light' && styles.themeOptionSelected,
-                                        ]}
-                                        onPress={() => handleToggle('themeMode', 'light')}
-                                        activeOpacity={0.8}
-                                        disabled={savingKey === 'themeMode'}
-                                    >
-                                        <Text
-                                            style={[
-                                                styles.themeOptionText,
-                                                settings.themeMode === 'light' && styles.themeOptionTextSelected,
-                                            ]}
-                                        >
-                                            Light
-                                        </Text>
-                                    </TouchableOpacity>
+                            <View style={styles.themeBlock}>
+                                <Text style={styles.rowTitle}>Theme</Text>
+                                <View style={styles.themeGrid}>
+                                    {THEME_ITEMS.map((theme) => {
+                                        const isSelected = settings.themeMode === theme.id;
+                                        const isLight = theme.id === 'light';
+                                        const isSystem = theme.id === 'system';
+                                        return (
+                                            <TouchableOpacity
+                                                key={theme.id}
+                                                style={[
+                                                    styles.themeCard,
+                                                    isSelected && styles.themeCardSelected,
+                                                ]}
+                                                onPress={() => handleToggle('themeMode', theme.id)}
+                                                activeOpacity={0.85}
+                                                disabled={savingKey === 'themeMode'}
+                                            >
+                                                <View
+                                                    style={[
+                                                        styles.themePreviewFrame,
+                                                        isSystem && styles.themePreviewFrameSystem,
+                                                        isSystem &&
+                                                            isSelected &&
+                                                            styles.themePreviewFrameSystemSelected,
+                                                    ]}
+                                                >
+                                                    <View
+                                                        style={[
+                                                            styles.themePreview,
+                                                            isSystem
+                                                                ? styles.themePreviewSystem
+                                                                : isLight
+                                                                  ? styles.themePreviewLight
+                                                                  : styles.themePreviewDark,
+                                                            isSystem &&
+                                                                styles.themePreviewSystemNoPadding,
+                                                        ]}
+                                                    >
+                                                        {isSystem ? (
+                                                            <View style={styles.themePreviewSystemSplit}>
+                                                                <View
+                                                                    style={[
+                                                                        styles.themePreviewSystemPane,
+                                                                        styles.themePreviewSystemPaneLight,
+                                                                    ]}
+                                                                >
+                                                                    <View
+                                                                        style={[
+                                                                            styles.themePreviewSystemPaneTop,
+                                                                            styles.themePreviewTopLight,
+                                                                        ]}
+                                                                    />
+                                                                    <View style={styles.themePreviewSystemPaneDots}>
+                                                                        <View
+                                                                            style={[
+                                                                                styles.themePreviewDot,
+                                                                                styles.themePreviewDotLight,
+                                                                            ]}
+                                                                        />
+                                                                        <View
+                                                                            style={[
+                                                                                styles.themePreviewDot,
+                                                                                styles.themePreviewDotLight,
+                                                                            ]}
+                                                                        />
+                                                                    </View>
+                                                                    <View
+                                                                        style={
+                                                                            styles.themePreviewSystemPaneAccentLight
+                                                                        }
+                                                                    />
+                                                                </View>
+                                                                <View
+                                                                    style={[
+                                                                        styles.themePreviewSystemPane,
+                                                                        styles.themePreviewSystemPaneDark,
+                                                                    ]}
+                                                                >
+                                                                    <View
+                                                                        style={[
+                                                                            styles.themePreviewSystemPaneTop,
+                                                                            styles.themePreviewTopDark,
+                                                                        ]}
+                                                                    />
+                                                                    <View style={styles.themePreviewSystemPaneDots}>
+                                                                        <View
+                                                                            style={[
+                                                                                styles.themePreviewDot,
+                                                                                styles.themePreviewDotDark,
+                                                                            ]}
+                                                                        />
+                                                                        <View
+                                                                            style={[
+                                                                                styles.themePreviewDot,
+                                                                                styles.themePreviewDotDark,
+                                                                            ]}
+                                                                        />
+                                                                    </View>
+                                                                    <View
+                                                                        style={
+                                                                            styles.themePreviewSystemPaneAccentDark
+                                                                        }
+                                                                    />
+                                                                </View>
+                                                            </View>
+                                                        ) : (
+                                                            <>
+                                                                <View
+                                                                    style={[
+                                                                        styles.themePreviewTop,
+                                                                        isLight
+                                                                            ? styles.themePreviewTopLight
+                                                                            : styles.themePreviewTopDark,
+                                                                    ]}
+                                                                />
+                                                                <View style={styles.themePreviewDots}>
+                                                                    <View
+                                                                        style={[
+                                                                            styles.themePreviewDot,
+                                                                            isLight
+                                                                                ? styles.themePreviewDotLight
+                                                                                : styles.themePreviewDotDark,
+                                                                        ]}
+                                                                    />
+                                                                    <View
+                                                                        style={[
+                                                                            styles.themePreviewDot,
+                                                                            isLight
+                                                                                ? styles.themePreviewDotLight
+                                                                                : styles.themePreviewDotDark,
+                                                                        ]}
+                                                                    />
+                                                                    <View
+                                                                        style={[
+                                                                            styles.themePreviewDot,
+                                                                            isLight
+                                                                                ? styles.themePreviewDotLight
+                                                                                : styles.themePreviewDotDark,
+                                                                        ]}
+                                                                    />
+                                                                </View>
+                                                                <View style={styles.themePreviewAccent} />
+                                                            </>
+                                                        )}
+                                                    </View>
+                                                </View>
+                                                <Text
+                                                    style={[
+                                                        styles.themeCardLabel,
+                                                        isSelected && styles.themeCardLabelSelected,
+                                                    ]}
+                                                >
+                                                    {theme.label}
+                                                </Text>
+                                            </TouchableOpacity>
+                                        );
+                                    })}
                                 </View>
                             </View>
                         </View>
                     </View>
 
-                    <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>Session</Text>
-                        <View style={styles.card}>
-                            <Text style={styles.sessionDescription}>
-                                End the current session on this device.
-                            </Text>
-                            <AppButton
-                                title="Log out"
-                                iconName="power-outline"
-                                onPress={logout}
-                                style={styles.logoutButton}
-                            />
-                        </View>
-                    </View>
                 </ScrollView>
             )}
         </SafeAreaView>
@@ -432,42 +537,154 @@ const styles = StyleSheet.create({
         alignItems: 'flex-end',
         justifyContent: 'center',
     },
-    themeSwitchWrap: {
+    themeBlock: {
+        paddingHorizontal: 14,
+        paddingTop: 10,
+        paddingBottom: 12,
+    },
+    themeGrid: {
+        marginTop: 10,
         flexDirection: 'row',
-        backgroundColor: '#101014',
+        justifyContent: 'space-between',
+        gap: 10,
+    },
+    themeCard: {
+        flex: 1,
+        alignItems: 'center',
         borderWidth: 1,
         borderColor: '#30303a',
-        borderRadius: 10,
-        overflow: 'hidden',
+        borderRadius: 12,
+        backgroundColor: '#101014',
+        paddingVertical: 8,
     },
-    themeOption: {
-        minWidth: 64,
-        minHeight: 34,
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingHorizontal: 12,
+    themeCardSelected: {
+        borderColor: '#6366f1',
+        shadowColor: '#6366f1',
+        shadowOpacity: 0.35,
+        shadowRadius: 6,
+        shadowOffset: { width: 0, height: 0 },
+        elevation: 2,
     },
-    themeOptionSelected: {
-        backgroundColor: '#6366f1',
-    },
-    themeOptionText: {
-        color: '#9ca3af',
-        fontSize: 12,
-        fontWeight: '600',
-    },
-    themeOptionTextSelected: {
-        color: '#fff',
-    },
-    sessionDescription: {
+    themeCardLabel: {
         color: '#9ca3af',
         fontSize: 13,
-        lineHeight: 19,
-        paddingHorizontal: 14,
-        paddingTop: 12,
+        fontWeight: '600',
+        marginTop: 7,
     },
-    logoutButton: {
-        marginHorizontal: 14,
-        marginTop: 12,
-        marginBottom: 12,
+    themeCardLabelSelected: {
+        color: '#fff',
+    },
+    themePreview: {
+        width: 46,
+        height: 74,
+        borderRadius: 8,
+        borderWidth: 1,
+        overflow: 'hidden',
+        paddingHorizontal: 6,
+        paddingTop: 7,
+        paddingBottom: 6,
+        justifyContent: 'space-between',
+    },
+    themePreviewFrame: {
+        width: 46,
+        height: 74,
+        borderRadius: 8,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: '#32323a',
+    },
+    themePreviewFrameSystem: {
+        borderColor: '#4b4b57',
+    },
+    themePreviewFrameSystemSelected: {
+        borderColor: '#e5e7eb',
+    },
+    themePreviewLight: {
+        backgroundColor: '#f3f4f6',
+        borderColor: '#d1d5db',
+    },
+    themePreviewDark: {
+        backgroundColor: '#1c1c1f',
+        borderColor: '#3f3f46',
+    },
+    themePreviewSystem: {
+        backgroundColor: '#111114',
+        borderColor: '#3f3f46',
+    },
+    themePreviewSystemNoPadding: {
+        paddingHorizontal: 0,
+        paddingTop: 0,
+        paddingBottom: 0,
+        justifyContent: 'flex-start',
+    },
+    themePreviewSystemSplit: {
+        flex: 1,
+        flexDirection: 'row',
+        width: '100%',
+        height: '100%',
+        borderRadius: 7,
+        overflow: 'hidden',
+    },
+    themePreviewSystemPane: {
+        flex: 1,
+        paddingHorizontal: 3,
+        paddingVertical: 5,
+        justifyContent: 'space-between',
+    },
+    themePreviewSystemPaneLight: {
+        backgroundColor: '#f3f4f6',
+    },
+    themePreviewSystemPaneDark: {
+        backgroundColor: '#1c1c1f',
+    },
+    themePreviewSystemPaneTop: {
+        height: 7,
+        borderRadius: 3,
+        width: '85%',
+    },
+    themePreviewSystemPaneDots: {
+        flexDirection: 'row',
+        gap: 2,
+    },
+    themePreviewSystemPaneAccentLight: {
+        height: 6,
+        borderRadius: 3,
+        backgroundColor: '#818cf8',
+    },
+    themePreviewSystemPaneAccentDark: {
+        height: 6,
+        borderRadius: 3,
+        backgroundColor: '#6366f1',
+    },
+    themePreviewTop: {
+        height: 8,
+        borderRadius: 3,
+        width: '74%',
+    },
+    themePreviewTopLight: {
+        backgroundColor: '#d4d4d8',
+    },
+    themePreviewTopDark: {
+        backgroundColor: '#3f3f46',
+    },
+    themePreviewDots: {
+        flexDirection: 'row',
+        gap: 3,
+    },
+    themePreviewDot: {
+        width: 6,
+        height: 6,
+        borderRadius: 3,
+    },
+    themePreviewDotLight: {
+        backgroundColor: '#d4d4d8',
+    },
+    themePreviewDotDark: {
+        backgroundColor: '#3f3f46',
+    },
+    themePreviewAccent: {
+        height: 6,
+        borderRadius: 3,
+        backgroundColor: '#6366f1',
     },
 });

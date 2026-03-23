@@ -73,7 +73,9 @@ function mergeWithDefaults(value) {
                 ? value.biometricLockEnabled
                 : defaultAppSettings.biometricLockEnabled,
         themeMode:
-            value.themeMode === 'light' || value.themeMode === 'dark'
+            value.themeMode === 'light' ||
+            value.themeMode === 'dark' ||
+            value.themeMode === 'system'
                 ? value.themeMode
                 : defaultAppSettings.themeMode,
     };
