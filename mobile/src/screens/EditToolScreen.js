@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
     View,
     Text,
@@ -15,10 +15,12 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import MapView from 'react-native-maps';
 import { Calendar } from 'react-native-calendars';
+import { useFocusEffect } from '@react-navigation/native';
 import api from '../api/client';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
 import { CategoryField } from '../components/form';
+import ToolLocationSelector from '../components/location/ToolLocationSelector';
 
 const EditToolScreen = ({ route, navigation }) => {
     const { tool } = route.params;
@@ -36,6 +38,11 @@ const EditToolScreen = ({ route, navigation }) => {
     const [showMapModal, setShowMapModal] = useState(false);
     const [locationLoading, setLocationLoading] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [locationSource, setLocationSource] = useState('map');
+    const [savedAddresses, setSavedAddresses] = useState([]);
+    const [savedAddressesLoading, setSavedAddressesLoading] = useState(false);
+    const [selectedSavedAddressId, setSelectedSavedAddressId] = useState(null);
+    const hasInitializedSavedLocationRef = useRef(false);
 
     // Calendar blocks state
     // Calendar blocks state
@@ -56,6 +63,52 @@ const EditToolScreen = ({ route, navigation }) => {
     maxDateObj.setDate(maxDateObj.getDate() + 21);
     const maxDateString = maxDateObj.toISOString().split('T')[0];
     const todayString = new Date().toISOString().split('T')[0];
+    const selectedSavedAddress = useMemo(
+        () => savedAddresses.find((address) => address.id === selectedSavedAddressId) || null,
+        [savedAddresses, selectedSavedAddressId],
+    );
+
+    const hydrateSavedAddresses = useCallback((addresses) => {
+        const fallbackAddress = addresses.find((address) => address.isDefault) || addresses[0] || null;
+        setSavedAddresses(addresses);
+        setSelectedSavedAddressId((currentId) => {
+            if (hasInitializedSavedLocationRef.current && currentId === null) {
+                return null;
+            }
+            if (currentId && addresses.some((address) => address.id === currentId)) {
+                return currentId;
+            }
+            return fallbackAddress?.id || null;
+        });
+        setLocationSource((currentSource) => {
+            if (!hasInitializedSavedLocationRef.current) {
+                hasInitializedSavedLocationRef.current = true;
+                return fallbackAddress ? 'savedAddress' : 'map';
+            }
+            if (!fallbackAddress && currentSource === 'savedAddress') {
+                return 'map';
+            }
+            return currentSource;
+        });
+    }, []);
+
+    const loadSavedAddresses = useCallback(async () => {
+        setSavedAddressesLoading(true);
+        try {
+            const response = await api.get('/auth/me');
+            hydrateSavedAddresses(response.data?.addresses || []);
+        } catch (error) {
+            console.error('[EditToolScreen] Failed to load saved addresses:', error);
+        } finally {
+            setSavedAddressesLoading(false);
+        }
+    }, [hydrateSavedAddresses]);
+
+    useFocusEffect(
+        useCallback(() => {
+            loadSavedAddresses();
+        }, [loadSavedAddresses]),
+    );
 
     useEffect(() => {
         if (latitude && longitude) {
@@ -190,6 +243,7 @@ const EditToolScreen = ({ route, navigation }) => {
 
     const confirmLocation = async () => {
         if (tempCoords) {
+            setSelectedSavedAddressId(null);
             setLatitude(tempCoords.latitude);
             setLongitude(tempCoords.longitude);
             // Reverse-geocode to get a human-readable address
@@ -224,14 +278,66 @@ const EditToolScreen = ({ route, navigation }) => {
             return;
         }
 
-        if (!latitude || !longitude) {
-            Alert.alert('Location Missing', 'Please select where the tool is located on the map.');
-            return;
-        }
+        const usingSavedAddress = locationSource === 'savedAddress';
+        let resolvedLocation = null;
 
-        if (!locationAddress?.country) {
-            Alert.alert('Country Missing', 'Please pick a location with a valid country before updating.');
-            return;
+        if (usingSavedAddress) {
+            if (!selectedSavedAddress) {
+                Alert.alert('Location Missing', 'Please choose one of your saved addresses.');
+                return;
+            }
+            if (!selectedSavedAddress.country) {
+                Alert.alert('Country Missing', 'Please choose a saved address with a valid country.');
+                return;
+            }
+            if (selectedSavedAddress.latitude == null || selectedSavedAddress.longitude == null) {
+                Alert.alert(
+                    'Address Incomplete',
+                    'The selected address has no map coordinates. Please edit it in Addresses or use map pinning.',
+                );
+                return;
+            }
+            const savedLatitude = Number(selectedSavedAddress.latitude);
+            const savedLongitude = Number(selectedSavedAddress.longitude);
+            if (!Number.isFinite(savedLatitude) || !Number.isFinite(savedLongitude)) {
+                Alert.alert(
+                    'Address Incomplete',
+                    'The selected address coordinates are invalid. Please edit it in Addresses or use map pinning.',
+                );
+                return;
+            }
+
+            resolvedLocation = {
+                latitude: savedLatitude,
+                longitude: savedLongitude,
+                label: selectedSavedAddress.label || 'Tool Location',
+                street: selectedSavedAddress.street || undefined,
+                addressLine2: selectedSavedAddress.addressLine2 || undefined,
+                city: selectedSavedAddress.city || undefined,
+                state: selectedSavedAddress.state || undefined,
+                postalCode: selectedSavedAddress.postalCode || undefined,
+                country: selectedSavedAddress.country || undefined,
+            };
+        } else {
+            if (latitude == null || longitude == null) {
+                Alert.alert('Location Missing', 'Please select where the tool is located on the map.');
+                return;
+            }
+            if (!locationAddress?.country) {
+                Alert.alert('Country Missing', 'Please pick a location with a valid country before updating.');
+                return;
+            }
+            resolvedLocation = {
+                latitude,
+                longitude,
+                label: 'Tool Location',
+                street: locationAddress?.street || undefined,
+                addressLine2: undefined,
+                city: locationAddress?.city || undefined,
+                state: undefined,
+                postalCode: undefined,
+                country: locationAddress?.country || undefined,
+            };
         }
 
         setLoading(true);
@@ -243,15 +349,15 @@ const EditToolScreen = ({ route, navigation }) => {
                 pricePerDay: parseFloat(price),
                 replacementValue: replacementValue ? parseFloat(replacementValue) : undefined,
                 condition: condition || undefined,
-                latitude,
-                longitude,
-                label: 'Tool Location',
-                street: locationAddress?.street || undefined,
-                addressLine2: undefined,
-                city: locationAddress?.city || undefined,
-                state: undefined,
-                postalCode: undefined,
-                country: locationAddress?.country || undefined,
+                latitude: resolvedLocation.latitude,
+                longitude: resolvedLocation.longitude,
+                label: resolvedLocation.label,
+                street: resolvedLocation.street,
+                addressLine2: resolvedLocation.addressLine2,
+                city: resolvedLocation.city,
+                state: resolvedLocation.state,
+                postalCode: resolvedLocation.postalCode,
+                country: resolvedLocation.country,
             });
 
             // If user selected any calendar dates, patch them immediately
@@ -380,57 +486,25 @@ const EditToolScreen = ({ route, navigation }) => {
 
                         <View style={styles.section}>
                             <Text style={styles.label}>Location</Text>
-                            <TouchableOpacity
-                                style={[styles.locationCard, (latitude && longitude) && styles.locationCardActive]}
-                                onPress={openMapPicker}
-                                disabled={locationLoading}
-                            >
-                                <View style={[
-                                    styles.locationIcon,
-                                    (latitude && longitude) && styles.locationIconActive,
-                                ]}>
-                                    {locationLoading
-                                        ? <ActivityIndicator size="small" color="#6366f1" />
-                                        : <Ionicons
-                                            name={(latitude && longitude) ? 'location' : 'map-outline'}
-                                            size={22}
-                                            color={(latitude && longitude) ? '#fff' : '#888'}
-                                        />}
-                                </View>
-
-                                <View style={styles.locationInfo}>
-                                    {(latitude && longitude && locationAddress) ? (
-                                        <>
-                                            {locationAddress.street ? (
-                                                <Text style={styles.locationStreet} numberOfLines={1}>
-                                                    {locationAddress.street}
-                                                </Text>
-                                            ) : null}
-                                            {(locationAddress.city || locationAddress.country) ? (
-                                                <Text style={styles.locationCity} numberOfLines={1}>
-                                                    {[locationAddress.city, locationAddress.country].filter(Boolean).join(', ')}
-                                                </Text>
-                                            ) : null}
-                                            <Text style={styles.locationCoords}>
-                                                {latitude.toFixed(5)}, {longitude.toFixed(5)}
-                                            </Text>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Text style={styles.locationTitle}>Set tool location</Text>
-                                            <Text style={styles.locationSub}>Pin the exact pickup spot on the map</Text>
-                                        </>
-                                    )}
-                                </View>
-
-                                <View style={styles.locationChevron}>
-                                    <Ionicons
-                                        name={(latitude && longitude) ? 'pencil-outline' : 'chevron-forward'}
-                                        size={18}
-                                        color="#555"
-                                    />
-                                </View>
-                            </TouchableOpacity>
+                            <ToolLocationSelector
+                                locationSource={locationSource}
+                                onChangeLocationSource={(nextSource) => {
+                                    setLocationSource(nextSource);
+                                }}
+                                mapLocation={{ latitude, longitude, address: locationAddress }}
+                                locationLoading={locationLoading}
+                                savedAddressesLoading={savedAddressesLoading}
+                                onPressMapLocation={openMapPicker}
+                                savedAddresses={savedAddresses}
+                                selectedSavedAddressId={selectedSavedAddressId}
+                                onSelectSavedAddressId={(addressId) => {
+                                    setSelectedSavedAddressId(addressId);
+                                    setLatitude(null);
+                                    setLongitude(null);
+                                    setLocationAddress(null);
+                                }}
+                                onManageAddresses={() => navigation.navigate('Addresses')}
+                            />
                         </View>
                     </View>
                 </ScrollView>
