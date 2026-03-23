@@ -152,17 +152,15 @@ export default function SettingsScreen({ navigation }) {
                     <Text style={styles.rowTitle}>{item.title}</Text>
                     <Text style={styles.rowSubtitle}>{item.subtitle}</Text>
                 </View>
-                {isSaving ? (
-                    <ActivityIndicator size="small" color="#6366f1" />
-                ) : (
+                <View style={styles.switchSlot}>
                     <Switch
                         value={value}
                         onValueChange={(next) => handlePushToggle(item.id, next)}
-                        disabled={!isPushEnabled}
+                        disabled={!isPushEnabled || isSaving}
                         trackColor={{ false: '#3f3f46', true: '#6366f1' }}
                         thumbColor={value ? '#ffffff' : '#d4d4d8'}
                     />
-                )}
+                </View>
             </View>
         );
     };
@@ -177,16 +175,15 @@ export default function SettingsScreen({ navigation }) {
                     <Text style={styles.rowTitle}>{item.title}</Text>
                     <Text style={styles.rowSubtitle}>{item.subtitle}</Text>
                 </View>
-                {isSaving ? (
-                    <ActivityIndicator size="small" color="#6366f1" />
-                ) : (
+                <View style={styles.switchSlot}>
                     <Switch
                         value={value}
                         onValueChange={(next) => handleToggle(item.id, next)}
+                        disabled={isSaving}
                         trackColor={{ false: '#3f3f46', true: '#6366f1' }}
                         thumbColor={value ? '#ffffff' : '#d4d4d8'}
                     />
-                )}
+                </View>
             </View>
         );
     };
@@ -227,18 +224,15 @@ export default function SettingsScreen({ navigation }) {
                                     />
                                 </TouchableOpacity>
                                 <View style={styles.pushHeaderRight}>
-                                    {savingKey === 'pushNotificationsEnabled' ? (
-                                        <ActivityIndicator size="small" color="#6366f1" />
-                                    ) : (
-                                        <Switch
-                                            value={Boolean(settings.pushNotificationsEnabled)}
-                                            onValueChange={(next) => handleToggle('pushNotificationsEnabled', next)}
-                                            trackColor={{ false: '#3f3f46', true: '#6366f1' }}
-                                            thumbColor={
-                                                settings.pushNotificationsEnabled ? '#ffffff' : '#d4d4d8'
-                                            }
-                                        />
-                                    )}
+                                    <Switch
+                                        value={Boolean(settings.pushNotificationsEnabled)}
+                                        onValueChange={(next) => handleToggle('pushNotificationsEnabled', next)}
+                                        disabled={savingKey === 'pushNotificationsEnabled'}
+                                        trackColor={{ false: '#3f3f46', true: '#6366f1' }}
+                                        thumbColor={
+                                            settings.pushNotificationsEnabled ? '#ffffff' : '#d4d4d8'
+                                        }
+                                    />
                                 </View>
                             </View>
                             {isPushSectionExpanded ? (
@@ -432,6 +426,11 @@ const styles = StyleSheet.create({
         color: '#9ca3af',
         fontSize: 12,
         marginTop: 3,
+    },
+    switchSlot: {
+        width: 52,
+        alignItems: 'flex-end',
+        justifyContent: 'center',
     },
     themeSwitchWrap: {
         flexDirection: 'row',
