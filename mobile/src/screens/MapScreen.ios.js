@@ -26,6 +26,7 @@ import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import darkMapStyle from '../constants/darkMapStyle';
 
 const MapScreen = ({ navigation }) => {
     const { user } = useAuth();
@@ -139,6 +140,8 @@ const MapScreen = ({ navigation }) => {
             <MapView
                 ref={mapRef}
                 style={styles.map}
+                customMapStyle={darkMapStyle}
+                userInterfaceStyle="dark"
                 initialRegion={{
                     latitude: location?.coords.latitude ?? 50.8503,
                     longitude: location?.coords.longitude ?? 4.3517,

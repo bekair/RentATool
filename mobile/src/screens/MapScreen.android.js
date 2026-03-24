@@ -30,12 +30,13 @@ import {
     Platform,
     ScrollView,
 } from 'react-native';
-import MapView, { Marker } from 'react-native-maps';
+import { Marker } from 'react-native-maps';
 import { captureRef } from 'react-native-view-shot';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import AppMapView from '../components/ui/AppMapView';
 
 const { width } = Dimensions.get('window');
 
@@ -256,9 +257,10 @@ const MapScreen = ({ navigation }) => {
     // ── Render: map ───────────────────────────────────────────────────────────
     return (
         <View style={styles.container}>
-            <MapView
+            <AppMapView
                 ref={mapRef}
                 style={styles.map}
+                theme="dark"
                 initialRegion={{
                     latitude: location?.coords.latitude ?? 50.8503,
                     longitude: location?.coords.longitude ?? 4.3517,
@@ -289,7 +291,7 @@ const MapScreen = ({ navigation }) => {
                         />
                     );
                 })}
-            </MapView>
+            </AppMapView>
 
             {/* ── Hidden strip for new tools (behind floating tab bar) ─── */}
             {pendingCapture.length > 0 && (

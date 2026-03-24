@@ -13,7 +13,6 @@ import {
     KeyboardAvoidingView,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import MapView from 'react-native-maps';
 import { Calendar } from 'react-native-calendars';
 import { useFocusEffect } from '@react-navigation/native';
 import api from '../api/client';
@@ -21,6 +20,7 @@ import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
 import { CategoryField } from '../components/form';
 import ToolLocationSelector from '../components/location/ToolLocationSelector';
+import AppMapView from '../components/ui/AppMapView';
 
 const EditToolScreen = ({ route, navigation }) => {
     const { tool } = route.params;
@@ -566,8 +566,9 @@ const EditToolScreen = ({ route, navigation }) => {
 
                     {/* ── Map + fixed centre-pin ───────────────────────── */}
                     <View style={styles.mapWrapper}>
-                        <MapView
+                        <AppMapView
                             style={StyleSheet.absoluteFill}
+                            theme="dark"
                             initialRegion={{
                                 latitude: tempCoords?.latitude || 50.8503,
                                 longitude: tempCoords?.longitude || 4.3517,

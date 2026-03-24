@@ -12,7 +12,6 @@ import {
     KeyboardAvoidingView,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import MapView from 'react-native-maps';
 import { Calendar } from 'react-native-calendars';
 import { useFocusEffect } from '@react-navigation/native';
 import api from '../api/client';
@@ -22,6 +21,7 @@ import LabelField from '../components/form/LabelField';
 import { InputField, CategoryField } from '../components/form';
 import ToolLocationSelector from '../components/location/ToolLocationSelector';
 import AppButton from '../components/ui/AppButton';
+import AppMapView from '../components/ui/AppMapView';
 
 const AddToolScreen = ({ navigation }) => {
     const insets = useSafeAreaInsets();
@@ -548,8 +548,9 @@ const AddToolScreen = ({ navigation }) => {
 
                     {/* ── Map + fixed centre-pin ───────────────────────── */}
                     <View style={styles.mapWrapper}>
-                        <MapView
+                        <AppMapView
                             style={StyleSheet.absoluteFill}
+                            theme="dark"
                             initialRegion={{
                                 latitude: tempCoords?.latitude || 50.8503,
                                 longitude: tempCoords?.longitude || 4.3517,
