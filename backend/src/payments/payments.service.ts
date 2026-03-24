@@ -8,6 +8,7 @@ import {
 import { PayoutOnboardingStatus } from '@prisma/client';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
+import { CountriesService } from '../countries/countries.service';
 
 type StripeRequestValue =
   | string
@@ -28,6 +29,7 @@ export class PaymentsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
+    private readonly countriesService: CountriesService,
   ) {}
 
   async getSummary(userId: string) {
@@ -368,7 +370,7 @@ export class PaymentsService {
 
     let connectAccountId = payoutAccount.providerAccountId;
     if (!connectAccountId) {
-      const stripeCountry = this.resolveConnectCountryCode(user as any);
+      const stripeCountry = await this.resolveConnectCountryCode(user as any);
       if (!stripeCountry) {
         throw new BadRequestException(
           'Please add your country to your profile or addresses before starting payout onboarding.',
@@ -378,7 +380,7 @@ export class PaymentsService {
       const account = await this.stripeRequest(
         'POST',
         '/v1/accounts',
-        this.buildStripeExpressAccountParams(
+        await this.buildStripeExpressAccountParams(
           user as any,
           userId,
           stripeCountry,
@@ -911,7 +913,7 @@ export class PaymentsService {
         value.includes('no such account') || value.includes('resource_missing'),
     );
   }
-  private mapSummary(
+  private async mapSummary(
     user: any,
     paymentMethodSummary: {
       hasDefaultPaymentMethod: boolean;
@@ -940,7 +942,8 @@ export class PaymentsService {
     if (!paymentMethodSummary.hasDefaultPaymentMethod) {
       readinessBlockers.push('Add a default payment method for renting.');
     }
-    if (!this.resolveConnectCountryCode(user)) {
+    const connectCountryCode = await this.resolveConnectCountryCode(user);
+    if (!connectCountryCode) {
       readinessBlockers.push(
         'Add your country to your profile or addresses before payout onboarding.',
       );
@@ -1254,11 +1257,11 @@ export class PaymentsService {
     return Math.round(amount * 100);
   }
 
-  private buildStripeExpressAccountParams(
+  private async buildStripeExpressAccountParams(
     user: any,
     userId: string,
     stripeCountry: string,
-  ): Record<string, StripeRequestValue> {
+  ): Promise<Record<string, StripeRequestValue>> {
     const params: Record<string, StripeRequestValue> = {
       type: 'express',
       country: stripeCountry,
@@ -1295,7 +1298,8 @@ export class PaymentsService {
     }
 
     const countryCode =
-      this.normalizeCountryCode(address?.country) || stripeCountry;
+      (await this.countriesService.normalizeCountryCode(address?.country)) ||
+      stripeCountry;
     if (countryCode) {
       params['individual[address][country]'] = countryCode;
     }
@@ -1330,7 +1334,7 @@ export class PaymentsService {
 
     return user.addresses[0] || null;
   }
-  private resolveConnectCountryCode(user: any): string | null {
+  private async resolveConnectCountryCode(user: any): Promise<string | null> {
     const candidates: Array<string | undefined | null> = [
       user?.profile?.region,
       user?.addresses?.find((a: any) => a?.isDefault)?.country,
@@ -1340,49 +1344,13 @@ export class PaymentsService {
     ];
 
     for (const value of candidates) {
-      const code = this.normalizeCountryCode(value);
+      const code = await this.countriesService.normalizeCountryCode(value);
       if (code) {
         return code;
       }
     }
 
     return null;
-  }
-
-  private normalizeCountryCode(raw: string | null | undefined): string | null {
-    if (!raw || typeof raw !== 'string') {
-      return null;
-    }
-
-    const normalized = raw.trim();
-    if (!normalized) {
-      return null;
-    }
-
-    const upper = normalized.toUpperCase();
-    if (/^[A-Z]{2}$/.test(upper)) {
-      return upper;
-    }
-
-    const byName: Record<string, string> = {
-      BELGIUM: 'BE',
-      NETHERLANDS: 'NL',
-      LUXEMBOURG: 'LU',
-      FRANCE: 'FR',
-      GERMANY: 'DE',
-      SPAIN: 'ES',
-      ITALY: 'IT',
-      PORTUGAL: 'PT',
-      AUSTRIA: 'AT',
-      IRELAND: 'IE',
-      'UNITED KINGDOM': 'GB',
-      UK: 'GB',
-      'UNITED STATES': 'US',
-      USA: 'US',
-      CANADA: 'CA',
-    };
-
-    return byName[upper] || null;
   }
 
   private getRequiredEnv(key: string): string {

@@ -6,10 +6,14 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateToolDto, UpdateToolDto } from './dto/tool.dto';
 import { Tool } from '@prisma/client';
+import { CountriesService } from '../countries/countries.service';
 
 @Injectable()
 export class ToolsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private countriesService: CountriesService,
+  ) {}
 
   async create(ownerId: string, createToolDto: CreateToolDto): Promise<any> {
     const {
@@ -32,7 +36,8 @@ export class ToolsService {
       ...toolData
     } = createToolDto;
 
-    const normalizedCountry = this.normalizeCountryCode(country);
+    const normalizedCountry =
+      await this.countriesService.normalizeCountryCode(country);
     if (!normalizedCountry) {
       throw new BadRequestException(
         'Tool country is required before listing your tool.',
@@ -211,6 +216,29 @@ export class ToolsService {
 
     // Isolate the availability flag (only field that updates parent)
     const { isAvailable, ...versionData } = updateToolDto;
+    const hasVersionChanges = Object.keys(versionData).length > 0;
+
+    let nextCountry: string | null = null;
+    let nextCurrency: string | null = null;
+    if (hasVersionChanges) {
+      const currentAddress = tool.address || {};
+      nextCountry =
+        (await this.countriesService.normalizeCountryCode(versionData.country)) ||
+        (await this.countriesService.normalizeCountryCode(currentAddress.country));
+
+      if (!nextCountry) {
+        throw new BadRequestException(
+          'Tool country is required before updating this listing.',
+        );
+      }
+
+      nextCurrency = this.currencyForCountry(nextCountry);
+      if (!nextCurrency) {
+        throw new BadRequestException(
+          `No supported currency mapping found for country: ${nextCountry}.`,
+        );
+      }
+    }
 
     return this.prisma.$transaction(async (tx) => {
       // 1. If availability changed, update parent tool
@@ -222,24 +250,8 @@ export class ToolsService {
       }
 
       // 2. Map existing active version data, overridden by the incoming changes
-      if (Object.keys(versionData).length > 0) {
+      if (hasVersionChanges) {
         const currentAddress = tool.address || {};
-        const nextCountry =
-          this.normalizeCountryCode(versionData.country) ||
-          this.normalizeCountryCode(currentAddress.country);
-
-        if (!nextCountry) {
-          throw new BadRequestException(
-            'Tool country is required before updating this listing.',
-          );
-        }
-
-        const nextCurrency = this.currencyForCountry(nextCountry);
-        if (!nextCurrency) {
-          throw new BadRequestException(
-            `No supported currency mapping found for country: ${nextCountry}.`,
-          );
-        }
 
         const newVersion = await tx.toolVersion.create({
           data: {
@@ -251,7 +263,7 @@ export class ToolsService {
             replacementValue:
               versionData.replacementValue ?? tool.replacementValue,
             condition: versionData.condition ?? tool.condition,
-            currency: nextCurrency,
+            currency: nextCurrency!,
             latitude: versionData.latitude ?? tool.latitude,
             longitude: versionData.longitude ?? tool.longitude,
             images: versionData.images ?? tool.images,
@@ -269,7 +281,7 @@ export class ToolsService {
             state: versionData.state ?? currentAddress.state ?? null,
             postalCode:
               versionData.postalCode ?? currentAddress.postalCode ?? null,
-            country: nextCountry,
+            country: nextCountry!,
             latitude: versionData.latitude ?? tool.latitude ?? null,
             longitude: versionData.longitude ?? tool.longitude ?? null,
           },
@@ -422,44 +434,6 @@ export class ToolsService {
     ]);
 
     return this.getAvailability(id);
-  }
-
-  private normalizeCountryCode(raw?: string | null): string | null {
-    if (!raw || typeof raw !== 'string') {
-      return null;
-    }
-
-    const normalized = raw.trim();
-    if (!normalized) {
-      return null;
-    }
-
-    const upper = normalized.toUpperCase();
-    if (/^[A-Z]{2}$/.test(upper)) {
-      return upper;
-    }
-
-    const byName: Record<string, string> = {
-      BELGIUM: 'BE',
-      NETHERLANDS: 'NL',
-      LUXEMBOURG: 'LU',
-      FRANCE: 'FR',
-      GERMANY: 'DE',
-      SPAIN: 'ES',
-      ITALY: 'IT',
-      PORTUGAL: 'PT',
-      AUSTRIA: 'AT',
-      IRELAND: 'IE',
-      'UNITED KINGDOM': 'GB',
-      UK: 'GB',
-      'UNITED STATES': 'US',
-      USA: 'US',
-      CANADA: 'CA',
-      JAPAN: 'JP',
-      SWITZERLAND: 'CH',
-    };
-
-    return byName[upper] || null;
   }
 
   private currencyForCountry(countryCode: string): string | null {
