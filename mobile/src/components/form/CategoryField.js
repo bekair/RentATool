@@ -26,6 +26,7 @@ export default function CategoryField({
     isEditing,
     value,
     onSelect,
+    error,
 }) {
     const { categories } = useCategories();
     const [visible, setVisible] = useState(false);
@@ -44,6 +45,7 @@ export default function CategoryField({
                 value={value?.name}
                 placeholder="Select a category…"
                 onPress={() => isEditing && setVisible(true)}
+                error={error}
                 leftIcon={
                     value?.icon
                         ? <MaterialCommunityIcons name={value.icon} size={20} color="#6366f1" />

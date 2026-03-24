@@ -40,6 +40,12 @@ function AddressOption({ address, isSelected, onPress }) {
     );
 }
 
+function formatSavedAddressLine(address) {
+    return [address.city, address.state, address.postalCode, address.country]
+        .filter(Boolean)
+        .join(', ');
+}
+
 export default function ToolLocationSelector({
     locationSource,
     onChangeLocationSource,
@@ -53,42 +59,78 @@ export default function ToolLocationSelector({
     onManageAddresses,
 }) {
     const [showAddressPicker, setShowAddressPicker] = useState(false);
+
     const selectedSavedAddress = useMemo(
         () => savedAddresses.find((address) => address.id === selectedSavedAddressId) || null,
         [savedAddresses, selectedSavedAddressId],
     );
+
     const hasSavedAddresses = savedAddresses.length > 0;
     const mapIsActive = mapLocation.latitude != null && mapLocation.longitude != null;
+
+    const selectedSource = useMemo(() => {
+        if (mapIsActive) {
+            return 'map';
+        }
+
+        if (selectedSavedAddress) {
+            return 'savedAddress';
+        }
+
+        return null;
+    }, [mapIsActive, selectedSavedAddress]);
 
     const handleSelectSource = (nextSource) => {
         if (nextSource === 'savedAddress' && !hasSavedAddresses && !savedAddressesLoading) {
             return;
         }
+
         onChangeLocationSource(nextSource);
     };
+
+    const openSavedAddressPicker = () => {
+        if (!hasSavedAddresses || savedAddressesLoading) {
+            return;
+        }
+
+        setShowAddressPicker(true);
+    };
+
+    const selectedLocationTitle =
+        selectedSource === 'savedAddress'
+            ? selectedSavedAddress?.label || 'Saved address'
+            : selectedSource === 'map'
+                ? mapLocation?.address?.street || 'Pinned pickup spot'
+                : 'Set tool location';
+
+    const selectedLocationSub =
+        selectedSource === 'savedAddress'
+            ? formatSavedAddressLine(selectedSavedAddress) || 'No address details'
+            : selectedSource === 'map'
+                ? [mapLocation?.address?.city, mapLocation?.address?.country]
+                    .filter(Boolean)
+                    .join(', ')
+                : 'Choose a saved address or pin a map location.';
+
+    const selectedLocationCoords =
+        selectedSource === 'savedAddress' &&
+        selectedSavedAddress?.latitude != null &&
+        selectedSavedAddress?.longitude != null
+            ? `${Number(selectedSavedAddress.latitude).toFixed(5)}, ${Number(
+                selectedSavedAddress.longitude,
+            ).toFixed(5)}`
+            : selectedSource === 'map' && mapIsActive
+                ? `${Number(mapLocation.latitude).toFixed(5)}, ${Number(mapLocation.longitude).toFixed(5)}`
+                : null;
 
     return (
         <View style={styles.wrap}>
             <View style={styles.sourceTabs}>
                 <TouchableOpacity
-                    style={[styles.sourceTab, locationSource === 'map' && styles.sourceTabActive]}
-                    onPress={() => handleSelectSource('map')}
-                    activeOpacity={0.85}
-                >
-                    <Ionicons
-                        name="map-outline"
-                        size={16}
-                        color={locationSource === 'map' ? '#fff' : '#8a8a8a'}
-                    />
-                    <Text style={[styles.sourceTabText, locationSource === 'map' && styles.sourceTabTextActive]}>
-                        Pin on map
-                    </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
                     style={[
                         styles.sourceTab,
                         locationSource === 'savedAddress' && styles.sourceTabActive,
-                        !hasSavedAddresses && styles.sourceTabDisabled,
+                        !hasSavedAddresses && !savedAddressesLoading && styles.sourceTabDisabled,
                     ]}
                     onPress={() => handleSelectSource('savedAddress')}
                     activeOpacity={0.85}
@@ -111,146 +153,69 @@ export default function ToolLocationSelector({
                         Saved address
                     </Text>
                 </TouchableOpacity>
+
+                <TouchableOpacity
+                    style={[styles.sourceTab, locationSource === 'map' && styles.sourceTabActive]}
+                    onPress={() => handleSelectSource('map')}
+                    activeOpacity={0.85}
+                >
+                    <Ionicons
+                        name="map-outline"
+                        size={16}
+                        color={locationSource === 'map' ? '#fff' : '#8a8a8a'}
+                    />
+                    <Text style={[styles.sourceTabText, locationSource === 'map' && styles.sourceTabTextActive]}>
+                        Pin on map
+                    </Text>
+                </TouchableOpacity>
             </View>
 
             {locationSource === 'map' ? (
                 <TouchableOpacity
-                    style={[styles.locationCard, mapIsActive && styles.locationCardActive]}
+                    style={styles.actionCard}
                     onPress={onPressMapLocation}
                     disabled={locationLoading}
                     activeOpacity={0.85}
                 >
-                    <View style={[styles.locationIcon, mapIsActive && styles.locationIconActive]}>
-                        {locationLoading ? (
-                            <ActivityIndicator size="small" color="#6366f1" />
-                        ) : (
-                            <Ionicons
-                                name={mapIsActive ? 'location' : 'map-outline'}
-                                size={22}
-                                color={mapIsActive ? '#fff' : '#888'}
-                            />
-                        )}
+                    <View style={styles.actionLeft}>
+                        <View style={styles.actionIconWrap}>
+                            {locationLoading ? (
+                                <ActivityIndicator size="small" color="#6366f1" />
+                            ) : (
+                                <Ionicons name="map-outline" size={18} color="#6366f1" />
+                            )}
+                        </View>
+                        <View style={styles.actionCopy}>
+                            <Text style={styles.actionTitle}>{mapIsActive ? 'Change map pin' : 'Set tool location'}</Text>
+                            <Text style={styles.actionSub}>Pin the exact pickup spot on the map</Text>
+                        </View>
                     </View>
-
-                    <View style={styles.locationInfo}>
-                        {mapIsActive && mapLocation.address ? (
-                            <>
-                                {mapLocation.address.street ? (
-                                    <Text style={styles.locationStreet} numberOfLines={1}>
-                                        {mapLocation.address.street}
-                                    </Text>
-                                ) : null}
-                                {(mapLocation.address.city || mapLocation.address.country) ? (
-                                    <Text style={styles.locationCity} numberOfLines={1}>
-                                        {[mapLocation.address.city, mapLocation.address.country]
-                                            .filter(Boolean)
-                                            .join(', ')}
-                                    </Text>
-                                ) : null}
-                                <Text style={styles.locationCoords}>
-                                    {mapLocation.latitude.toFixed(5)}, {mapLocation.longitude.toFixed(5)}
-                                </Text>
-                            </>
-                        ) : (
-                            <>
-                                <Text style={styles.locationTitle}>Set tool location</Text>
-                                <Text style={styles.locationSub}>Pin the exact pickup spot on the map</Text>
-                            </>
-                        )}
-                    </View>
-
-                    <View style={styles.locationChevron}>
-                        <Ionicons
-                            name={mapIsActive ? 'pencil-outline' : 'chevron-forward'}
-                            size={18}
-                            color="#555"
-                        />
-                    </View>
+                    <Ionicons name="chevron-forward" size={18} color="#666" />
                 </TouchableOpacity>
             ) : savedAddressesLoading ? (
                 <View style={styles.emptySavedWrap}>
                     <View style={styles.savedLoadingRow}>
                         <ActivityIndicator size="small" color="#6366f1" />
-                        <Text style={styles.emptySavedSub}>Loading saved addresses…</Text>
+                        <Text style={styles.emptySavedSub}>Loading saved addresses...</Text>
                     </View>
                 </View>
             ) : hasSavedAddresses ? (
-                <View
-                    style={[
-                        styles.locationCard,
-                        selectedSavedAddress && styles.locationCardActive,
-                    ]}
+                <TouchableOpacity
+                    style={styles.actionCard}
+                    onPress={openSavedAddressPicker}
+                    activeOpacity={0.85}
                 >
-                    {selectedSavedAddress ? (
-                        <>
-                            <TouchableOpacity
-                                style={[styles.savedActionIconBtn, styles.savedActionIconBtnFloating]}
-                                onPress={() => setShowAddressPicker(true)}
-                                activeOpacity={0.85}
-                                accessibilityLabel="Change saved address"
-                            >
-                                <Ionicons name="pencil" size={16} color="#6366f1" />
-                            </TouchableOpacity>
-                            <View style={[styles.locationIcon, styles.locationIconActive]}>
-                                <Ionicons name="home" size={20} color="#fff" />
-                            </View>
-                            <View style={[styles.locationInfo, styles.savedLocationInfo]}>
-                                <View style={styles.savedTitleRow}>
-                                    <Text style={styles.locationStreet} numberOfLines={1}>
-                                        {selectedSavedAddress.label || 'Saved address'}
-                                    </Text>
-                                    {selectedSavedAddress.isDefault ? (
-                                        <View style={styles.defaultBadge}>
-                                            <Text style={styles.defaultBadgeText}>Default</Text>
-                                        </View>
-                                    ) : null}
-                                </View>
-                                {selectedSavedAddress.street ? (
-                                    <Text style={styles.locationCity} numberOfLines={1}>
-                                        {selectedSavedAddress.street}
-                                    </Text>
-                                ) : null}
-                                <Text style={styles.locationSub} numberOfLines={1}>
-                                    {[
-                                        selectedSavedAddress.city,
-                                        selectedSavedAddress.state,
-                                        selectedSavedAddress.postalCode,
-                                        selectedSavedAddress.country,
-                                    ]
-                                        .filter(Boolean)
-                                        .join(', ') || 'No address details'}
-                                </Text>
-                                {selectedSavedAddress.latitude != null &&
-                                selectedSavedAddress.longitude != null ? (
-                                    <Text style={styles.locationCoords}>
-                                        {Number(selectedSavedAddress.latitude).toFixed(5)},
-                                        {' '}
-                                        {Number(selectedSavedAddress.longitude).toFixed(5)}
-                                    </Text>
-                                ) : null}
-                            </View>
-                        </>
-                    ) : (
-                        <TouchableOpacity
-                            style={styles.savedEmptyCardPressable}
-                            onPress={() => setShowAddressPicker(true)}
-                            activeOpacity={0.85}
-                        >
-                            <View style={styles.locationIcon}>
-                                <Ionicons name="home-outline" size={22} color="#888" />
-                            </View>
-                            <View style={styles.locationInfo}>
-                                <Text style={styles.locationTitle}>Set tool location</Text>
-                                <Text style={styles.locationSub}>
-                                    Choose one of your saved addresses
-                                </Text>
-                            </View>
-                            <View style={styles.locationChevron}>
-                                <Ionicons name="chevron-forward" size={18} color="#555" />
-                            </View>
-                        </TouchableOpacity>
-                    )}
-                </View>
+                    <View style={styles.actionLeft}>
+                        <View style={styles.actionIconWrap}>
+                            <Ionicons name="home-outline" size={18} color="#6366f1" />
+                        </View>
+                        <View style={styles.actionCopy}>
+                            <Text style={styles.actionTitle}>Choose saved address</Text>
+                            <Text style={styles.actionSub}>Select one of your saved addresses</Text>
+                        </View>
+                    </View>
+                    <Ionicons name="chevron-forward" size={18} color="#666" />
+                </TouchableOpacity>
             ) : (
                 <View style={styles.emptySavedWrap}>
                     <Text style={styles.emptySavedTitle}>No saved addresses yet</Text>
@@ -267,6 +232,40 @@ export default function ToolLocationSelector({
                     </TouchableOpacity>
                 </View>
             )}
+
+            <View style={[styles.selectedCard, selectedSource && styles.selectedCardActive]}>
+                <View style={[styles.locationIcon, selectedSource && styles.locationIconActive]}>
+                    <Ionicons
+                        name={selectedSource === 'savedAddress' ? 'home' : selectedSource === 'map' ? 'location' : 'location-outline'}
+                        size={20}
+                        color={selectedSource ? '#fff' : '#888'}
+                    />
+                </View>
+
+                <View style={styles.locationInfo}>
+                    <View style={styles.selectedHeaderRow}>
+                        <Text style={styles.selectedHeaderText}>Selected location</Text>
+                    </View>
+
+                    <Text style={styles.locationStreet} numberOfLines={1}>
+                        {selectedLocationTitle}
+                    </Text>
+
+                    {selectedLocationSub ? (
+                        <Text style={styles.locationCity} numberOfLines={1}>
+                            {selectedLocationSub}
+                        </Text>
+                    ) : null}
+
+                    {selectedLocationCoords ? (
+                        <Text style={styles.locationCoords}>{selectedLocationCoords}</Text>
+                    ) : null}
+                </View>
+
+                <View style={styles.locationChevron}>
+                    <Ionicons name="checkmark-circle" size={20} color={selectedSource ? '#6366f1' : '#555'} />
+                </View>
+            </View>
 
             <Modal visible={showAddressPicker} animationType="slide" transparent>
                 <View style={styles.pickerBackdrop}>
@@ -336,7 +335,7 @@ const styles = StyleSheet.create({
     sourceTabTextDisabled: {
         color: '#6a6a6a',
     },
-    locationCard: {
+    selectedCard: {
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: '#1a1a1a',
@@ -345,8 +344,20 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: '#2a2a2a',
     },
-    locationCardActive: {
+    selectedCardActive: {
         borderColor: '#6366f1',
+    },
+    selectedHeaderRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 4,
+    },
+    selectedHeaderText: {
+        fontSize: 12,
+        color: '#8a8a8a',
+        fontWeight: '700',
+        textTransform: 'uppercase',
+        letterSpacing: 0.4,
     },
     locationIcon: {
         width: 44,
@@ -362,16 +373,6 @@ const styles = StyleSheet.create({
     },
     locationInfo: {
         flex: 1,
-    },
-    locationTitle: {
-        fontSize: 15,
-        fontWeight: '600',
-        color: '#ffffff',
-    },
-    locationSub: {
-        fontSize: 13,
-        color: '#888',
-        marginTop: 2,
     },
     locationStreet: {
         fontSize: 15,
@@ -392,47 +393,46 @@ const styles = StyleSheet.create({
     locationChevron: {
         marginLeft: 8,
     },
-    savedTitleRow: {
+    actionCard: {
         flexDirection: 'row',
+        justifyContent: 'space-between',
         alignItems: 'center',
-        gap: 8,
-    },
-    savedLocationInfo: {
-        paddingRight: 46,
-    },
-    savedEmptyCardPressable: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        width: '100%',
-    },
-    defaultBadge: {
-        backgroundColor: '#2b2f44',
-        borderRadius: 20,
+        backgroundColor: '#161616',
+        borderRadius: 12,
         borderWidth: 1,
-        borderColor: '#6366f1',
-        paddingHorizontal: 8,
-        paddingVertical: 2,
+        borderColor: '#2a2a2a',
+        paddingHorizontal: 14,
+        minHeight: 62,
     },
-    defaultBadgeText: {
-        color: '#c7d2fe',
-        fontSize: 11,
-        fontWeight: '700',
+    actionLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        flex: 1,
+        marginRight: 8,
     },
-    savedActionIconBtn: {
+    actionIconWrap: {
         width: 34,
         height: 34,
         borderRadius: 17,
-        backgroundColor: '#232329',
         borderWidth: 1,
         borderColor: '#6366f1',
+        backgroundColor: '#232329',
         justifyContent: 'center',
         alignItems: 'center',
+        marginRight: 12,
     },
-    savedActionIconBtnFloating: {
-        position: 'absolute',
-        top: 10,
-        right: 10,
-        zIndex: 2,
+    actionCopy: {
+        flex: 1,
+    },
+    actionTitle: {
+        color: '#fff',
+        fontSize: 14,
+        fontWeight: '700',
+    },
+    actionSub: {
+        color: '#8a8a8a',
+        fontSize: 12,
+        marginTop: 2,
     },
     emptySavedWrap: {
         backgroundColor: '#1a1a1a',

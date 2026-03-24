@@ -14,15 +14,24 @@ import { fieldStyles } from './styles';
  * @param {function} onPress      — called when the field is tapped in edit mode
  * @param {node}     leftIcon     — optional element rendered to the left of the value
  */
-export default function DropdownField({ label, isEditing, value, placeholder = 'Select', onPress, leftIcon }) {
+export default function DropdownField({
+    label,
+    isEditing,
+    value,
+    placeholder = 'Select',
+    onPress,
+    leftIcon,
+    error,
+}) {
     const stateStyle = isEditing ? fieldStyles.editing : fieldStyles.readOnly;
+    const errorStyle = error ? fieldStyles.error : null;
     const textColor = value ? (isEditing ? '#fff' : '#888') : '#444';
 
     return (
         <View style={fieldStyles.group}>
             <LabelField>{label}</LabelField>
             <TouchableOpacity
-                style={[fieldStyles.base, stateStyle, s.row]}
+                style={[fieldStyles.base, stateStyle, errorStyle, s.row]}
                 onPress={() => isEditing && onPress?.()}
                 activeOpacity={isEditing ? 0.7 : 1}
             >
@@ -34,6 +43,9 @@ export default function DropdownField({ label, isEditing, value, placeholder = '
                     <Ionicons name="chevron-down" size={20} color="rgba(255,255,255,0.5)" />
                 )}
             </TouchableOpacity>
+            {typeof error === 'string' && error.length > 0 ? (
+                <Text style={fieldStyles.errorText}>{error}</Text>
+            ) : null}
         </View>
     );
 }

@@ -70,20 +70,47 @@ const EditToolScreen = ({ route, navigation }) => {
 
     const hydrateSavedAddresses = useCallback((addresses) => {
         const fallbackAddress = addresses.find((address) => address.isDefault) || addresses[0] || null;
+        const hasToolLocation =
+            Number.isFinite(Number(tool.latitude)) && Number.isFinite(Number(tool.longitude));
+        const matchingSavedAddress = hasToolLocation
+            ? addresses.find((address) => {
+                const savedLatitude = Number(address.latitude);
+                const savedLongitude = Number(address.longitude);
+                if (!Number.isFinite(savedLatitude) || !Number.isFinite(savedLongitude)) {
+                    return false;
+                }
+
+                return (
+                    Math.abs(savedLatitude - Number(tool.latitude)) < 0.00001 &&
+                    Math.abs(savedLongitude - Number(tool.longitude)) < 0.00001
+                );
+            }) || null
+            : null;
+
         setSavedAddresses(addresses);
         setSelectedSavedAddressId((currentId) => {
-            if (hasInitializedSavedLocationRef.current && currentId === null) {
+            if (!hasInitializedSavedLocationRef.current) {
+                return matchingSavedAddress?.id || null;
+            }
+
+            if (currentId === null) {
                 return null;
             }
-            if (currentId && addresses.some((address) => address.id === currentId)) {
+
+            if (addresses.some((address) => address.id === currentId)) {
                 return currentId;
             }
+
             return fallbackAddress?.id || null;
         });
         setLocationSource((currentSource) => {
             if (!hasInitializedSavedLocationRef.current) {
                 hasInitializedSavedLocationRef.current = true;
-                return fallbackAddress ? 'savedAddress' : 'map';
+                if (matchingSavedAddress) {
+                    return 'savedAddress';
+                }
+
+                return hasToolLocation ? 'map' : fallbackAddress ? 'savedAddress' : 'map';
             }
             if (!fallbackAddress && currentSource === 'savedAddress') {
                 return 'map';

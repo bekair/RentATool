@@ -21,6 +21,7 @@ import { Ionicons } from '@expo/vector-icons';
 import LabelField from '../components/form/LabelField';
 import { InputField, CategoryField } from '../components/form';
 import ToolLocationSelector from '../components/location/ToolLocationSelector';
+import AppButton from '../components/ui/AppButton';
 
 const AddToolScreen = ({ navigation }) => {
     const insets = useSafeAreaInsets();
@@ -41,6 +42,7 @@ const AddToolScreen = ({ navigation }) => {
     const [savedAddresses, setSavedAddresses] = useState([]);
     const [savedAddressesLoading, setSavedAddressesLoading] = useState(false);
     const [selectedSavedAddressId, setSelectedSavedAddressId] = useState(null);
+    const [hasAttemptedPublish, setHasAttemptedPublish] = useState(false);
     const hasInitializedSavedLocationRef = useRef(false);
 
     // Calendar blocks state
@@ -55,6 +57,51 @@ const AddToolScreen = ({ navigation }) => {
         () => savedAddresses.find((address) => address.id === selectedSavedAddressId) || null,
         [savedAddresses, selectedSavedAddressId],
     );
+    const parsedPrice = Number(price);
+    const isBasicInfoReady =
+        Boolean(name.trim()) &&
+        Boolean(selectedCategory?.id) &&
+        Boolean(description.trim()) &&
+        Boolean(price.trim()) &&
+        Number.isFinite(parsedPrice) &&
+        parsedPrice > 0;
+    const isMapLocationReady =
+        latitude != null &&
+        longitude != null &&
+        Boolean(locationAddress?.country);
+    const savedLatitude = Number(selectedSavedAddress?.latitude);
+    const savedLongitude = Number(selectedSavedAddress?.longitude);
+    const isSavedAddressReady =
+        Boolean(selectedSavedAddress) &&
+        Boolean(selectedSavedAddress?.country) &&
+        Number.isFinite(savedLatitude) &&
+        Number.isFinite(savedLongitude);
+    const isLocationReady =
+        locationSource === 'savedAddress' ? isSavedAddressReady : isMapLocationReady;
+    const canPublishListing = isBasicInfoReady && isLocationReady && !loading;
+    const showErrors = hasAttemptedPublish;
+    const nameError = !name.trim() ? 'Tool name is required.' : null;
+    const categoryError = !selectedCategory?.id ? 'Category is required.' : null;
+    const descriptionError = !description.trim() ? 'Description is required.' : null;
+    const priceError = !price.trim()
+        ? 'Daily price is required.'
+        : !Number.isFinite(parsedPrice) || parsedPrice <= 0
+          ? 'Enter a valid price greater than 0.'
+          : null;
+    const locationError =
+        locationSource === 'savedAddress'
+            ? !selectedSavedAddress
+                ? 'Select a saved address.'
+                : !selectedSavedAddress?.country
+                  ? 'Saved address must include country.'
+                  : !Number.isFinite(savedLatitude) || !Number.isFinite(savedLongitude)
+                    ? 'Saved address must include valid coordinates.'
+                    : null
+            : latitude == null || longitude == null
+              ? 'Pin location on map.'
+              : !locationAddress?.country
+                ? 'Map location must include country.'
+                : null;
 
     const hydrateSavedAddresses = useCallback((addresses) => {
         const fallbackAddress = addresses.find((address) => address.isDefault) || addresses[0] || null;
@@ -239,8 +286,14 @@ const AddToolScreen = ({ navigation }) => {
     };
 
     const handleSubmit = async () => {
+        setHasAttemptedPublish(true);
+
         if (!name || !selectedCategory || !description || !price) {
             Alert.alert('Required Info', 'Please fill in the tool name, category, description and daily price.');
+            return;
+        }
+        if (!Number.isFinite(parsedPrice) || parsedPrice <= 0) {
+            Alert.alert('Invalid Price', 'Please enter a valid daily price greater than 0.');
             return;
         }
 
@@ -313,7 +366,7 @@ const AddToolScreen = ({ navigation }) => {
                 name,
                 categoryId: selectedCategory.id,
                 description,
-                pricePerDay: parseFloat(price),
+                pricePerDay: parsedPrice,
                 replacementValue: replacementValue ? parseFloat(replacementValue) : undefined,
                 condition: condition || undefined,
                 latitude: resolvedLocation.latitude,
@@ -364,20 +417,22 @@ const AddToolScreen = ({ navigation }) => {
                     <View style={styles.form}>
                         <View style={styles.section}>
                             <InputField
-                                label="Tool name"
+                                label="Tool name *"
                                 isEditing={true}
                                 value={name}
                                 onChangeText={setName}
                                 placeholder="e.g. Bosch Hammer Drill"
+                                error={showErrors ? nameError : null}
                             />
                             <CategoryField
-                                label="Category"
+                                label="Category *"
                                 isEditing={true}
                                 value={selectedCategory}
                                 onSelect={setSelectedCategory}
+                                error={showErrors ? categoryError : null}
                             />
                             <InputField
-                                label="Description"
+                                label="Description *"
                                 isEditing={true}
                                 value={description}
                                 onChangeText={setDescription}
@@ -385,17 +440,19 @@ const AddToolScreen = ({ navigation }) => {
                                 multiline
                                 numberOfLines={4}
                                 style={{ height: 100 }}
+                                error={showErrors ? descriptionError : null}
                             />
                             <InputField
-                                label="Price per day (€)"
+                                label="Price per day (EUR) *"
                                 isEditing={true}
                                 value={price}
                                 onChangeText={setPrice}
                                 placeholder="15.00"
                                 keyboardType="decimal-pad"
+                                error={showErrors ? priceError : null}
                             />
                             <InputField
-                                label="Replacement value (€)"
+                                label="Replacement value (EUR)"
                                 isEditing={true}
                                 value={replacementValue}
                                 onChangeText={setReplacementValue}
@@ -413,7 +470,7 @@ const AddToolScreen = ({ navigation }) => {
 
                         <View style={styles.section}>
                             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                                <LabelField>Availability (Optional)</LabelField>
+                                <LabelField>Availability</LabelField>
                             </View>
                             <Text style={[styles.locationSub, { marginBottom: 10 }]}>Select a start and end date to block out a range of days (up to 3 weeks in advance).</Text>
                             <Calendar
@@ -437,7 +494,7 @@ const AddToolScreen = ({ navigation }) => {
                         </View>
 
                         <View style={styles.section}>
-                            <LabelField>Location</LabelField>
+                            <LabelField>Location *</LabelField>
                             <ToolLocationSelector
                                 locationSource={locationSource}
                                 onChangeLocationSource={(nextSource) => {
@@ -457,23 +514,23 @@ const AddToolScreen = ({ navigation }) => {
                                 }}
                                 onManageAddresses={() => navigation.navigate('Addresses')}
                             />
+                            {showErrors && locationError ? (
+                                <Text style={styles.locationErrorText}>{locationError}</Text>
+                            ) : null}
                         </View>
                     </View>
                 </ScrollView>
             </KeyboardAvoidingView>
 
             <View style={styles.footer}>
-                <TouchableOpacity
-                    style={[styles.submitButton, loading && styles.disabledButton]}
+                <AppButton
+                    title="Publish Listing"
                     onPress={handleSubmit}
-                    disabled={loading}
-                >
-                    {loading ? (
-                        <ActivityIndicator color="#fff" />
-                    ) : (
-                        <Text style={styles.submitButtonText}>Publish Listing</Text>
-                    )}
-                </TouchableOpacity>
+                    loading={loading}
+                    disabled={!canPublishListing}
+                    style={[styles.submitButton, !canPublishListing && styles.disabledButton]}
+                    textStyle={styles.submitButtonText}
+                />
             </View>
 
             {/* ── Map Modal ───────────────── */}
@@ -677,6 +734,12 @@ const styles = StyleSheet.create({
     locationChevron: {
         marginLeft: 8,
     },
+    locationErrorText: {
+        color: '#ef4444',
+        fontSize: 12,
+        marginTop: -2,
+        fontWeight: '500',
+    },
     footer: {
         position: 'absolute',
         bottom: 0,
@@ -689,6 +752,7 @@ const styles = StyleSheet.create({
         paddingBottom: Platform.OS === 'ios' ? 40 : 24,
     },
     submitButton: {
+        marginTop: 0,
         backgroundColor: '#6366f1',
         borderRadius: 12,
         padding: 18,
@@ -873,3 +937,4 @@ const styles = StyleSheet.create({
 });
 
 export default AddToolScreen;
+
