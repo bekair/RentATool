@@ -1,29 +1,31 @@
 model Booking {
-  id                    String          @id @default(uuid())
-  tool                  Tool            @relation(fields: [toolId], references: [id])
+  id                    String                @id @default(uuid())
+  tool                  Tool                  @relation(fields: [toolId], references: [id])
   toolId                String
-  toolVersion           ToolVersion     @relation(fields: [toolVersionId], references: [id])
+  toolVersion           ToolVersion           @relation(fields: [toolVersionId], references: [id])
   toolVersionId         String
-  renter                User            @relation("RenterBookings", fields: [renterId], references: [id])
+  renter                User                  @relation("RenterBookings", fields: [renterId], references: [id])
   renterId              String
-  owner                 User            @relation("OwnerBookings", fields: [ownerId], references: [id])
+  owner                 User                  @relation("OwnerBookings", fields: [ownerId], references: [id])
   ownerId               String
   startDate             DateTime
   endDate               DateTime
+  usePurposeNote        String                @default("")
+  preferredPickupWindow PreferredPickupWindow @default(FLEXIBLE)
   totalPrice            Float
-  currency              String          @default("eur")
-  status                BookingStatus   @default(PENDING)
+  currency              String                @default("eur")
+  status                BookingStatus         @default(PENDING)
   paymentAmountCents    Int?
-  stripePaymentIntentId String?         @unique
+  stripePaymentIntentId String?               @unique
   stripePaymentStatus   String?
   paidAt                DateTime?
-  stripeTransferId      String?         @unique
+  stripeTransferId      String?               @unique
   payoutReleasedAt      DateTime?
-  stripeRefundId        String?         @unique
+  stripeRefundId        String?               @unique
   refundedAt            DateTime?
   payment               BookingPayment?
-  createdAt             DateTime        @default(now())
-  updatedAt             DateTime        @updatedAt
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
 
   @@map("bookings")
 }

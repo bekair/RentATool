@@ -22,6 +22,7 @@ import BookingsScreen from '../screens/BookingsScreen';
 import ToolCalendarScreen from '../screens/ToolCalendarScreen';
 import EditToolScreen from '../screens/EditToolScreen';
 import BookingDatesScreen from '../screens/BookingDatesScreen';
+import BookingRequestScreen from '../screens/BookingRequestScreen';
 import BrowseToolsScreen from '../screens/BrowseToolsScreen';
 import MyToolsScreen from '../screens/MyToolsScreen';
 import LegalScreen from '../screens/LegalScreen';
@@ -209,6 +210,14 @@ function AppStack() {
             <Stack.Screen
                 name="BookingDates"
                 component={BookingDatesScreen}
+                options={{
+                    presentation: 'modal',
+                    animation: 'slide_from_bottom'
+                }}
+            />
+            <Stack.Screen
+                name="BookingRequest"
+                component={BookingRequestScreen}
                 options={{
                     presentation: 'modal',
                     animation: 'slide_from_bottom'

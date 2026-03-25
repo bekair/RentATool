@@ -343,7 +343,9 @@ export class PaymentsService {
       }
 
       if (this.isMissingStripePaymentMethodError(error)) {
-        throw new BadRequestException('Selected payment method no longer exists.');
+        throw new BadRequestException(
+          'Selected payment method no longer exists.',
+        );
       }
 
       throw error;
@@ -505,12 +507,14 @@ export class PaymentsService {
       throw new BadRequestException('Only the renter can pay this booking.');
     }
 
-    if (
-      booking.status === 'REJECTED' ||
-      booking.status === 'CANCELLED' ||
-      booking.status === 'COMPLETED'
-    ) {
-      throw new BadRequestException('This booking is not payable.');
+    if (booking.status !== 'APPROVED') {
+      throw new BadRequestException(
+        'This booking can be paid only after owner approval.',
+      );
+    }
+
+    if (booking.paidAt || booking.stripePaymentStatus === 'succeeded') {
+      throw new BadRequestException('This booking is already paid.');
     }
 
     if (booking.stripeTransferId) {

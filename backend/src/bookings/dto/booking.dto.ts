@@ -1,4 +1,11 @@
-import { IsString, IsNotEmpty, IsDateString, IsNumber } from 'class-validator';
+import {
+  IsDateString,
+  IsEnum,
+  IsNotEmpty,
+  IsString,
+  Length,
+} from 'class-validator';
+import { PreferredPickupWindow } from '@prisma/client';
 
 export class CreateBookingDto {
   @IsString()
@@ -13,8 +20,13 @@ export class CreateBookingDto {
   @IsNotEmpty()
   endDate: string;
 
-  @IsNumber()
-  totalPrice: number;
+  @IsString()
+  @IsNotEmpty()
+  @Length(20, 500)
+  usePurposeNote: string;
+
+  @IsEnum(PreferredPickupWindow)
+  preferredPickupWindow: PreferredPickupWindow;
 }
 
 export class UpdateBookingStatusDto {
