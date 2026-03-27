@@ -191,14 +191,15 @@ const EditToolScreen = ({ route, navigation }) => {
                 setSelectionStart(dateString);
             } else {
                 // Tapped after start date -> fill the range
-                let current = new Date(selectionStart);
-                const endObj = new Date(dateString);
                 const newBlocks = new Set(manualBlockedDates);
+                let cursor = selectionStart;
 
-                while (current <= endObj) {
-                    const dStr = current.toISOString().split('T')[0];
-                    newBlocks.add(dStr);
-                    current.setDate(current.getDate() + 1);
+                while (cursor <= dateString) {
+                    newBlocks.add(cursor);
+                    // Increment date using UTC-safe arithmetic
+                    const d = new Date(cursor + 'T00:00:00Z');
+                    d.setUTCDate(d.getUTCDate() + 1);
+                    cursor = d.toISOString().split('T')[0];
                 }
 
                 setManualBlockedDates(newBlocks);
@@ -213,15 +214,15 @@ const EditToolScreen = ({ route, navigation }) => {
         // Render blocked dates as periods
         manualBlockedDates.forEach(date => {
             const dStr = date;
-            const d = new Date(dStr);
-            const prev = new Date(d); prev.setDate(prev.getDate() - 1);
-            const next = new Date(d); next.setDate(next.getDate() + 1);
+            const d = new Date(dStr + 'T00:00:00Z');
+            const prev = new Date(d); prev.setUTCDate(prev.getUTCDate() - 1);
+            const next = new Date(d); next.setUTCDate(next.getUTCDate() + 1);
 
             const prevStr = prev.toISOString().split('T')[0];
             const nextStr = next.toISOString().split('T')[0];
 
             marks[dStr] = {
-                color: '#333',
+                color: '#4a4a5a',
                 textColor: '#fff',
                 startingDay: !manualBlockedDates.has(prevStr),
                 endingDay: !manualBlockedDates.has(nextStr),
