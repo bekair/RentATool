@@ -60,3 +60,11 @@ enum PreferredPickupWindow {
   EVENING
   FLEXIBLE
 }
+
+enum ToolCondition {
+  NEW
+  LIKE_NEW
+  GOOD
+  FAIR
+  POOR
+}

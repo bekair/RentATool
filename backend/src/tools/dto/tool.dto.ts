@@ -6,7 +6,9 @@ import {
   IsArray,
   IsBoolean,
   IsUUID,
+  IsEnum,
 } from 'class-validator';
+import { ToolCondition } from '@prisma/client';
 
 export class CreateToolDto {
   @IsString()
@@ -28,9 +30,8 @@ export class CreateToolDto {
   @IsNumber()
   replacementValue?: number;
 
-  @IsOptional()
-  @IsString()
-  condition?: string;
+  @IsEnum(ToolCondition)
+  condition: ToolCondition;
 
   @IsOptional()
   @IsNumber()
@@ -100,8 +101,8 @@ export class UpdateToolDto {
   replacementValue?: number;
 
   @IsOptional()
-  @IsString()
-  condition?: string;
+  @IsEnum(ToolCondition)
+  condition?: ToolCondition;
 
   @IsOptional()
   @IsNumber()

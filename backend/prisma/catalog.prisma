@@ -45,7 +45,7 @@ model ToolVersion {
   category         Category     @relation(fields: [categoryId], references: [id])
   pricePerDay      Float
   replacementValue Float?
-  condition        String?
+  condition        ToolCondition
   currency         String       @default("eur")
   latitude         Float?
   longitude        Float?
