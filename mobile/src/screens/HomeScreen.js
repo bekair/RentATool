@@ -65,6 +65,13 @@ export default function HomeScreen({ navigation }) {
         </TouchableOpacity>
     );
 
+    const profilePhoneCode = user?.profile?.phoneCode?.trim() || '';
+    const profilePhoneNumber = user?.profile?.phoneNumber?.trim() || '';
+    const profilePhone = [profilePhoneCode, profilePhoneNumber].filter(Boolean).join(' ');
+    const hasProfilePhone = Boolean(profilePhone);
+    const firstName = user?.profile?.firstName?.trim() || '';
+    const profileDisplayName = user?.profile?.displayName?.trim() || firstName || 'User';
+
     return (
         <SafeAreaView style={styles.container}>
             {/* Minimalist Top Nav Header */}
@@ -81,7 +88,7 @@ export default function HomeScreen({ navigation }) {
                     <View style={styles.avatarContainer}>
                         <View style={styles.avatar}>
                             <Text style={styles.avatarText}>
-                                {user?.profile?.displayName?.charAt(0).toUpperCase() || 'U'}
+                                {profileDisplayName.charAt(0).toUpperCase()}
                             </Text>
                         </View>
 
@@ -97,21 +104,18 @@ export default function HomeScreen({ navigation }) {
                             </View>
                         )}
                     </View>
-                    <Text style={styles.name}>{user?.profile?.displayName || 'User'}</Text>
-
-                    <View style={styles.ratingContainer}>
-                        <Ionicons name="star" size={14} color="#3b82f6" />
-                        <Ionicons name="star" size={14} color="#3b82f6" />
-                        <Ionicons name="star" size={14} color="#3b82f6" />
-                        <Ionicons name="star" size={14} color="#3b82f6" />
-                        <Ionicons name="star" size={14} color="#3b82f6" />
-                        <Text style={styles.ratingText}> ({stats.rating.toFixed(1)})</Text>
-                    </View>
+                    <Text style={styles.name}>{profileDisplayName}</Text>
 
                     <View style={styles.contactInfo}>
                         <View style={styles.contactRow}>
                             <Ionicons name="call-outline" size={16} color="#888" />
-                            <Text style={styles.contactText}>+1 (555) 012-3456</Text>
+                            {hasProfilePhone ? (
+                                <Text style={styles.contactText}>{profilePhone}</Text>
+                            ) : (
+                                <TouchableOpacity onPress={() => navigation.navigate('ContactDetails')}>
+                                    <Text style={styles.contactActionText}>Add phone number</Text>
+                                </TouchableOpacity>
+                            )}
                         </View>
                         <View style={styles.contactRow}>
                             <Ionicons name="mail-outline" size={16} color="#888" />
@@ -232,17 +236,6 @@ const styles = StyleSheet.create({
         color: '#fff',
         marginBottom: 6,
     },
-    ratingContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 16,
-    },
-    ratingText: {
-        fontSize: 14,
-        color: '#888',
-        marginLeft: 6,
-        fontWeight: '500',
-    },
     contactInfo: {
         alignItems: 'flex-start',
         marginBottom: 10,
@@ -257,6 +250,12 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: '#888',
         marginLeft: 8,
+    },
+    contactActionText: {
+        fontSize: 14,
+        color: '#818cf8',
+        marginLeft: 8,
+        fontWeight: '600',
     },
     statsContainer: {
         flexDirection: 'row',
