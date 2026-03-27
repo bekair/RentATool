@@ -3,6 +3,7 @@ export { default as DropdownField } from './DropdownField';
 export { default as PhoneField } from './PhoneField';
 export { default as CountryField } from './CountryField';
 export { default as CategoryField } from './CategoryField';
+export { default as ToolConditionField } from './ToolConditionField';
 export { default as DateField } from './DateField';
 export { default as CountryPickerModal } from './CountryPickerModal';
 export { FIELD_HEIGHT } from './styles';

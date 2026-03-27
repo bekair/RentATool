@@ -18,10 +18,10 @@ import { useFocusEffect } from '@react-navigation/native';
 import api from '../api/client';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
-import { CategoryField, DropdownField } from '../components/form';
+import { CategoryField, ToolConditionField } from '../components/form';
 import ToolLocationSelector from '../components/location/ToolLocationSelector';
 import AppMapView from '../components/ui/AppMapView';
-import { TOOL_CONDITION_OPTIONS, getToolConditionLabel, isValidToolCondition } from '../constants/toolConditions';
+import { isValidToolCondition } from '../constants/toolConditions';
 
 const EditToolScreen = ({ route, navigation }) => {
     const { tool } = route.params;
@@ -43,7 +43,6 @@ const EditToolScreen = ({ route, navigation }) => {
     const [savedAddresses, setSavedAddresses] = useState([]);
     const [savedAddressesLoading, setSavedAddressesLoading] = useState(false);
     const [selectedSavedAddressId, setSelectedSavedAddressId] = useState(null);
-    const [showConditionModal, setShowConditionModal] = useState(false);
     const hasInitializedSavedLocationRef = useRef(false);
 
     // Calendar blocks state
@@ -482,12 +481,11 @@ const EditToolScreen = ({ route, navigation }) => {
                         </View>
 
                         <View style={styles.section}>
-                            <DropdownField
+                            <ToolConditionField
                                 label="Condition *"
                                 isEditing={true}
-                                value={getToolConditionLabel(condition)}
-                                placeholder="Select condition"
-                                onPress={() => setShowConditionModal(true)}
+                                value={condition}
+                                onSelect={setCondition}
                             />
                         </View>
 
@@ -557,53 +555,6 @@ const EditToolScreen = ({ route, navigation }) => {
             </View>
 
             {/* ── Map Modal ───────────────── */}
-            <Modal
-                visible={showConditionModal}
-                transparent
-                animationType="fade"
-                onRequestClose={() => setShowConditionModal(false)}
-            >
-                <View style={styles.conditionModalBackdrop}>
-                    <View style={styles.conditionModalCard}>
-                        <Text style={styles.conditionModalTitle}>Select condition</Text>
-                        {TOOL_CONDITION_OPTIONS.map((option) => {
-                            const isSelected = condition === option.value;
-                            return (
-                                <TouchableOpacity
-                                    key={option.value}
-                                    style={[
-                                        styles.conditionOptionButton,
-                                        isSelected && styles.conditionOptionButtonSelected,
-                                    ]}
-                                    onPress={() => {
-                                        setCondition(option.value);
-                                        setShowConditionModal(false);
-                                    }}
-                                >
-                                    <Text
-                                        style={[
-                                            styles.conditionOptionText,
-                                            isSelected && styles.conditionOptionTextSelected,
-                                        ]}
-                                    >
-                                        {option.label}
-                                    </Text>
-                                    {isSelected ? (
-                                        <Ionicons name="checkmark" size={18} color="#818cf8" />
-                                    ) : null}
-                                </TouchableOpacity>
-                            );
-                        })}
-                        <TouchableOpacity
-                            style={styles.conditionModalCancelButton}
-                            onPress={() => setShowConditionModal(false)}
-                        >
-                            <Text style={styles.conditionModalCancelText}>Cancel</Text>
-                        </TouchableOpacity>
-                    </View>
-                </View>
-            </Modal>
-
             <Modal
                 visible={showMapModal}
                 animationType="slide"
@@ -996,63 +947,6 @@ const styles = StyleSheet.create({
     },
     categoryGridLabelActive: {
         color: '#818cf8',
-        fontWeight: '600',
-    },
-    conditionModalBackdrop: {
-        flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.6)',
-        justifyContent: 'center',
-        paddingHorizontal: 24,
-    },
-    conditionModalCard: {
-        backgroundColor: '#171717',
-        borderColor: '#2a2a2a',
-        borderWidth: 1,
-        borderRadius: 16,
-        padding: 16,
-        gap: 10,
-    },
-    conditionModalTitle: {
-        color: '#ffffff',
-        fontSize: 16,
-        fontWeight: '700',
-        marginBottom: 4,
-    },
-    conditionOptionButton: {
-        borderRadius: 10,
-        borderWidth: 1,
-        borderColor: '#2a2a2a',
-        paddingVertical: 12,
-        paddingHorizontal: 12,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        backgroundColor: '#111111',
-    },
-    conditionOptionButtonSelected: {
-        borderColor: '#6366f1',
-        backgroundColor: 'rgba(99,102,241,0.15)',
-    },
-    conditionOptionText: {
-        color: '#d4d4d4',
-        fontSize: 15,
-        fontWeight: '500',
-    },
-    conditionOptionTextSelected: {
-        color: '#ffffff',
-    },
-    conditionModalCancelButton: {
-        marginTop: 8,
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: '#3f3f46',
-        paddingVertical: 12,
-        alignItems: 'center',
-        backgroundColor: '#1f1f1f',
-    },
-    conditionModalCancelText: {
-        color: '#d4d4d4',
-        fontSize: 14,
         fontWeight: '600',
     },
 });
