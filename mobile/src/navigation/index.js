@@ -2,7 +2,7 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { ActivityIndicator, View, StyleSheet, TouchableOpacity, Platform } from 'react-native';
+import { ActivityIndicator, View, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AuthProvider, useAuth } from '../context/AuthContext';
@@ -58,34 +58,7 @@ function AuthStack() {
     );
 }
 
-const CustomTabBarButton = ({ children, onPress }) => (
-    <TouchableOpacity
-        style={{
-            top: -20,
-            justifyContent: 'center',
-            alignItems: 'center',
-            ...styles.shadow,
-        }}
-        onPress={onPress}
-    >
-        <View
-            style={{
-                width: 60,
-                height: 60,
-                borderRadius: 30,
-                backgroundColor: '#6366f1',
-                justifyContent: 'center',
-                alignItems: 'center',
-                borderWidth: 4,
-                borderColor: '#0a0a0a',
-            }}
-        >
-            <Ionicons name="add" color="#fff" size={32} />
-        </View>
-    </TouchableOpacity>
-);
-
-function TabNavigator({ navigation }) {
+function TabNavigator() {
     const insets = useSafeAreaInsets();
     const tabBarBottomOffset = Platform.OS === 'android'
         ? insets.bottom + 8
@@ -143,19 +116,6 @@ function TabNavigator({ navigation }) {
             <Tab.Screen name="Explore" component={BrowseToolsScreen} />
             <Tab.Screen name="MyTools" component={MyToolsScreen}
                 options={{ tabBarLabel: 'My Tools' }}
-            />
-            <Tab.Screen
-                name="AddToolAction"
-                component={View}
-                options={{
-                    tabBarButton: (props) => (
-                        <CustomTabBarButton
-                            {...props}
-                            onPress={() => navigation.navigate('AddTool')}
-                        />
-                    ),
-                    tabBarLabel: () => null,
-                }}
             />
             <Tab.Screen name="Bookings" component={BookingsScreen} />
             <Tab.Screen name="Map" component={MapScreen} />
@@ -259,15 +219,5 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         backgroundColor: '#0a0a0a',
-    },
-    shadow: {
-        shadowColor: '#6366f1',
-        shadowOffset: {
-            width: 0,
-            height: 10,
-        },
-        shadowOpacity: 0.25,
-        shadowRadius: 10,
-        elevation: 5,
     }
 });

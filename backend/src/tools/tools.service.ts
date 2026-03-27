@@ -118,6 +118,7 @@ export class ToolsService {
         owner: {
           select: {
             id: true,
+            createdAt: true,
             profile: { select: { displayName: true } },
             verificationTier: true,
           },
@@ -149,6 +150,7 @@ export class ToolsService {
         owner: {
           select: {
             id: true,
+            createdAt: true,
             profile: { select: { displayName: true } },
             verificationTier: true,
           },
@@ -223,8 +225,12 @@ export class ToolsService {
     if (hasVersionChanges) {
       const currentAddress = tool.address || {};
       nextCountry =
-        (await this.countriesService.normalizeCountryCode(versionData.country)) ||
-        (await this.countriesService.normalizeCountryCode(currentAddress.country));
+        (await this.countriesService.normalizeCountryCode(
+          versionData.country,
+        )) ||
+        (await this.countriesService.normalizeCountryCode(
+          currentAddress.country,
+        ));
 
       if (!nextCountry) {
         throw new BadRequestException(

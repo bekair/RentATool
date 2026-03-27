@@ -6,7 +6,6 @@ import {
     FlatList,
     TouchableOpacity,
     ActivityIndicator,
-    Image,
     RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -89,12 +88,6 @@ const BrowseToolsScreen = ({ navigation }) => {
         <SafeAreaView style={styles.container}>
             <View style={styles.header}>
                 <Text style={styles.title}>Explore Tools</Text>
-                <TouchableOpacity
-                    style={styles.addButton}
-                    onPress={() => navigation.navigate('AddTool')}
-                >
-                    <Text style={styles.addButtonText}>+</Text>
-                </TouchableOpacity>
             </View>
             {refreshing && (
                 <View style={styles.topLoader}>
@@ -161,29 +154,9 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(10, 10, 10, 0.8)',
     },
     title: {
-        fontSize: 32,
-        fontWeight: '800',
-        color: '#ffffff',
-        letterSpacing: -0.5,
-    },
-    addButton: {
-        width: 44,
-        height: 44,
-        borderRadius: 12,
-        backgroundColor: '#6366f1',
-        justifyContent: 'center',
-        alignItems: 'center',
-        elevation: 4,
-        shadowColor: '#6366f1',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-    },
-    addButtonText: {
-        color: '#ffffff',
         fontSize: 28,
         fontWeight: 'bold',
-        marginTop: -2,
+        color: '#ffffff',
     },
     listContainer: {
         padding: 15,

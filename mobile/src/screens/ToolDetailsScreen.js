@@ -15,6 +15,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import api from "../api/client";
 import { useAuth } from "../context/AuthContext";
+import { getToolConditionLabel } from "../constants/toolConditions";
 
 const { width } = Dimensions.get("window");
 
@@ -87,6 +88,34 @@ const ToolDetailsScreen = ({ route, navigation }) => {
     );
   }
 
+  const toolCondition = getToolConditionLabel(
+    tool.condition || tool.activeVersion?.condition,
+  );
+  const replacementValue =
+    typeof tool.replacementValue === "number"
+      ? `€${tool.replacementValue}`
+      : "N/A";
+  const address = tool.address || tool.activeVersion?.address || null;
+  const locationSummary =
+    [address?.city, address?.country].filter(Boolean).join(", ") ||
+    "Location shared after approval";
+  const locationLine1 = [address?.street, address?.addressLine2]
+    .filter(Boolean)
+    .join(", ");
+  const locationLine2 = [address?.postalCode, address?.state]
+    .filter(Boolean)
+    .join(" ");
+  const hasCoordinates =
+    Number.isFinite(Number(address?.latitude)) &&
+    Number.isFinite(Number(address?.longitude));
+  const joinedDate = tool.owner?.createdAt
+    ? new Date(tool.owner.createdAt)
+    : null;
+  const joinedLabel =
+    joinedDate && !Number.isNaN(joinedDate.getTime())
+      ? `Joined in ${joinedDate.getFullYear()}`
+      : "Member";
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
@@ -141,99 +170,81 @@ const ToolDetailsScreen = ({ route, navigation }) => {
             <TouchableOpacity>
               <Text style={styles.reviewsLink}>98 reviews</Text>
             </TouchableOpacity>
-            <Text style={styles.locationText}> · Brussels, Belgium</Text>
+            <Text style={styles.locationText}> · {locationSummary}</Text>
           </View>
 
-          <Divider />
-
-          <View style={styles.hostRow}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.hostTitle}>
-                Tool hosted by {tool.owner?.displayName}
-              </Text>
-              <Text style={styles.hostSub}>Joined in 2023</Text>
-            </View>
-            <View style={styles.avatar}>
-              <Text style={styles.avatarText}>
-                {tool.owner?.displayName?.[0] ?? "?"}
-              </Text>
-              <View style={styles.verifiedBadge}>
-                <Ionicons name="checkmark" size={9} color="#fff" />
+          <View style={styles.sectionCard}>
+            <View style={styles.hostRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.hostTitle}>
+                  Tool hosted by {tool.owner?.displayName}
+                </Text>
+                <Text style={styles.hostSub}>{joinedLabel}</Text>
+              </View>
+              <View style={styles.avatar}>
+                <Text style={styles.avatarText}>
+                  {tool.owner?.displayName?.[0] ?? "?"}
+                </Text>
+                <View style={styles.verifiedBadge}>
+                  <Ionicons name="checkmark" size={9} color="#fff" />
+                </View>
               </View>
             </View>
           </View>
 
-          <Divider />
+          <View style={styles.sectionCard}>
+            <Highlight
+              icon="shield-checkmark-outline"
+              title="Fully Insured"
+              sub="Covered against damage and theft for peace of mind."
+            />
+            <Highlight
+              icon="location-outline"
+              title="Great location"
+              sub="95% of recent renters gave the location a 5-star rating."
+            />
+            <Highlight
+              icon="time-outline"
+              title="Flexible pickup"
+              sub="Arrange pickup and return details directly with the owner."
+              isLast
+            />
+          </View>
 
-          <Highlight
-            icon="shield-checkmark-outline"
-            title="Fully Insured"
-            sub="Covered against damage and theft for peace of mind."
-          />
-          <Highlight
-            icon="location-outline"
-            title="Great location"
-            sub="95% of recent renters gave the location a 5-star rating."
-          />
-          <Highlight
-            icon="time-outline"
-            title="Flexible pickup"
-            sub="Arrange pickup and return details directly with the owner."
-          />
-
-          <Divider />
-
-          <View style={styles.section}>
+          <View style={[styles.section, styles.sectionCard]}>
             <Text style={styles.sectionTitle}>About this tool</Text>
             <Text style={styles.description}>{tool.description}</Text>
           </View>
 
-          <Divider />
-
-          <View style={styles.section}>
+          <View style={[styles.section, styles.sectionCard]}>
             <Text style={styles.sectionTitle}>Specifications</Text>
             <SpecRow label="Category" value={tool.category?.name} />
-            <SpecRow label="Condition" value={tool.condition || "Excellent"} />
-            <SpecRow
-              label="Replacement value"
-              value={`€${tool.replacementValue ?? "N/A"}`}
-            />
+            <SpecRow label="Condition" value={toolCondition} />
+            <SpecRow label="Replacement value" value={replacementValue} />
           </View>
 
-          <Divider />
-
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Availability</Text>
-            {isOwner ? (
-              <TouchableOpacity
-                style={styles.calendarPlaceholder}
-                onPress={openOwnerAvailability}
-              >
-                <Ionicons name="calendar-outline" size={28} color={C.accent} />
-                <View style={styles.calendarMeta}>
-                  <Text style={styles.calendarTitle}>
-                    Manage availability calendar
-                  </Text>
-                  <Text style={styles.calendarText}>
-                    Block or unblock dates for renters
-                  </Text>
-                </View>
-                <Ionicons name="chevron-forward" size={18} color={C.textSub} />
-              </TouchableOpacity>
-            ) : (
-              <View style={styles.calendarPlaceholder}>
-                <Ionicons name="calendar-outline" size={28} color={C.textSub} />
-                <View style={styles.calendarMeta}>
-                  <Text style={styles.calendarTitle}>
-                    Check dates in request step
-                  </Text>
-                  <Text style={styles.calendarText}>
-                    Select your availability and send your request on the next
-                    page
-                  </Text>
-                </View>
+          <View style={[styles.section, styles.sectionCard]}>
+            <Text style={styles.sectionTitle}>Location</Text>
+            <View style={styles.locationCard}>
+              <View style={styles.locationIcon}>
+                <Ionicons name="location-outline" size={20} color={C.accent} />
               </View>
-            )}
+              <View style={styles.locationInfo}>
+                <Text style={styles.locationPrimary}>{locationSummary}</Text>
+                {locationLine1 ? (
+                  <Text style={styles.locationSecondary}>{locationLine1}</Text>
+                ) : null}
+                {locationLine2 ? (
+                  <Text style={styles.locationSecondary}>{locationLine2}</Text>
+                ) : null}
+                {hasCoordinates ? (
+                  <Text style={styles.locationCoordinates}>
+                    {Number(address.latitude).toFixed(5)},{" "}
+                    {Number(address.longitude).toFixed(5)}
+                  </Text>
+                ) : null}
+              </View>
+            </View>
           </View>
         </View>
       </ScrollView>
@@ -270,10 +281,8 @@ const ToolDetailsScreen = ({ route, navigation }) => {
   );
 };
 
-const Divider = () => <View style={styles.divider} />;
-
-const Highlight = ({ icon, title, sub }) => (
-  <View style={styles.highlightRow}>
+const Highlight = ({ icon, title, sub, isLast = false }) => (
+  <View style={[styles.highlightRow, isLast && styles.highlightRowLast]}>
     <View style={styles.highlightIcon}>
       <Ionicons name={icon} size={22} color={C.violet} />
     </View>
@@ -361,7 +370,7 @@ const styles = StyleSheet.create({
     lineHeight: 32,
   },
 
-  ratingRow: { flexDirection: "row", alignItems: "center", marginBottom: 4 },
+  ratingRow: { flexDirection: "row", alignItems: "center", marginBottom: 8 },
   ratingScore: { fontSize: 14, fontWeight: "600", color: C.text },
   reviewsLink: {
     fontSize: 14,
@@ -371,7 +380,15 @@ const styles = StyleSheet.create({
   },
   locationText: { fontSize: 14, color: C.textSub },
 
-  divider: { height: 1, backgroundColor: C.border, marginVertical: 24 },
+  section: { marginBottom: 0 },
+  sectionCard: {
+    backgroundColor: C.surface,
+    borderWidth: 1,
+    borderColor: C.border,
+    borderRadius: 16,
+    padding: 16,
+    marginTop: 16,
+  },
 
   hostRow: {
     flexDirection: "row",
@@ -415,6 +432,9 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     marginBottom: 20,
   },
+  highlightRowLast: {
+    marginBottom: 0,
+  },
   highlightIcon: {
     width: 44,
     height: 44,
@@ -431,12 +451,11 @@ const styles = StyleSheet.create({
   },
   highlightSub: { fontSize: 13, color: C.textSub, lineHeight: 18 },
 
-  section: { marginBottom: 8 },
   sectionTitle: {
     fontSize: 20,
     fontWeight: "700",
     color: C.text,
-    marginBottom: 16,
+    marginBottom: 12,
   },
   description: { fontSize: 15, color: C.textSub, lineHeight: 22 },
 
@@ -444,32 +463,47 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: C.border,
   },
   specLabel: { fontSize: 15, color: C.textSub },
   specValue: { fontSize: 15, color: C.text, fontWeight: "500" },
 
-  calendarPlaceholder: {
-    minHeight: 76,
-    backgroundColor: C.surface,
-    borderRadius: 16,
+  locationCard: {
+    backgroundColor: "rgba(255,255,255,0.02)",
     borderWidth: 1,
     borderColor: C.border,
+    borderRadius: 12,
+    padding: 12,
     flexDirection: "row",
+    alignItems: "flex-start",
+  },
+  locationIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: C.accentSoft,
     alignItems: "center",
-    padding: 16,
+    justifyContent: "center",
+    marginRight: 12,
   },
-  calendarMeta: {
+  locationInfo: {
     flex: 1,
-    marginLeft: 12,
   },
-  calendarTitle: {
-    fontSize: 15,
+  locationPrimary: {
     color: C.text,
+    fontSize: 15,
+    fontWeight: "700",
+  },
+  locationSecondary: {
+    marginTop: 3,
+    color: C.textSub,
+    fontSize: 13,
+  },
+  locationCoordinates: {
+    marginTop: 6,
+    color: C.accent,
+    fontSize: 12,
     fontWeight: "600",
   },
-  calendarText: { fontSize: 13, color: C.textSub, marginTop: 2 },
 
   footer: {
     position: "absolute",
@@ -477,8 +511,6 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     backgroundColor: C.surface,
-    borderTopWidth: 1,
-    borderTopColor: C.border,
   },
   footerContent: {
     flexDirection: "row",

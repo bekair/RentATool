@@ -99,8 +99,12 @@ describe('CountriesService', () => {
         { code: 'NL', name: 'Netherlands' },
       ]);
 
-    await expect(service.normalizeCountryCode('Netherlands')).resolves.toBeNull();
+    await expect(
+      service.normalizeCountryCode('Netherlands'),
+    ).resolves.toBeNull();
     await service.refreshCache();
-    await expect(service.normalizeCountryCode('Netherlands')).resolves.toBe('NL');
+    await expect(service.normalizeCountryCode('Netherlands')).resolves.toBe(
+      'NL',
+    );
   });
 });
