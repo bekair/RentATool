@@ -1,11 +1,12 @@
-import React from 'react';
-import { NavigationContainer } from '@react-navigation/native';
+import React, { useMemo } from 'react';
+import { NavigationContainer, DefaultTheme as NavigationDefaultTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { ActivityIndicator, View, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AuthProvider, useAuth } from '../context/AuthContext';
+import { useTheme } from '../theme';
 import LoginScreen from '../screens/LoginScreen';
 import SignupScreen from '../screens/SignupScreen';
 import ForgotPasswordScreen from '../screens/ForgotPasswordScreen';
@@ -44,11 +45,13 @@ const linking = {
 };
 
 function AuthStack() {
+    const { theme } = useTheme();
+
     return (
         <Stack.Navigator
             screenOptions={{
                 headerShown: false,
-                contentStyle: { backgroundColor: '#0a0a0a' },
+                contentStyle: { backgroundColor: theme.colors.bg },
             }}
         >
             <Stack.Screen name="Login" component={LoginScreen} />
@@ -60,6 +63,7 @@ function AuthStack() {
 
 function TabNavigator() {
     const insets = useSafeAreaInsets();
+    const { theme } = useTheme();
     const tabBarBottomOffset = Platform.OS === 'android'
         ? insets.bottom + 8
         : 25;
@@ -86,7 +90,7 @@ function TabNavigator() {
                     return <Ionicons name={iconName} size={24} color={color} />;
                 },
                 tabBarStyle: {
-                    backgroundColor: 'rgba(26, 26, 26, 0.95)',
+                    backgroundColor: theme.colors.tabBarBackground,
                     borderTopColor: 'transparent',
                     position: 'absolute',
                     bottom: tabBarBottomOffset,
@@ -102,10 +106,10 @@ function TabNavigator() {
                     shadowOpacity: 0.3,
                     shadowRadius: 10,
                     borderWidth: 1,
-                    borderColor: 'rgba(255, 255, 255, 0.1)',
+                    borderColor: theme.colors.tabBarBorder,
                 },
-                tabBarActiveTintColor: '#6366f1',
-                tabBarInactiveTintColor: '#888',
+                tabBarActiveTintColor: theme.colors.accent,
+                tabBarInactiveTintColor: theme.colors.tabBarInactive,
                 tabBarLabelStyle: {
                     fontSize: 10,
                     fontWeight: '700',
@@ -125,11 +129,13 @@ function TabNavigator() {
 }
 
 function AppStack() {
+    const { theme } = useTheme();
+
     return (
         <Stack.Navigator
             screenOptions={{
                 headerShown: false,
-                contentStyle: { backgroundColor: '#0a0a0a' },
+                contentStyle: { backgroundColor: theme.colors.bg },
             }}
         >
             <Stack.Screen name="MainTabs" component={TabNavigator} />
@@ -189,11 +195,12 @@ function AppStack() {
 
 function RootNavigator() {
     const { isAuthenticated, isLoading } = useAuth();
+    const { theme } = useTheme();
 
     if (isLoading) {
         return (
-            <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#6366f1" />
+            <View style={[styles.loadingContainer, { backgroundColor: theme.colors.bg }]}>
+                <ActivityIndicator size="large" color={theme.colors.accent} />
             </View>
         );
     }
@@ -202,9 +209,24 @@ function RootNavigator() {
 }
 
 export default function Navigation() {
+    const { theme, resolvedTheme } = useTheme();
+    const navigationTheme = useMemo(() => ({
+        ...NavigationDefaultTheme,
+        dark: resolvedTheme === 'dark',
+        colors: {
+            ...NavigationDefaultTheme.colors,
+            primary: theme.colors.accent,
+            background: theme.colors.bg,
+            card: theme.colors.surface,
+            text: theme.colors.textPrimary,
+            border: theme.colors.border,
+            notification: theme.colors.accent,
+        },
+    }), [resolvedTheme, theme]);
+
     return (
         <SafeAreaProvider>
-            <NavigationContainer linking={linking}>
+            <NavigationContainer linking={linking} theme={navigationTheme}>
                 <AuthProvider>
                     <RootNavigator />
                 </AuthProvider>

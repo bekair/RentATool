@@ -22,6 +22,7 @@ This file defines the coding style and guidelines for the `rent_a_tool` monorepo
 - **Shared UI components:** Reuse or create shared components under `src/components/` for common UI controls (especially buttons and loading/disabled button states) instead of re-implementing button logic per screen.
 - **Validation:** Implement validation for required fields and business-specific checks anywhere data is saved. Provide real-time inline feedback through the common form components' `error` prop. Submit buttons must remain disabled, with visual feedback, until the form is valid.
 - **Loading feedback:** Every async action, including form submission, initial data fetching, and destructive operations such as delete, must show clear in-progress feedback. Match the UI pattern to the situation: use an `ActivityIndicator` for saves, a full-screen or inline spinner for screen loads, and disable controls to prevent duplicate submissions.
+- **Theming:** For any new or modified mobile UI, use shared theme tokens and hooks from `src/theme/` (for example `useTheme` and themed style helpers) instead of introducing new hardcoded color literals.
 
 ## Backend (NestJS / Prisma)
 - Follow the standard NestJS structure of controllers, services, DTOs, and modules.

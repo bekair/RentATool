@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
@@ -13,6 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { getAppSettings, updateAppSettings } from '../services/appSettingsService';
+import { useTheme } from '../theme';
 
 const PUSH_NOTIFICATION_ITEMS = [
     {
@@ -47,6 +48,7 @@ const THEME_ITEMS = [
 ];
 
 export default function SettingsScreen({ navigation }) {
+    const { themeMode, setThemeMode } = useTheme();
     const [loading, setLoading] = useState(true);
     const [savingKey, setSavingKey] = useState(null);
     const [isPushSectionExpanded, setIsPushSectionExpanded] = useState(true);
@@ -58,7 +60,7 @@ export default function SettingsScreen({ navigation }) {
         },
         emailUpdatesEnabled: true,
         biometricLockEnabled: false,
-        themeMode: 'dark',
+        themeMode: themeMode || 'dark',
     });
 
     const loadSettings = useCallback(async () => {
@@ -79,7 +81,32 @@ export default function SettingsScreen({ navigation }) {
         }, [loadSettings]),
     );
 
+    useEffect(() => {
+        setSettings((previous) => ({
+            ...previous,
+            themeMode,
+        }));
+    }, [themeMode]);
+
     const handleToggle = async (key, value) => {
+        if (key === 'themeMode') {
+            const previousThemeMode = settings.themeMode;
+            setSettings((previous) => ({ ...previous, themeMode: value }));
+            setSavingKey(key);
+            try {
+                await setThemeMode(value);
+            } catch (error) {
+                setSettings((previous) => ({
+                    ...previous,
+                    themeMode: previousThemeMode,
+                }));
+                Alert.alert('Settings', 'Could not save this setting. Please try again.');
+            } finally {
+                setSavingKey(null);
+            }
+            return;
+        }
+
         const previous = settings;
         const nextPushNotifications =
             key === 'pushNotificationsEnabled'
