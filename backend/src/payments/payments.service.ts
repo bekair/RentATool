@@ -956,14 +956,23 @@ export class PaymentsService {
       readinessBlockers.push('Start payout onboarding to lend tools.');
     }
 
+    const hasConnectedPayoutAccount = Boolean(payoutAccount?.providerAccountId);
+    const payoutOnboardingStatus =
+      payoutAccount?.onboardingStatus || PayoutOnboardingStatus.NOT_STARTED;
+    const chargesEnabled = Boolean(payoutAccount?.chargesEnabled);
+    const payoutsEnabled = Boolean(payoutAccount?.payoutsEnabled);
+    const isPayoutReady =
+      hasConnectedPayoutAccount &&
+      payoutOnboardingStatus === PayoutOnboardingStatus.COMPLETE;
+
     return {
       hasDefaultPaymentMethod: paymentMethodSummary.hasDefaultPaymentMethod,
       defaultPaymentMethod: paymentMethodSummary.defaultPaymentMethod,
-      hasConnectedPayoutAccount: Boolean(payoutAccount?.providerAccountId),
-      payoutOnboardingStatus:
-        payoutAccount?.onboardingStatus || PayoutOnboardingStatus.NOT_STARTED,
-      chargesEnabled: Boolean(payoutAccount?.chargesEnabled),
-      payoutsEnabled: Boolean(payoutAccount?.payoutsEnabled),
+      hasConnectedPayoutAccount,
+      payoutOnboardingStatus,
+      isPayoutReady,
+      chargesEnabled,
+      payoutsEnabled,
       readinessBlockers,
     };
   }

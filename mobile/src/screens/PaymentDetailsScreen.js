@@ -254,15 +254,13 @@ export default function PaymentDetailsScreen({ navigation }) {
 
     const hasMethod = savedCards.length > 0;
     const hasPayout = summary?.hasConnectedPayoutAccount;
-    const isPayoutReady = hasPayout && summary?.payoutOnboardingStatus === 'COMPLETE';
+    const isPayoutReady = Boolean(summary?.isPayoutReady);
     const payoutMeta = getStatusMeta(Boolean(isPayoutReady));
-
     const payoutButtonTitle = isPayoutReady
         ? 'Manage payout account'
         : hasPayout
             ? 'Continue setup'
             : 'Start setup';
-
     const payoutButtonAction = isPayoutReady ? runManagePayoutAccount : handlePayoutSetup;
 
     return (
