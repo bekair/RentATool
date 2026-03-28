@@ -7,3 +7,11 @@ export const VerificationTier = Object.freeze({
   TIER_2: 'TIER_2',
   TIER_3: 'TIER_3',
 });
+
+export const ToolCondition = Object.freeze({
+  NEW: 'NEW',
+  LIKE_NEW: 'LIKE_NEW',
+  GOOD: 'GOOD',
+  FAIR: 'FAIR',
+  POOR: 'POOR',
+});

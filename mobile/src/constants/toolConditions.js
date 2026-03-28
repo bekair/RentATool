@@ -1,10 +1,17 @@
-export const TOOL_CONDITION_OPTIONS = [
-    { value: 'NEW', label: 'New' },
-    { value: 'LIKE_NEW', label: 'Like new' },
-    { value: 'GOOD', label: 'Good' },
-    { value: 'FAIR', label: 'Fair' },
-    { value: 'POOR', label: 'Poor' },
-];
+import { ToolCondition } from '../generated/api-enums';
+
+const TOOL_CONDITION_LABELS_MAP = {
+    [ToolCondition.NEW]: 'New',
+    [ToolCondition.LIKE_NEW]: 'Like new',
+    [ToolCondition.GOOD]: 'Good',
+    [ToolCondition.FAIR]: 'Fair',
+    [ToolCondition.POOR]: 'Poor',
+};
+
+export const TOOL_CONDITION_OPTIONS = Object.values(ToolCondition).map((value) => ({
+    value,
+    label: TOOL_CONDITION_LABELS_MAP[value] || value,
+}));
 
 export const TOOL_CONDITION_LABELS = TOOL_CONDITION_OPTIONS.reduce((acc, option) => {
     acc[option.value] = option.label;

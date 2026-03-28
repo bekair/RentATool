@@ -38,10 +38,17 @@ for (const [schemaName, schema] of Object.entries(schemas)) {
       propertySchema.type === 'string' &&
       Array.isArray(propertySchema.enum)
     ) {
+      const isToolConditionEnum =
+        propertyName === 'condition' &&
+        ['NEW', 'LIKE_NEW', 'GOOD', 'FAIR', 'POOR'].every((value) =>
+          propertySchema.enum.includes(value),
+        );
       const name =
         propertyName === 'verificationTier'
           ? 'VerificationTier'
-          : toConstName(`${schemaName} ${propertyName}`);
+          : isToolConditionEnum
+            ? 'ToolCondition'
+            : toConstName(`${schemaName} ${propertyName}`);
       enumMap.set(name, propertySchema.enum);
     }
   }

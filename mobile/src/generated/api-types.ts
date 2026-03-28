@@ -562,8 +562,14 @@ export interface components {
         };
         UpdateProfileDto: Record<string, never>;
         CreateAddressDto: Record<string, never>;
-        CreateToolDto: Record<string, never>;
-        UpdateToolDto: Record<string, never>;
+        CreateToolDto: {
+            /** @enum {string} */
+            condition: "NEW" | "LIKE_NEW" | "GOOD" | "FAIR" | "POOR";
+        };
+        UpdateToolDto: {
+            /** @enum {string} */
+            condition?: "NEW" | "LIKE_NEW" | "GOOD" | "FAIR" | "POOR";
+        };
         CreateBookingDto: Record<string, never>;
         UpdateBookingStatusDto: Record<string, never>;
         SetDefaultPaymentMethodDto: Record<string, never>;

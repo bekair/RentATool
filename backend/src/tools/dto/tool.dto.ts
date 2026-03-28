@@ -8,6 +8,7 @@ import {
   IsUUID,
   IsEnum,
 } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { ToolCondition } from '@prisma/client';
 
 export class CreateToolDto {
@@ -30,6 +31,7 @@ export class CreateToolDto {
   @IsNumber()
   replacementValue?: number;
 
+  @ApiProperty({ enum: ToolCondition })
   @IsEnum(ToolCondition)
   condition: ToolCondition;
 
@@ -100,6 +102,7 @@ export class UpdateToolDto {
   @IsNumber()
   replacementValue?: number;
 
+  @ApiPropertyOptional({ enum: ToolCondition })
   @IsOptional()
   @IsEnum(ToolCondition)
   condition?: ToolCondition;

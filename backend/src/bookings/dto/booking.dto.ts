@@ -1,11 +1,12 @@
 import {
   IsDateString,
   IsEnum,
+  IsIn,
   IsNotEmpty,
   IsString,
   Length,
 } from 'class-validator';
-import { PreferredPickupWindow } from '@prisma/client';
+import { BookingStatus, PreferredPickupWindow } from '@prisma/client';
 
 export class CreateBookingDto {
   @IsString()
@@ -30,7 +31,12 @@ export class CreateBookingDto {
 }
 
 export class UpdateBookingStatusDto {
-  @IsString()
-  @IsNotEmpty()
-  status: 'APPROVED' | 'REJECTED' | 'CANCELLED' | 'COMPLETED';
+  @IsEnum(BookingStatus)
+  @IsIn([
+    BookingStatus.APPROVED,
+    BookingStatus.REJECTED,
+    BookingStatus.CANCELLED,
+    BookingStatus.COMPLETED,
+  ])
+  status: BookingStatus;
 }

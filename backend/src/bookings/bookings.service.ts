@@ -179,7 +179,10 @@ export class BookingsService {
 
     // Only owner can approve/reject
     // Both can cancel
-    if (updateDto.status === 'APPROVED' || updateDto.status === 'REJECTED') {
+    if (
+      updateDto.status === BookingStatus.APPROVED ||
+      updateDto.status === BookingStatus.REJECTED
+    ) {
       if (booking.ownerId !== userId) {
         throw new BadRequestException(
           'Only the tool owner can approve or reject bookings',
@@ -187,13 +190,16 @@ export class BookingsService {
       }
     }
 
-    if (updateDto.status === 'CANCELLED') {
+    if (updateDto.status === BookingStatus.CANCELLED) {
       if (booking.renterId !== userId && booking.ownerId !== userId) {
         throw new BadRequestException('Not authorized to cancel this booking');
       }
     }
 
-    if (updateDto.status === 'COMPLETED' && booking.ownerId !== userId) {
+    if (
+      updateDto.status === BookingStatus.COMPLETED &&
+      booking.ownerId !== userId
+    ) {
       throw new BadRequestException(
         'Only the tool owner can mark bookings as completed',
       );
@@ -201,10 +207,10 @@ export class BookingsService {
 
     const updated = await this.prisma.booking.update({
       where: { id },
-      data: { status: BookingStatus[updateDto.status] },
+      data: { status: updateDto.status as BookingStatus },
     });
 
-    if (updateDto.status === 'COMPLETED') {
+    if (updateDto.status === BookingStatus.COMPLETED) {
       try {
         await this.paymentsService.releaseBookingPayoutForCompletedBooking(id);
       } catch (error) {
@@ -217,7 +223,10 @@ export class BookingsService {
       return updated;
     }
 
-    if (updateDto.status === 'REJECTED' || updateDto.status === 'CANCELLED') {
+    if (
+      updateDto.status === BookingStatus.REJECTED ||
+      updateDto.status === BookingStatus.CANCELLED
+    ) {
       await this.paymentsService.refundBookingPaymentIfNeeded(id);
     }
 

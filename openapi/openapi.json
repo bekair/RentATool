@@ -881,11 +881,36 @@
       },
       "CreateToolDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "condition": {
+            "type": "string",
+            "enum": [
+              "NEW",
+              "LIKE_NEW",
+              "GOOD",
+              "FAIR",
+              "POOR"
+            ]
+          }
+        },
+        "required": [
+          "condition"
+        ]
       },
       "UpdateToolDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "condition": {
+            "type": "string",
+            "enum": [
+              "NEW",
+              "LIKE_NEW",
+              "GOOD",
+              "FAIR",
+              "POOR"
+            ]
+          }
+        }
       },
       "CreateBookingDto": {
         "type": "object",
