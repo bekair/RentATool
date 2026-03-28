@@ -11,6 +11,7 @@ This file defines the coding style and guidelines for the `rent_a_tool` monorepo
 - Use [create-apk](C:\Users\bcbso\Repos\Own Repos\rent_a_tool\.codex\skills\create-apk\SKILL.md) when the user asks to build or prepare an Android APK or Expo EAS preview build.
 - Use [new-db-migration](C:\Users\bcbso\Repos\Own Repos\rent_a_tool\.codex\skills\new-db-migration\SKILL.md) when the user asks for Prisma schema changes, database migrations, backend formatting/build validation, or the development deployment workflow.
 - Use [commit-message](C:\Users\bcbso\Repos\Own Repos\rent_a_tool\.codex\skills\commit-message\SKILL.md) when the user asks for a clear commit message for current changes or asks to improve commit wording.
+- Use [generate-api-artifacts](C:\Users\bcbso\Repos\Own Repos\rent_a_tool\.codex\skills\generate-api-artifacts\SKILL.md) when backend API contracts change and OpenAPI/types/enums must be regenerated for mobile.
 
 ## Mobile (React Native / Expo)
 - **API calls:** Never use `axios` directly in UI components. Always use the pre-configured wrappers in `src/api/client.js` or dedicated service files such as `locationService.js`.

@@ -9,6 +9,13 @@
     "scripts": {
         "backend:dev": "npm run start:dev --workspace=backend",
         "mobile:start": "npm run start --workspace=mobile",
+        "openapi:generate": "npm run openapi:generate --workspace=backend",
+        "api:types": "node ./node_modules/openapi-typescript/bin/cli.js ./openapi/openapi.json --output ./mobile/src/generated/api-types.ts",
+        "api:enums": "node ./scripts/generate-mobile-enums.mjs",
+        "api:generate": "npm run openapi:generate && npm run api:types && npm run api:enums",
         "install:all": "npm install"
+    },
+    "devDependencies": {
+        "openapi-typescript": "^7.13.0"
     }
 }

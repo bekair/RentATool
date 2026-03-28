@@ -13,6 +13,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import { isVerifiedTier } from '../constants/verificationTier';
 
 const BrowseToolsScreen = ({ navigation }) => {
     const { user } = useAuth();
@@ -66,7 +67,7 @@ const BrowseToolsScreen = ({ navigation }) => {
                 </Text>
                 <View style={styles.cardFooter}>
                     <Text style={styles.ownerText}>By {item.owner.displayName}</Text>
-                    {item.owner.verificationTier !== 'UNVERIFIED' && (
+                    {isVerifiedTier(item.owner.verificationTier) && (
                         <View style={styles.verifiedBadge}>
                             <Text style={styles.verifiedText}>Verified</Text>
                         </View>

@@ -12,6 +12,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/client';
+import { isVerifiedTier } from '../constants/verificationTier';
 
 export default function HomeScreen({ navigation }) {
     const { user, logout } = useAuth();
@@ -98,7 +99,7 @@ export default function HomeScreen({ navigation }) {
                         </TouchableOpacity>
 
                         {/* Verification Badge */}
-                        {user?.verificationTier !== 'UNVERIFIED' && (
+                        {isVerifiedTier(user?.verificationTier) && (
                             <View style={styles.verifiedBadgeContainer}>
                                 <Ionicons name="checkmark-circle" size={24} color="#10b981" />
                             </View>
