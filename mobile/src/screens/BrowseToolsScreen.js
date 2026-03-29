@@ -8,7 +8,7 @@ import {
     ActivityIndicator,
     RefreshControl,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import ThemedSafeAreaView from '../components/layout/ThemedSafeAreaView';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../api/client';
@@ -86,7 +86,7 @@ const BrowseToolsScreen = ({ navigation }) => {
     }
 
     return (
-        <SafeAreaView style={styles.container}>
+        <ThemedSafeAreaView>
             <View style={styles.header}>
                 <Text style={styles.title}>Explore Tools</Text>
             </View>
@@ -126,15 +126,11 @@ const BrowseToolsScreen = ({ navigation }) => {
                     </View>
                 }
             />
-        </SafeAreaView>
+        </ThemedSafeAreaView>
     );
 };
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#0a0a0a',
-    },
     centerContainer: {
         flex: 1,
         justifyContent: 'center',

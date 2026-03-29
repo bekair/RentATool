@@ -11,7 +11,8 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import ThemedSafeAreaView from '../components/layout/ThemedSafeAreaView';
+
 import { Ionicons } from "@expo/vector-icons";
 import api from "../api/client";
 import { useAuth } from "../context/AuthContext";
@@ -250,7 +251,7 @@ const ToolDetailsScreen = ({ route, navigation }) => {
       </ScrollView>
 
       <View style={styles.footer}>
-        <SafeAreaView edges={["bottom"]}>
+        <ThemedSafeAreaView edges={["bottom"]}>
           <View style={styles.footerContent}>
             <View style={{ flex: 1, paddingRight: 12 }}>
               <Text style={styles.footerPrice}>
@@ -275,7 +276,7 @@ const ToolDetailsScreen = ({ route, navigation }) => {
               </TouchableOpacity>
             )}
           </View>
-        </SafeAreaView>
+        </ThemedSafeAreaView>
       </View>
     </View>
   );
@@ -301,7 +302,9 @@ const SpecRow = ({ label, value }) => (
 );
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: C.bg },
+  container: {
+    flex: 1, backgroundColor: C.bg
+  },
   loadingContainer: {
     flex: 1,
     justifyContent: "center",

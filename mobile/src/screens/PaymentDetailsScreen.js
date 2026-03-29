@@ -9,10 +9,10 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { CustomerSheet } from '@stripe/stripe-react-native';
+import ThemedSafeAreaView from '../components/layout/ThemedSafeAreaView';
 import * as WebBrowser from 'expo-web-browser';
 import { paymentsApi } from '../api/client';
 import CardBrandMark from '../components/payments/CardBrandMark';
@@ -264,7 +264,7 @@ export default function PaymentDetailsScreen({ navigation }) {
     const payoutButtonAction = isPayoutReady ? runManagePayoutAccount : handlePayoutSetup;
 
     return (
-        <SafeAreaView style={styles.container}>
+        <ThemedSafeAreaView>
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
                     <Ionicons name="arrow-back" size={24} color="#fff" />
@@ -401,15 +401,11 @@ export default function PaymentDetailsScreen({ navigation }) {
                     </View>
                 </ScrollView>
             )}
-        </SafeAreaView>
+        </ThemedSafeAreaView>
     );
 }
 
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#0a0a0a',
-    },
+const styles = StyleSheet.create({
     header: {
         flexDirection: 'row',
         alignItems: 'center',

@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { RESOLVED_THEMES } from '../theme';
 
 const APP_SETTINGS_STORAGE_KEY = 'app_settings_v1';
 
@@ -12,7 +13,7 @@ export const defaultAppSettings = {
     pushNotifications: { ...defaultPushNotifications },
     emailUpdatesEnabled: true,
     biometricLockEnabled: false,
-    themeMode: 'dark',
+    themeMode: RESOLVED_THEMES.DARK,
 };
 
 function resolveLegacyNotificationsEnabled(value) {
@@ -61,8 +62,8 @@ function mergeWithDefaults(value) {
             typeof value.pushNotificationsEnabled === 'boolean'
                 ? value.pushNotificationsEnabled
                 : typeof legacyNotificationsEnabled === 'boolean'
-                  ? legacyNotificationsEnabled
-                  : inferredPushEnabledFromCategories,
+                    ? legacyNotificationsEnabled
+                    : inferredPushEnabledFromCategories,
         pushNotifications: normalizedPushNotifications,
         emailUpdatesEnabled:
             typeof value.emailUpdatesEnabled === 'boolean'
@@ -74,8 +75,8 @@ function mergeWithDefaults(value) {
                 : defaultAppSettings.biometricLockEnabled,
         themeMode:
             value.themeMode === 'light' ||
-            value.themeMode === 'dark' ||
-            value.themeMode === 'system'
+                value.themeMode === 'dark' ||
+                value.themeMode === 'system'
                 ? value.themeMode
                 : defaultAppSettings.themeMode,
     };

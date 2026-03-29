@@ -9,7 +9,6 @@ import {
     Alert,
     RefreshControl,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../api/client';
@@ -97,7 +96,7 @@ const MyToolsScreen = ({ navigation }) => {
     }
 
     return (
-        <SafeAreaView style={styles.container}>
+        <ThemedSafeAreaView>
             <View style={styles.header}>
                 <Text style={styles.title}>My Tools</Text>
                 <TouchableOpacity
@@ -141,15 +140,11 @@ const MyToolsScreen = ({ navigation }) => {
                     </View>
                 }
             />
-        </SafeAreaView>
+        </ThemedSafeAreaView>
     );
 };
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#0a0a0a',
-    },
     centerContainer: {
         flex: 1,
         justifyContent: 'center',

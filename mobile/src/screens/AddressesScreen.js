@@ -14,7 +14,8 @@ import {
     LogBox,
 } from 'react-native';
 import validator from 'validator';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import ThemedSafeAreaView from '../components/layout/ThemedSafeAreaView';
 import { Ionicons } from '@expo/vector-icons';
 import MapView from 'react-native-maps';
 import * as Location from 'expo-location';
@@ -466,7 +467,7 @@ export default function AddressesScreen({ navigation }) {
     };
 
     return (
-        <SafeAreaView style={styles.container}>
+        <ThemedSafeAreaView>
             {/* Header */}
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
@@ -805,13 +806,12 @@ export default function AddressesScreen({ navigation }) {
                     )}
                 </View>
             </Modal>
-        </SafeAreaView>
+        </ThemedSafeAreaView>
     );
 }
 
 // ─── Stylesheet ───────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#0d0d0d' },
     header: {
         flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
         paddingHorizontal: 20, paddingVertical: 15,
@@ -875,7 +875,6 @@ const cardStyles = StyleSheet.create({
 });
 
 const modal = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#0d0d0d' },
     header: {
         flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
         paddingHorizontal: 20, paddingVertical: 14,

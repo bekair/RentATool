@@ -11,7 +11,8 @@ import {
     Platform,
     KeyboardAvoidingView,
 } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import ThemedSafeAreaView from '../components/layout/ThemedSafeAreaView';
 import { Calendar } from 'react-native-calendars';
 import { useFocusEffect } from '@react-navigation/native';
 import api from '../api/client';
@@ -87,23 +88,23 @@ const AddToolScreen = ({ navigation }) => {
     const priceError = !price.trim()
         ? 'Daily price is required.'
         : !Number.isFinite(parsedPrice) || parsedPrice <= 0
-          ? 'Enter a valid price greater than 0.'
-          : null;
+            ? 'Enter a valid price greater than 0.'
+            : null;
     const conditionError = !condition ? 'Condition is required.' : null;
     const locationError =
         locationSource === 'savedAddress'
             ? !selectedSavedAddress
                 ? 'Select a saved address.'
                 : !selectedSavedAddress?.country
-                  ? 'Saved address must include country.'
-                  : !Number.isFinite(savedLatitude) || !Number.isFinite(savedLongitude)
-                    ? 'Saved address must include valid coordinates.'
-                    : null
+                    ? 'Saved address must include country.'
+                    : !Number.isFinite(savedLatitude) || !Number.isFinite(savedLongitude)
+                        ? 'Saved address must include valid coordinates.'
+                        : null
             : latitude == null || longitude == null
-              ? 'Pin location on map.'
-              : !locationAddress?.country
-                ? 'Map location must include country.'
-                : null;
+                ? 'Pin location on map.'
+                : !locationAddress?.country
+                    ? 'Map location must include country.'
+                    : null;
 
     const hydrateSavedAddresses = useCallback((addresses) => {
         const fallbackAddress = addresses.find((address) => address.isDefault) || addresses[0] || null;
@@ -407,7 +408,7 @@ const AddToolScreen = ({ navigation }) => {
     };
 
     return (
-        <SafeAreaView style={styles.container}>
+        <ThemedSafeAreaView>
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
                     <Ionicons name="close" size={24} color="#ffffff" />
@@ -603,15 +604,11 @@ const AddToolScreen = ({ navigation }) => {
                     </View>
                 </View>
             </Modal>
-        </SafeAreaView >
+        </ThemedSafeAreaView>
     );
 };
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#0a0a0a',
-    },
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',

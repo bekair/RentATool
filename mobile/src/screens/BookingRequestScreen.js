@@ -8,8 +8,8 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { Calendar } from "react-native-calendars";
+import ThemedSafeAreaView from '../components/layout/ThemedSafeAreaView';
 import { Ionicons } from "@expo/vector-icons";
 import api, { toolsApi } from "../api/client";
 import AppButton from "../components/ui/AppButton";
@@ -243,7 +243,7 @@ export default function BookingRequestScreen({ route, navigation }) {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <ThemedSafeAreaView>
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.headerBtn}
@@ -376,15 +376,11 @@ export default function BookingRequestScreen({ route, navigation }) {
           style={styles.submitButton}
         />
       </ScrollView>
-    </SafeAreaView>
+    </ThemedSafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: C.bg,
-  },
   loadingContainer: {
     flex: 1,
     justifyContent: "center",

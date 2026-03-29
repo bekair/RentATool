@@ -12,7 +12,8 @@ import {
     Platform,
     KeyboardAvoidingView,
 } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import ThemedSafeAreaView from '../components/layout/ThemedSafeAreaView';
 import { Calendar } from 'react-native-calendars';
 import { useFocusEffect } from '@react-navigation/native';
 import api from '../api/client';
@@ -411,7 +412,7 @@ const EditToolScreen = ({ route, navigation }) => {
     };
 
     return (
-        <SafeAreaView style={styles.container}>
+        <ThemedSafeAreaView>
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
                     <Ionicons name="close" size={24} color="#ffffff" />
@@ -618,15 +619,11 @@ const EditToolScreen = ({ route, navigation }) => {
                     </View>
                 </View>
             </Modal>
-        </SafeAreaView >
+        </ThemedSafeAreaView>
     );
 };
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#0a0a0a',
-    },
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',

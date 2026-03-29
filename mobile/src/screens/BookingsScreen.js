@@ -9,9 +9,9 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useStripe } from "@stripe/stripe-react-native";
+import ThemedSafeAreaView from '../components/layout/ThemedSafeAreaView';
 import api, { paymentsApi } from "../api/client";
 import AppButton from "../components/ui/AppButton";
 
@@ -158,7 +158,7 @@ const BookingsScreen = ({ navigation }) => {
           Alert.alert(
             "Payment",
             presentResult.error.message ||
-              "Unable to complete payment method step.",
+            "Unable to complete payment method step.",
           );
         }
         return;
@@ -319,7 +319,7 @@ const BookingsScreen = ({ navigation }) => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <ThemedSafeAreaView>
       <View style={styles.headerContainer}>
         <Text style={styles.screenTitle}>Bookings</Text>
         <View style={styles.segmentedControl}>
@@ -413,15 +413,11 @@ const BookingsScreen = ({ navigation }) => {
           />
         </>
       )}
-    </SafeAreaView>
+    </ThemedSafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: C.bg,
-  },
   loaderContainer: {
     flex: 1,
     justifyContent: "center",

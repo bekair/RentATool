@@ -14,8 +14,10 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { InputField } from '../components/form';
+import { useTheme } from '../theme';
 
 export default function SignupScreen({ navigation }) {
+    const { theme } = useTheme();
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');
     const [email, setEmail] = useState('');
@@ -59,7 +61,7 @@ export default function SignupScreen({ navigation }) {
 
     return (
         <KeyboardAvoidingView
-            style={styles.container}
+            style={[styles.container, { backgroundColor: theme.colors.bg }]}
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
             <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -147,7 +149,6 @@ export default function SignupScreen({ navigation }) {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#0a0a0a',
     },
     scrollContent: {
         paddingHorizontal: 24,

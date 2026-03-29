@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import ThemedSafeAreaView from '../components/layout/ThemedSafeAreaView';
 import { Ionicons } from '@expo/vector-icons';
 import * as WebBrowser from 'expo-web-browser';
 
@@ -40,7 +40,7 @@ export default function LegalScreen({ navigation }) {
     );
 
     return (
-        <SafeAreaView style={styles.container}>
+        <ThemedSafeAreaView>
             {/* Header */}
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
@@ -55,15 +55,11 @@ export default function LegalScreen({ navigation }) {
                     {legalItems.map(renderLegalItem)}
                 </View>
             </ScrollView>
-        </SafeAreaView>
+        </ThemedSafeAreaView>
     );
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#0a0a0a',
-    },
     header: {
         flexDirection: 'row',
         alignItems: 'center',

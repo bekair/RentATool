@@ -9,7 +9,8 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import ThemedSafeAreaView from '../components/layout/ThemedSafeAreaView';
+
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { getAppSettings, updateAppSettings } from '../services/appSettingsService';
@@ -48,7 +49,16 @@ const THEME_ITEMS = [
 ];
 
 export default function SettingsScreen({ navigation }) {
-    const { themeMode, setThemeMode } = useTheme();
+    const { themeMode, setThemeMode, theme } = useTheme();
+    const styles = useMemo(() => createStyles(theme), [theme]);
+    const switchTrackColor = useMemo(
+        () => ({ false: theme.colors.borderStrong, true: theme.colors.accent }),
+        [theme],
+    );
+    const getSwitchThumbColor = useCallback(
+        (enabled) => (enabled ? theme.colors.accentContrast : theme.colors.surfaceAlt),
+        [theme],
+    );
     const [loading, setLoading] = useState(true);
     const [savingKey, setSavingKey] = useState(null);
     const [isPushSectionExpanded, setIsPushSectionExpanded] = useState(true);
@@ -187,8 +197,8 @@ export default function SettingsScreen({ navigation }) {
                         value={value}
                         onValueChange={(next) => handlePushToggle(item.id, next)}
                         disabled={!isPushEnabled || isSaving}
-                        trackColor={{ false: '#3f3f46', true: '#6366f1' }}
-                        thumbColor={value ? '#ffffff' : '#d4d4d8'}
+                        trackColor={switchTrackColor}
+                        thumbColor={getSwitchThumbColor(value)}
                     />
                 </View>
             </View>
@@ -210,8 +220,8 @@ export default function SettingsScreen({ navigation }) {
                         value={value}
                         onValueChange={(next) => handleToggle(item.id, next)}
                         disabled={isSaving}
-                        trackColor={{ false: '#3f3f46', true: '#6366f1' }}
-                        thumbColor={value ? '#ffffff' : '#d4d4d8'}
+                        trackColor={switchTrackColor}
+                        thumbColor={getSwitchThumbColor(value)}
                     />
                 </View>
             </View>
@@ -219,10 +229,10 @@ export default function SettingsScreen({ navigation }) {
     };
 
     return (
-        <SafeAreaView style={styles.container}>
+        <ThemedSafeAreaView>
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                    <Ionicons name="arrow-back" size={24} color="#fff" />
+                    <Ionicons name="arrow-back" size={24} color={theme.colors.textPrimary} />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Settings</Text>
                 <View style={styles.headerRightSpacer} />
@@ -230,7 +240,7 @@ export default function SettingsScreen({ navigation }) {
 
             {loading ? (
                 <View style={styles.loadingWrap}>
-                    <ActivityIndicator size="large" color="#6366f1" />
+                    <ActivityIndicator size="large" color={theme.colors.accent} />
                 </View>
             ) : (
                 <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -250,7 +260,7 @@ export default function SettingsScreen({ navigation }) {
                                     <Ionicons
                                         name={isPushSectionExpanded ? 'chevron-up' : 'chevron-down'}
                                         size={18}
-                                        color="#9ca3af"
+                                        color={theme.colors.textMuted}
                                     />
                                 </TouchableOpacity>
                                 <View style={styles.pushHeaderRight}>
@@ -258,10 +268,8 @@ export default function SettingsScreen({ navigation }) {
                                         value={Boolean(settings.pushNotificationsEnabled)}
                                         onValueChange={(next) => handleToggle('pushNotificationsEnabled', next)}
                                         disabled={savingKey === 'pushNotificationsEnabled'}
-                                        trackColor={{ false: '#3f3f46', true: '#6366f1' }}
-                                        thumbColor={
-                                            settings.pushNotificationsEnabled ? '#ffffff' : '#d4d4d8'
-                                        }
+                                        trackColor={switchTrackColor}
+                                        thumbColor={getSwitchThumbColor(Boolean(settings.pushNotificationsEnabled))}
                                     />
                                 </View>
                             </View>
@@ -276,18 +284,18 @@ export default function SettingsScreen({ navigation }) {
                             <View style={styles.themeBlock}>
                                 <Text style={styles.rowTitle}>Theme</Text>
                                 <View style={styles.themeGrid}>
-                                    {THEME_ITEMS.map((theme) => {
-                                        const isSelected = settings.themeMode === theme.id;
-                                        const isLight = theme.id === 'light';
-                                        const isSystem = theme.id === 'system';
+                                    {THEME_ITEMS.map((themeItem) => {
+                                        const isSelected = settings.themeMode === themeItem.id;
+                                        const isLight = themeItem.id === 'light';
+                                        const isSystem = themeItem.id === 'system';
                                         return (
                                             <TouchableOpacity
-                                                key={theme.id}
+                                                key={themeItem.id}
                                                 style={[
                                                     styles.themeCard,
                                                     isSelected && styles.themeCardSelected,
                                                 ]}
-                                                onPress={() => handleToggle('themeMode', theme.id)}
+                                                onPress={() => handleToggle('themeMode', themeItem.id)}
                                                 activeOpacity={0.85}
                                                 disabled={savingKey === 'themeMode'}
                                             >
@@ -296,8 +304,8 @@ export default function SettingsScreen({ navigation }) {
                                                         styles.themePreviewFrame,
                                                         isSystem && styles.themePreviewFrameSystem,
                                                         isSystem &&
-                                                            isSelected &&
-                                                            styles.themePreviewFrameSystemSelected,
+                                                        isSelected &&
+                                                        styles.themePreviewFrameSystemSelected,
                                                     ]}
                                                 >
                                                     <View
@@ -306,10 +314,10 @@ export default function SettingsScreen({ navigation }) {
                                                             isSystem
                                                                 ? styles.themePreviewSystem
                                                                 : isLight
-                                                                  ? styles.themePreviewLight
-                                                                  : styles.themePreviewDark,
+                                                                    ? styles.themePreviewLight
+                                                                    : styles.themePreviewDark,
                                                             isSystem &&
-                                                                styles.themePreviewSystemNoPadding,
+                                                            styles.themePreviewSystemNoPadding,
                                                         ]}
                                                     >
                                                         {isSystem ? (
@@ -426,7 +434,7 @@ export default function SettingsScreen({ navigation }) {
                                                         isSelected && styles.themeCardLabelSelected,
                                                     ]}
                                                 >
-                                                    {theme.label}
+                                                    {themeItem.label}
                                                 </Text>
                                             </TouchableOpacity>
                                         );
@@ -438,15 +446,11 @@ export default function SettingsScreen({ navigation }) {
 
                 </ScrollView>
             )}
-        </SafeAreaView>
+        </ThemedSafeAreaView>
     );
 }
 
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#0a0a0a',
-    },
+const createStyles = (theme) => StyleSheet.create({
     header: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -462,7 +466,7 @@ const styles = StyleSheet.create({
     headerTitle: {
         fontSize: 18,
         fontWeight: '700',
-        color: '#fff',
+        color: theme.colors.textPrimary,
     },
     headerRightSpacer: {
         width: 34,
@@ -481,15 +485,15 @@ const styles = StyleSheet.create({
         gap: 10,
     },
     sectionTitle: {
-        color: '#fff',
+        color: theme.colors.textPrimary,
         fontSize: 16,
         fontWeight: '700',
     },
     card: {
-        backgroundColor: '#161616',
+        backgroundColor: theme.colors.surface,
         borderRadius: 16,
         borderWidth: 1,
-        borderColor: '#262626',
+        borderColor: theme.colors.border,
         paddingVertical: 4,
     },
     pushGroupHeader: {
@@ -534,14 +538,14 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         gap: 10,
-        backgroundColor: '#111118',
+        backgroundColor: theme.colors.surfaceAlt,
         borderWidth: 1,
-        borderColor: '#2f2f3a',
+        borderColor: theme.colors.borderStrong,
         borderRadius: 12,
         marginLeft: 26,
         marginRight: 4,
         borderLeftWidth: 2,
-        borderLeftColor: '#4f46e5',
+        borderLeftColor: theme.colors.accent,
     },
     subRowDisabled: {
         opacity: 0.55,
@@ -550,12 +554,12 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     rowTitle: {
-        color: '#f3f4f6',
+        color: theme.colors.textPrimary,
         fontSize: 15,
         fontWeight: '600',
     },
     rowSubtitle: {
-        color: '#9ca3af',
+        color: theme.colors.textMuted,
         fontSize: 12,
         marginTop: 3,
     },
@@ -579,27 +583,27 @@ const styles = StyleSheet.create({
         flex: 1,
         alignItems: 'center',
         borderWidth: 1,
-        borderColor: '#30303a',
+        borderColor: theme.colors.borderStrong,
         borderRadius: 12,
-        backgroundColor: '#101014',
+        backgroundColor: theme.colors.surfaceAlt,
         paddingVertical: 8,
     },
     themeCardSelected: {
-        borderColor: '#6366f1',
-        shadowColor: '#6366f1',
+        borderColor: theme.colors.accent,
+        shadowColor: theme.colors.accent,
         shadowOpacity: 0.35,
         shadowRadius: 6,
         shadowOffset: { width: 0, height: 0 },
         elevation: 2,
     },
     themeCardLabel: {
-        color: '#9ca3af',
+        color: theme.colors.textMuted,
         fontSize: 13,
         fontWeight: '600',
         marginTop: 7,
     },
     themeCardLabelSelected: {
-        color: '#fff',
+        color: theme.colors.textPrimary,
     },
     themePreview: {
         width: 46,
@@ -618,13 +622,13 @@ const styles = StyleSheet.create({
         borderRadius: 8,
         overflow: 'hidden',
         borderWidth: 1,
-        borderColor: '#32323a',
+        borderColor: theme.colors.borderStrong,
     },
     themePreviewFrameSystem: {
-        borderColor: '#4b4b57',
+        borderColor: theme.colors.textMuted,
     },
     themePreviewFrameSystemSelected: {
-        borderColor: '#e5e7eb',
+        borderColor: theme.colors.border,
     },
     themePreviewLight: {
         backgroundColor: '#f3f4f6',

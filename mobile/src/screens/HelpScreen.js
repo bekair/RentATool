@@ -7,7 +7,7 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import ThemedSafeAreaView from '../components/layout/ThemedSafeAreaView';
 import { Ionicons } from '@expo/vector-icons';
 import AppButton from '../components/ui/AppButton';
 
@@ -73,7 +73,7 @@ export default function HelpScreen({ navigation }) {
     };
 
     return (
-        <SafeAreaView style={styles.container}>
+        <ThemedSafeAreaView>
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
                     <Ionicons name="arrow-back" size={24} color="#fff" />
@@ -151,15 +151,11 @@ export default function HelpScreen({ navigation }) {
                     <AppButton title="Contact support" iconName="chatbubble-ellipses-outline" onPress={handleContactSupport} />
                 </View>
             </ScrollView>
-        </SafeAreaView>
+        </ThemedSafeAreaView>
     );
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#0a0a0a',
-    },
     header: {
         flexDirection: 'row',
         alignItems: 'center',

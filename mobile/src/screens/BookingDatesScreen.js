@@ -3,8 +3,10 @@ import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, Dev
 import { Calendar } from 'react-native-calendars';
 import { toolsApi } from '../api/client';
 import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
+import { useTheme } from '../theme';
 
 export default function BookingDatesScreen({ route, navigation }) {
+    const { theme } = useTheme();
     const { toolItem, initialStartDate = null, initialEndDate = null } = route.params;
     const [isLoading, setIsLoading] = useState(true);
 
@@ -150,7 +152,7 @@ export default function BookingDatesScreen({ route, navigation }) {
 
     if (isLoading) {
         return (
-            <View style={styles.loadingContainer}>
+            <View style={[styles.loadingContainer, { backgroundColor: theme.colors.bg }]}>
                 <ActivityIndicator size="large" color="#6366f1" />
             </View>
         );
@@ -159,7 +161,7 @@ export default function BookingDatesScreen({ route, navigation }) {
     const canSubmit = !!startDate;
 
     return (
-        <View style={styles.container}>
+        <View style={[styles.container, { backgroundColor: theme.colors.bg }]}>
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
                     <MaterialCommunityIcons name="arrow-left" size={24} color="#fff" />
@@ -176,8 +178,8 @@ export default function BookingDatesScreen({ route, navigation }) {
             <Calendar
                 style={styles.calendar}
                 theme={{
-                    backgroundColor: '#0a0a0a',
-                    calendarBackground: '#0a0a0a',
+                    backgroundColor: theme.colors.bg,
+                    calendarBackground: theme.colors.bg,
                     textSectionTitleColor: '#888',
                     todayTextColor: '#6366f1',
                     dayTextColor: '#ffffff',
@@ -228,13 +230,11 @@ export default function BookingDatesScreen({ route, navigation }) {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#0a0a0a',
     },
     loadingContainer: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: '#0a0a0a',
     },
     header: {
         flexDirection: 'row',

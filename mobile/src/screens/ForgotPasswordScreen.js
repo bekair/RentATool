@@ -12,8 +12,10 @@ import {
 } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useTheme } from '../theme';
 
 export default function ForgotPasswordScreen({ navigation }) {
+    const { theme } = useTheme();
     const [email, setEmail] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isSuccess, setIsSuccess] = useState(false);
@@ -36,7 +38,7 @@ export default function ForgotPasswordScreen({ navigation }) {
 
     if (isSuccess) {
         return (
-            <View style={styles.container}>
+            <View style={[styles.container, { backgroundColor: theme.colors.bg }]}>
                 <View style={[styles.header, { marginTop: 120 }]}>
                     <MaterialCommunityIcons name="email-check-outline" size={64} color="#6366f1" style={{ marginBottom: 16 }} />
                     <Text style={styles.title}>Check your email</Text>
@@ -56,7 +58,7 @@ export default function ForgotPasswordScreen({ navigation }) {
 
     return (
         <KeyboardAvoidingView
-            style={styles.container}
+            style={[styles.container, { backgroundColor: theme.colors.bg }]}
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
             <View style={styles.header}>
@@ -109,7 +111,6 @@ export default function ForgotPasswordScreen({ navigation }) {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#0a0a0a',
         paddingHorizontal: 24,
     },
     header: {

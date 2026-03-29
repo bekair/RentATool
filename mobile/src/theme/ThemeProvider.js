@@ -47,9 +47,7 @@ export function ThemeProvider({ children }) {
     const resolvedTheme = useMemo(() => {
         const normalizedMode = normalizeThemeMode(themeMode);
         if (normalizedMode === THEME_MODES.SYSTEM) {
-            return systemColorScheme === RESOLVED_THEMES.LIGHT
-                ? RESOLVED_THEMES.LIGHT
-                : RESOLVED_THEMES.DARK;
+            return systemColorScheme ?? defaultAppSettings.themeMode;
         }
 
         return normalizedMode;

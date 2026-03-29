@@ -7,13 +7,13 @@ export const THEME_MODES = Object.freeze({
 });
 
 export const RESOLVED_THEMES = Object.freeze({
-    LIGHT: 'light',
-    DARK: 'dark',
+    LIGHT: THEME_MODES.LIGHT,
+    DARK: THEME_MODES.DARK,
 });
 
 export const STATUS_BAR_STYLE_BY_THEME = Object.freeze({
-    [RESOLVED_THEMES.LIGHT]: 'dark',
-    [RESOLVED_THEMES.DARK]: 'light',
+    [RESOLVED_THEMES.LIGHT]: RESOLVED_THEMES.DARK,
+    [RESOLVED_THEMES.DARK]: RESOLVED_THEMES.LIGHT,
 });
 
 const darkColors = Object.freeze({

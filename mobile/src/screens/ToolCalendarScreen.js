@@ -3,8 +3,10 @@ import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert } fr
 import { Calendar } from 'react-native-calendars';
 import { toolsApi } from '../api/client';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useTheme } from '../theme';
 
 export default function ToolCalendarScreen({ route, navigation }) {
+    const { theme } = useTheme();
     const { toolItem } = route.params;
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
@@ -167,14 +169,14 @@ export default function ToolCalendarScreen({ route, navigation }) {
 
     if (isLoading) {
         return (
-            <View style={styles.loadingContainer}>
+            <View style={[styles.loadingContainer, { backgroundColor: theme.colors.bg }]}>
                 <ActivityIndicator size="large" color="#6366f1" />
             </View>
         );
     }
 
     return (
-        <View style={styles.container}>
+        <View style={[styles.container, { backgroundColor: theme.colors.bg }]}>
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
                     <MaterialCommunityIcons name="arrow-left" size={24} color="#fff" />
@@ -208,8 +210,8 @@ export default function ToolCalendarScreen({ route, navigation }) {
             <Calendar
                 style={styles.calendar}
                 theme={{
-                    backgroundColor: '#0a0a0a',
-                    calendarBackground: '#0a0a0a',
+                    backgroundColor: theme.colors.bg,
+                    calendarBackground: theme.colors.bg,
                     textSectionTitleColor: '#888',
                     selectedDayBackgroundColor: '#6366f1',
                     selectedDayTextColor: '#ffffff',
@@ -249,13 +251,11 @@ export default function ToolCalendarScreen({ route, navigation }) {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#0a0a0a',
     },
     loadingContainer: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: '#0a0a0a',
     },
     header: {
         flexDirection: 'row',

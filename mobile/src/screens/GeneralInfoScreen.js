@@ -11,7 +11,7 @@ import {
     Alert,
     ActivityIndicator,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import ThemedSafeAreaView from '../components/layout/ThemedSafeAreaView';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/client';
@@ -69,7 +69,7 @@ export default function GeneralInfoScreen({ navigation }) {
     };
 
     return (
-        <SafeAreaView style={styles.container}>
+        <ThemedSafeAreaView>
             {/* Header */}
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
@@ -153,12 +153,11 @@ export default function GeneralInfoScreen({ navigation }) {
                 </ScrollView>
             </KeyboardAvoidingView>
 
-        </SafeAreaView>
+        </ThemedSafeAreaView>
     );
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#0d0d0d' },
     header: {
         flexDirection: 'row',
         alignItems: 'center',

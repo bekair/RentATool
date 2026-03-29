@@ -8,7 +8,7 @@ import {
     Modal,
     Alert,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import ThemedSafeAreaView from '../components/layout/ThemedSafeAreaView';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function AccountSecurityScreen({ navigation }) {
@@ -20,7 +20,7 @@ export default function AccountSecurityScreen({ navigation }) {
     };
 
     return (
-        <SafeAreaView style={styles.container}>
+        <ThemedSafeAreaView>
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
                     <Ionicons name="arrow-back" size={24} color="#fff" />
@@ -76,12 +76,11 @@ export default function AccountSecurityScreen({ navigation }) {
                     </View>
                 </View>
             </Modal>
-        </SafeAreaView>
+        </ThemedSafeAreaView>
     );
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#0d0d0d' },
     header: {
         flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
         paddingHorizontal: 20, paddingVertical: 15,

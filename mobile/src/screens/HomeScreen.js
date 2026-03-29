@@ -7,7 +7,7 @@ import {
     ScrollView,
     ActivityIndicator,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import ThemedSafeAreaView from '../components/layout/ThemedSafeAreaView';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
@@ -74,7 +74,7 @@ export default function HomeScreen({ navigation }) {
     const profileDisplayName = user?.profile?.displayName?.trim() || firstName || 'User';
 
     return (
-        <SafeAreaView style={styles.container}>
+        <ThemedSafeAreaView>
             {/* Minimalist Top Nav Header */}
             <View style={styles.topNav}>
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
@@ -160,15 +160,11 @@ export default function HomeScreen({ navigation }) {
                 </View>
 
             </ScrollView>
-        </SafeAreaView>
+        </ThemedSafeAreaView>
     );
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#0a0a0a',
-    },
     topNav: {
         flexDirection: 'row',
         justifyContent: 'space-between',
