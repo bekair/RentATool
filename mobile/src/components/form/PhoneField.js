@@ -1,51 +1,53 @@
-import React, { useState } from 'react'; // useState kept for showPicker only
+import React, { useMemo, useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import LabelField from './LabelField';
 import CountryPickerModal from './CountryPickerModal';
-import { FIELD_HEIGHT, fieldStyles } from './styles';
+import { useTheme } from '../../theme';
+import { FIELD_HEIGHT, getFieldStyles } from './styles';
 
 /**
- * PhoneField — labelled row with a country-code picker + phone number input.
+ * PhoneField - labelled row with a country-code picker + phone number input.
  *
  * @param {string}   label
  * @param {boolean}  isEditing
- * @param {string}   phoneCode        — controlled dial code string, e.g. "+32" (owned by parent)
- * @param {function} onCountrySelect  — called with the full country object when the user picks one
+ * @param {string}   phoneCode        - controlled dial code string, e.g. "+32" (owned by parent)
+ * @param {function} onCountrySelect  - called with the full country object when the user picks one
  * @param {string}   phone
  * @param {function} onPhoneChange
  */
 export default function PhoneField({ label, isEditing, phoneCode, onCountrySelect, phone, onPhoneChange, error }) {
+    const { theme } = useTheme();
+    const styles = useMemo(() => createStyles(theme), [theme]);
+    const fieldStyles = useMemo(() => getFieldStyles(theme), [theme]);
     const stateStyle = isEditing ? fieldStyles.editing : fieldStyles.readOnly;
-    const textColor = isEditing ? '#fff' : '#888';
+    const textColor = isEditing ? theme.colors.fieldEditingText : theme.colors.fieldReadOnlyText;
     const errorStyle = error ? fieldStyles.error : null;
     const [showPicker, setShowPicker] = useState(false);
 
     return (
         <View style={fieldStyles.group}>
             <LabelField>{label}</LabelField>
-            <View style={s.row}>
-                {/* Country code button */}
+            <View style={styles.row}>
                 <TouchableOpacity
-                    style={[s.countryCode, stateStyle, errorStyle]}
+                    style={[styles.countryCode, stateStyle, errorStyle]}
                     onPress={() => isEditing && setShowPicker(true)}
                     activeOpacity={isEditing ? 0.7 : 1}
                 >
-                    <Text style={[s.codeText, { color: phoneCode ? textColor : '#444' }]}>
+                    <Text style={[styles.codeText, { color: phoneCode ? textColor : theme.colors.fieldPlaceholder }]}>
                         {phoneCode || 'Code'}
                     </Text>
                     {isEditing && (
-                        <Ionicons name="chevron-down" size={16} color="rgba(255,255,255,0.3)" />
+                        <Ionicons name="chevron-down" size={16} color={theme.colors.iconMuted} />
                     )}
                 </TouchableOpacity>
 
-                {/* Phone number input */}
                 <TextInput
-                    style={[s.phoneInput, stateStyle, errorStyle]}
+                    style={[styles.phoneInput, stateStyle, errorStyle]}
                     value={phone}
                     onChangeText={onPhoneChange}
                     placeholder="543 210 4585"
-                    placeholderTextColor="#444"
+                    placeholderTextColor={theme.colors.fieldPlaceholder}
                     keyboardType="phone-pad"
                     editable={isEditing}
                     color={textColor}
@@ -60,60 +62,95 @@ export default function PhoneField({ label, isEditing, phoneCode, onCountrySelec
                 title="Select Country Code"
                 selectedValue={phoneCode}
                 renderOption={(item, isSelected, onSelect) => (
-                    <TouchableOpacity key={item.code} style={s.pickerOption} onPress={onSelect}>
-                        <Text style={{ fontSize: 20 }}>{item.flag}</Text>
-                        <Text style={[s.pickerOptionText, { flex: 1, marginLeft: 12 }, isSelected && { color: '#6366f1', fontWeight: '600' }]}>
+                    <TouchableOpacity key={item.code} style={styles.pickerOption} onPress={onSelect}>
+                        <Text style={styles.optionFlag}>{item.flag}</Text>
+                        <Text
+                            style={[
+                                styles.pickerOptionText,
+                                styles.pickerOptionName,
+                                isSelected && styles.pickerOptionTextActive,
+                            ]}
+                        >
                             {item.name}
                         </Text>
-                        <Text style={[s.pickerOptionText, { color: '#888' }, isSelected && { color: '#6366f1' }]}>
+                        <Text
+                            style={[
+                                styles.pickerOptionText,
+                                styles.pickerOptionCode,
+                                isSelected && styles.pickerOptionTextActive,
+                            ]}
+                        >
                             {item.countryCode}
                         </Text>
-                        {isSelected && <Ionicons name="checkmark" size={18} color="#6366f1" style={{ marginLeft: 10 }} />}
+                        {isSelected && (
+                            <Ionicons name="checkmark" size={18} color={theme.colors.accent} style={styles.checkmark} />
+                        )}
                     </TouchableOpacity>
                 )}
-                onSelect={(c) => { onCountrySelect?.(c); setShowPicker(false); }}
+                onSelect={(country) => {
+                    onCountrySelect?.(country);
+                    setShowPicker(false);
+                }}
                 onClose={() => setShowPicker(false)}
             />
         </View>
     );
 }
 
-const s = StyleSheet.create({
-    row: {
-        flexDirection: 'row',
-        gap: 10,
-    },
-    countryCode: {
-        height: FIELD_HEIGHT,
-        borderRadius: 10,
-        borderWidth: 1,
-        paddingHorizontal: 14,
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
-        minWidth: 90,
-    },
-    codeText: {
-        fontSize: 16,
-    },
-    phoneInput: {
-        flex: 1,
-        height: FIELD_HEIGHT,
-        borderRadius: 10,
-        borderWidth: 1,
-        paddingHorizontal: 16,
-        fontSize: 16,
-    },
-    pickerOption: {
-        paddingVertical: 14,
-        borderBottomWidth: 1,
-        borderBottomColor: '#262626',
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-    },
-    pickerOptionText: {
-        fontSize: 16,
-        color: '#ddd',
-    },
-});
+const createStyles = (theme) =>
+    StyleSheet.create({
+        row: {
+            flexDirection: 'row',
+            gap: 10,
+        },
+        countryCode: {
+            height: FIELD_HEIGHT,
+            borderRadius: 10,
+            borderWidth: 1,
+            paddingHorizontal: 14,
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 6,
+            minWidth: 90,
+        },
+        codeText: {
+            fontSize: 16,
+        },
+        phoneInput: {
+            flex: 1,
+            height: FIELD_HEIGHT,
+            borderRadius: 10,
+            borderWidth: 1,
+            paddingHorizontal: 16,
+            fontSize: 16,
+        },
+        pickerOption: {
+            paddingVertical: 14,
+            borderBottomWidth: 1,
+            borderBottomColor: theme.colors.rowDivider,
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+        },
+        optionFlag: {
+            fontSize: 20,
+        },
+        pickerOptionText: {
+            fontSize: 16,
+            color: theme.colors.textSecondary,
+        },
+        pickerOptionName: {
+            flex: 1,
+            marginLeft: 12,
+        },
+        pickerOptionCode: {
+            color: theme.colors.textMuted,
+        },
+        pickerOptionTextActive: {
+            color: theme.colors.accent,
+            fontWeight: '600',
+        },
+        checkmark: {
+            marginLeft: 10,
+        },
+    });

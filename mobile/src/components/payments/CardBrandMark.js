@@ -5,8 +5,11 @@ import {
     getCardBrandMeta,
     normalizeCardBrand,
 } from '../../constants/paymentCardBrands';
+import { useTheme } from '../../theme';
 
 export default function CardBrandMark({ brand }) {
+    const { theme } = useTheme();
+    const styles = useMemo(() => createStyles(theme), [theme]);
     const [hasImageError, setHasImageError] = useState(false);
 
     const brandKey = normalizeCardBrand(brand);
@@ -37,34 +40,34 @@ export default function CardBrandMark({ brand }) {
     );
 }
 
-const styles = StyleSheet.create({
-    iconWrap: {
-        width: 52,
-        height: 24,
-        borderRadius: 6,
-        backgroundColor: '#ffffff',
-        borderWidth: 1,
-        borderColor: '#d1d5db',
-        alignItems: 'center',
-        justifyContent: 'center',
-        overflow: 'hidden',
-    },
-    iconImage: {
-        width: 44,
-        height: 16,
-    },
-    badge: {
-        minWidth: 52,
-        height: 24,
-        borderRadius: 6,
-        paddingHorizontal: 8,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    badgeText: {
-        color: '#fff',
-        fontSize: 11,
-        fontWeight: '700',
-    },
-});
-
+const createStyles = (theme) =>
+    StyleSheet.create({
+        iconWrap: {
+            width: 52,
+            height: 24,
+            borderRadius: 6,
+            backgroundColor: theme.colors.cardBrandPlate,
+            borderWidth: 1,
+            borderColor: theme.colors.cardBrandPlateBorder,
+            alignItems: 'center',
+            justifyContent: 'center',
+            overflow: 'hidden',
+        },
+        iconImage: {
+            width: 44,
+            height: 16,
+        },
+        badge: {
+            minWidth: 52,
+            height: 24,
+            borderRadius: 6,
+            paddingHorizontal: 8,
+            alignItems: 'center',
+            justifyContent: 'center',
+        },
+        badgeText: {
+            color: theme.colors.accentContrast,
+            fontSize: 11,
+            fontWeight: '700',
+        },
+    });

@@ -9,9 +9,11 @@ import {
     View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '../../theme';
 
-function AddressOption({ address, isSelected, onPress }) {
+function AddressOption({ address, isSelected, onPress, styles, theme }) {
     const line2 = [address.city, address.country].filter(Boolean).join(', ');
+
     return (
         <TouchableOpacity
             style={[styles.addressOption, isSelected && styles.addressOptionSelected]}
@@ -34,7 +36,7 @@ function AddressOption({ address, isSelected, onPress }) {
             <Ionicons
                 name={isSelected ? 'radio-button-on' : 'radio-button-off'}
                 size={20}
-                color={isSelected ? '#6366f1' : '#666'}
+                color={isSelected ? theme.colors.accent : theme.colors.iconSubtle}
             />
         </TouchableOpacity>
     );
@@ -58,6 +60,8 @@ export default function ToolLocationSelector({
     onSelectSavedAddressId,
     onManageAddresses,
 }) {
+    const { theme } = useTheme();
+    const styles = useMemo(() => createStyles(theme), [theme]);
     const [showAddressPicker, setShowAddressPicker] = useState(false);
 
     const selectedSavedAddress = useMemo(
@@ -138,10 +142,10 @@ export default function ToolLocationSelector({
                     <Ionicons
                         name="home-outline"
                         size={16}
-                        color={locationSource === 'savedAddress' ? '#fff' : '#8a8a8a'}
+                        color={locationSource === 'savedAddress' ? theme.colors.accentContrast : theme.colors.iconMuted}
                     />
                     {savedAddressesLoading ? (
-                        <ActivityIndicator size="small" color="#9ca3af" />
+                        <ActivityIndicator size="small" color={theme.colors.textMuted} />
                     ) : null}
                     <Text
                         style={[
@@ -162,7 +166,7 @@ export default function ToolLocationSelector({
                     <Ionicons
                         name="map-outline"
                         size={16}
-                        color={locationSource === 'map' ? '#fff' : '#8a8a8a'}
+                        color={locationSource === 'map' ? theme.colors.accentContrast : theme.colors.iconMuted}
                     />
                     <Text style={[styles.sourceTabText, locationSource === 'map' && styles.sourceTabTextActive]}>
                         Pin on map
@@ -180,9 +184,9 @@ export default function ToolLocationSelector({
                     <View style={styles.actionLeft}>
                         <View style={styles.actionIconWrap}>
                             {locationLoading ? (
-                                <ActivityIndicator size="small" color="#6366f1" />
+                                <ActivityIndicator size="small" color={theme.colors.accent} />
                             ) : (
-                                <Ionicons name="map-outline" size={18} color="#6366f1" />
+                                <Ionicons name="map-outline" size={18} color={theme.colors.accent} />
                             )}
                         </View>
                         <View style={styles.actionCopy}>
@@ -190,12 +194,12 @@ export default function ToolLocationSelector({
                             <Text style={styles.actionSub}>Pin the exact pickup spot on the map</Text>
                         </View>
                     </View>
-                    <Ionicons name="chevron-forward" size={18} color="#666" />
+                    <Ionicons name="chevron-forward" size={18} color={theme.colors.iconSubtle} />
                 </TouchableOpacity>
             ) : savedAddressesLoading ? (
                 <View style={styles.emptySavedWrap}>
                     <View style={styles.savedLoadingRow}>
-                        <ActivityIndicator size="small" color="#6366f1" />
+                        <ActivityIndicator size="small" color={theme.colors.accent} />
                         <Text style={styles.emptySavedSub}>Loading saved addresses...</Text>
                     </View>
                 </View>
@@ -207,14 +211,14 @@ export default function ToolLocationSelector({
                 >
                     <View style={styles.actionLeft}>
                         <View style={styles.actionIconWrap}>
-                            <Ionicons name="home-outline" size={18} color="#6366f1" />
+                            <Ionicons name="home-outline" size={18} color={theme.colors.accent} />
                         </View>
                         <View style={styles.actionCopy}>
                             <Text style={styles.actionTitle}>Choose saved address</Text>
                             <Text style={styles.actionSub}>Select one of your saved addresses</Text>
                         </View>
                     </View>
-                    <Ionicons name="chevron-forward" size={18} color="#666" />
+                    <Ionicons name="chevron-forward" size={18} color={theme.colors.iconSubtle} />
                 </TouchableOpacity>
             ) : (
                 <View style={styles.emptySavedWrap}>
@@ -227,7 +231,7 @@ export default function ToolLocationSelector({
                         onPress={onManageAddresses}
                         activeOpacity={0.85}
                     >
-                        <Ionicons name="add-circle-outline" size={18} color="#fff" />
+                        <Ionicons name="add-circle-outline" size={18} color={theme.colors.buttonPrimaryText} />
                         <Text style={styles.emptySavedBtnText}>Add address</Text>
                     </TouchableOpacity>
                 </View>
@@ -238,7 +242,7 @@ export default function ToolLocationSelector({
                     <Ionicons
                         name={selectedSource === 'savedAddress' ? 'home' : selectedSource === 'map' ? 'location' : 'location-outline'}
                         size={20}
-                        color={selectedSource ? '#fff' : '#888'}
+                        color={selectedSource ? theme.colors.accentContrast : theme.colors.iconMuted}
                     />
                 </View>
 
@@ -263,7 +267,11 @@ export default function ToolLocationSelector({
                 </View>
 
                 <View style={styles.locationChevron}>
-                    <Ionicons name="checkmark-circle" size={20} color={selectedSource ? '#6366f1' : '#555'} />
+                    <Ionicons
+                        name="checkmark-circle"
+                        size={20}
+                        color={selectedSource ? theme.colors.accent : theme.colors.selectedCheckInactive}
+                    />
                 </View>
             </View>
 
@@ -273,7 +281,7 @@ export default function ToolLocationSelector({
                         <View style={styles.pickerHeader}>
                             <Text style={styles.pickerTitle}>Choose saved address</Text>
                             <TouchableOpacity onPress={() => setShowAddressPicker(false)} style={styles.pickerClose}>
-                                <Ionicons name="close" size={20} color="#fff" />
+                                <Ionicons name="close" size={20} color={theme.colors.textPrimary} />
                             </TouchableOpacity>
                         </View>
                         <ScrollView contentContainerStyle={styles.pickerList}>
@@ -286,6 +294,8 @@ export default function ToolLocationSelector({
                                         onSelectSavedAddressId(address.id);
                                         setShowAddressPicker(false);
                                     }}
+                                    styles={styles}
+                                    theme={theme}
                                 />
                             ))}
                         </ScrollView>
@@ -296,254 +306,255 @@ export default function ToolLocationSelector({
     );
 }
 
-const styles = StyleSheet.create({
-    wrap: {
-        gap: 10,
-    },
-    sourceTabs: {
-        flexDirection: 'row',
-        backgroundColor: '#161616',
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: '#2a2a2a',
-        padding: 4,
-        gap: 4,
-    },
-    sourceTab: {
-        flex: 1,
-        minHeight: 40,
-        borderRadius: 10,
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 6,
-        flexDirection: 'row',
-    },
-    sourceTabActive: {
-        backgroundColor: '#6366f1',
-    },
-    sourceTabDisabled: {
-        opacity: 0.55,
-    },
-    sourceTabText: {
-        color: '#8a8a8a',
-        fontSize: 13,
-        fontWeight: '600',
-    },
-    sourceTabTextActive: {
-        color: '#fff',
-    },
-    sourceTabTextDisabled: {
-        color: '#6a6a6a',
-    },
-    selectedCard: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#1a1a1a',
-        borderRadius: 12,
-        padding: 16,
-        borderWidth: 1,
-        borderColor: '#2a2a2a',
-    },
-    selectedCardActive: {
-        borderColor: '#6366f1',
-    },
-    selectedHeaderRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 4,
-    },
-    selectedHeaderText: {
-        fontSize: 12,
-        color: '#8a8a8a',
-        fontWeight: '700',
-        textTransform: 'uppercase',
-        letterSpacing: 0.4,
-    },
-    locationIcon: {
-        width: 44,
-        height: 44,
-        borderRadius: 22,
-        backgroundColor: '#2a2a2a',
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginRight: 16,
-    },
-    locationIconActive: {
-        backgroundColor: '#6366f1',
-    },
-    locationInfo: {
-        flex: 1,
-    },
-    locationStreet: {
-        fontSize: 15,
-        fontWeight: '600',
-        color: '#ffffff',
-    },
-    locationCity: {
-        fontSize: 14,
-        color: '#aaa',
-        marginTop: 2,
-    },
-    locationCoords: {
-        fontSize: 11,
-        color: '#555',
-        marginTop: 4,
-        fontVariant: ['tabular-nums'],
-    },
-    locationChevron: {
-        marginLeft: 8,
-    },
-    actionCard: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        backgroundColor: '#161616',
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: '#2a2a2a',
-        paddingHorizontal: 14,
-        minHeight: 62,
-    },
-    actionLeft: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        flex: 1,
-        marginRight: 8,
-    },
-    actionIconWrap: {
-        width: 34,
-        height: 34,
-        borderRadius: 17,
-        borderWidth: 1,
-        borderColor: '#6366f1',
-        backgroundColor: '#232329',
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginRight: 12,
-    },
-    actionCopy: {
-        flex: 1,
-    },
-    actionTitle: {
-        color: '#fff',
-        fontSize: 14,
-        fontWeight: '700',
-    },
-    actionSub: {
-        color: '#8a8a8a',
-        fontSize: 12,
-        marginTop: 2,
-    },
-    emptySavedWrap: {
-        backgroundColor: '#1a1a1a',
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: '#2a2a2a',
-        padding: 16,
-        gap: 8,
-    },
-    emptySavedTitle: {
-        color: '#fff',
-        fontSize: 15,
-        fontWeight: '700',
-    },
-    emptySavedSub: {
-        color: '#8a8a8a',
-        fontSize: 13,
-        lineHeight: 18,
-    },
-    savedLoadingRow: {
-        minHeight: 44,
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 10,
-    },
-    emptySavedBtn: {
-        marginTop: 4,
-        alignSelf: 'flex-start',
-        backgroundColor: '#6366f1',
-        borderRadius: 10,
-        paddingHorizontal: 12,
-        minHeight: 36,
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-    },
-    emptySavedBtnText: {
-        color: '#fff',
-        fontSize: 13,
-        fontWeight: '700',
-    },
-    pickerBackdrop: {
-        flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.5)',
-        justifyContent: 'flex-end',
-    },
-    pickerSheet: {
-        backgroundColor: '#111111',
-        borderTopLeftRadius: 18,
-        borderTopRightRadius: 18,
-        borderWidth: 1,
-        borderColor: '#262626',
-        maxHeight: '72%',
-    },
-    pickerHeader: {
-        height: 56,
-        borderBottomWidth: 1,
-        borderBottomColor: '#262626',
-        paddingHorizontal: 16,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-    },
-    pickerTitle: {
-        color: '#fff',
-        fontSize: 16,
-        fontWeight: '700',
-    },
-    pickerClose: {
-        width: 34,
-        height: 34,
-        borderRadius: 17,
-        backgroundColor: '#1f1f1f',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    pickerList: {
-        padding: 14,
-        gap: 10,
-        paddingBottom: 20,
-    },
-    addressOption: {
-        backgroundColor: '#1a1a1a',
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: '#2a2a2a',
-        padding: 12,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-    },
-    addressOptionSelected: {
-        borderColor: '#6366f1',
-    },
-    addressOptionLeft: {
-        flex: 1,
-        paddingRight: 10,
-    },
-    addressOptionLabel: {
-        color: '#fff',
-        fontSize: 14,
-        fontWeight: '700',
-    },
-    addressOptionStreet: {
-        color: '#ddd',
-        fontSize: 13,
-        marginTop: 2,
-    },
-    addressOptionCity: {
-        color: '#888',
-        fontSize: 12,
-        marginTop: 2,
-    },
-});
+const createStyles = (theme) =>
+    StyleSheet.create({
+        wrap: {
+            gap: 10,
+        },
+        sourceTabs: {
+            flexDirection: 'row',
+            backgroundColor: theme.colors.surface,
+            borderRadius: 12,
+            borderWidth: 1,
+            borderColor: theme.colors.border,
+            padding: 4,
+            gap: 4,
+        },
+        sourceTab: {
+            flex: 1,
+            minHeight: 40,
+            borderRadius: 10,
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 6,
+            flexDirection: 'row',
+        },
+        sourceTabActive: {
+            backgroundColor: theme.colors.accent,
+        },
+        sourceTabDisabled: {
+            opacity: 0.55,
+        },
+        sourceTabText: {
+            color: theme.colors.iconMuted,
+            fontSize: 13,
+            fontWeight: '600',
+        },
+        sourceTabTextActive: {
+            color: theme.colors.accentContrast,
+        },
+        sourceTabTextDisabled: {
+            color: theme.colors.textDisabled,
+        },
+        selectedCard: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            backgroundColor: theme.colors.surfaceMuted,
+            borderRadius: 12,
+            padding: 16,
+            borderWidth: 1,
+            borderColor: theme.colors.border,
+        },
+        selectedCardActive: {
+            borderColor: theme.colors.accent,
+        },
+        selectedHeaderRow: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            marginBottom: 4,
+        },
+        selectedHeaderText: {
+            fontSize: 12,
+            color: theme.colors.textMuted,
+            fontWeight: '700',
+            textTransform: 'uppercase',
+            letterSpacing: 0.4,
+        },
+        locationIcon: {
+            width: 44,
+            height: 44,
+            borderRadius: 22,
+            backgroundColor: theme.colors.border,
+            justifyContent: 'center',
+            alignItems: 'center',
+            marginRight: 16,
+        },
+        locationIconActive: {
+            backgroundColor: theme.colors.accent,
+        },
+        locationInfo: {
+            flex: 1,
+        },
+        locationStreet: {
+            fontSize: 15,
+            fontWeight: '600',
+            color: theme.colors.textPrimary,
+        },
+        locationCity: {
+            fontSize: 14,
+            color: theme.colors.textSecondary,
+            marginTop: 2,
+        },
+        locationCoords: {
+            fontSize: 11,
+            color: theme.colors.textMuted,
+            marginTop: 4,
+            fontVariant: ['tabular-nums'],
+        },
+        locationChevron: {
+            marginLeft: 8,
+        },
+        actionCard: {
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            backgroundColor: theme.colors.surface,
+            borderRadius: 12,
+            borderWidth: 1,
+            borderColor: theme.colors.border,
+            paddingHorizontal: 14,
+            minHeight: 62,
+        },
+        actionLeft: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            flex: 1,
+            marginRight: 8,
+        },
+        actionIconWrap: {
+            width: 34,
+            height: 34,
+            borderRadius: 17,
+            borderWidth: 1,
+            borderColor: theme.colors.accent,
+            backgroundColor: theme.colors.accentSurface,
+            justifyContent: 'center',
+            alignItems: 'center',
+            marginRight: 12,
+        },
+        actionCopy: {
+            flex: 1,
+        },
+        actionTitle: {
+            color: theme.colors.textPrimary,
+            fontSize: 14,
+            fontWeight: '700',
+        },
+        actionSub: {
+            color: theme.colors.textMuted,
+            fontSize: 12,
+            marginTop: 2,
+        },
+        emptySavedWrap: {
+            backgroundColor: theme.colors.surfaceMuted,
+            borderRadius: 12,
+            borderWidth: 1,
+            borderColor: theme.colors.border,
+            padding: 16,
+            gap: 8,
+        },
+        emptySavedTitle: {
+            color: theme.colors.textPrimary,
+            fontSize: 15,
+            fontWeight: '700',
+        },
+        emptySavedSub: {
+            color: theme.colors.textMuted,
+            fontSize: 13,
+            lineHeight: 18,
+        },
+        savedLoadingRow: {
+            minHeight: 44,
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 10,
+        },
+        emptySavedBtn: {
+            marginTop: 4,
+            alignSelf: 'flex-start',
+            backgroundColor: theme.colors.buttonPrimary,
+            borderRadius: 10,
+            paddingHorizontal: 12,
+            minHeight: 36,
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 8,
+        },
+        emptySavedBtnText: {
+            color: theme.colors.buttonPrimaryText,
+            fontSize: 13,
+            fontWeight: '700',
+        },
+        pickerBackdrop: {
+            flex: 1,
+            backgroundColor: theme.colors.modalBackdrop,
+            justifyContent: 'flex-end',
+        },
+        pickerSheet: {
+            backgroundColor: theme.colors.modalSurface,
+            borderTopLeftRadius: 18,
+            borderTopRightRadius: 18,
+            borderWidth: 1,
+            borderColor: theme.colors.rowDivider,
+            maxHeight: '72%',
+        },
+        pickerHeader: {
+            height: 56,
+            borderBottomWidth: 1,
+            borderBottomColor: theme.colors.rowDivider,
+            paddingHorizontal: 16,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+        },
+        pickerTitle: {
+            color: theme.colors.textPrimary,
+            fontSize: 16,
+            fontWeight: '700',
+        },
+        pickerClose: {
+            width: 34,
+            height: 34,
+            borderRadius: 17,
+            backgroundColor: theme.colors.surfaceAlt,
+            justifyContent: 'center',
+            alignItems: 'center',
+        },
+        pickerList: {
+            padding: 14,
+            gap: 10,
+            paddingBottom: 20,
+        },
+        addressOption: {
+            backgroundColor: theme.colors.surfaceMuted,
+            borderRadius: 12,
+            borderWidth: 1,
+            borderColor: theme.colors.border,
+            padding: 12,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+        },
+        addressOptionSelected: {
+            borderColor: theme.colors.accent,
+        },
+        addressOptionLeft: {
+            flex: 1,
+            paddingRight: 10,
+        },
+        addressOptionLabel: {
+            color: theme.colors.textPrimary,
+            fontSize: 14,
+            fontWeight: '700',
+        },
+        addressOptionStreet: {
+            color: theme.colors.textSecondary,
+            fontSize: 13,
+            marginTop: 2,
+        },
+        addressOptionCity: {
+            color: theme.colors.textMuted,
+            fontSize: 12,
+            marginTop: 2,
+        },
+    });

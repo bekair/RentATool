@@ -1,12 +1,11 @@
-import { StyleSheet } from 'react-native';
+import { createThemedStyles } from '../../theme';
 
 export const FIELD_HEIGHT = 56;
 
-export const fieldStyles = StyleSheet.create({
+const createFieldStyles = createThemedStyles((theme) => ({
     group: {
         marginBottom: 22,
     },
-    // Base box shared by all input types
     base: {
         height: FIELD_HEIGHT,
         borderRadius: 10,
@@ -14,32 +13,34 @@ export const fieldStyles = StyleSheet.create({
         paddingHorizontal: 16,
         fontSize: 16,
     },
-    // Read-only / locked state
     readOnly: {
-        backgroundColor: '#1c1c1e',
-        borderColor: '#1e1e1e',
-        color: '#888',
+        backgroundColor: theme.colors.fieldReadOnlyBg,
+        borderColor: theme.colors.fieldReadOnlyBorder,
+        color: theme.colors.fieldReadOnlyText,
     },
-    // Active editing state
     editing: {
-        backgroundColor: 'rgba(255, 255, 255, 0.12)',
+        backgroundColor: theme.colors.fieldEditingBg,
         borderWidth: 1,
-        borderColor: 'rgba(99, 102, 241, 0.4)',
-        color: '#fff',
-        shadowColor: '#000',
+        borderColor: theme.colors.fieldEditingBorder,
+        color: theme.colors.fieldEditingText,
+        shadowColor: theme.colors.inputShadow,
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.4,
         shadowRadius: 10,
         elevation: 6,
     },
     error: {
-        borderColor: '#ef4444',
+        borderColor: theme.colors.danger,
         borderWidth: 1.5,
     },
     errorText: {
-        color: '#ef4444',
+        color: theme.colors.danger,
         fontSize: 12,
         marginTop: 6,
         fontWeight: '500',
-    }
-});
+    },
+}));
+
+export function getFieldStyles(theme) {
+    return createFieldStyles(theme);
+}

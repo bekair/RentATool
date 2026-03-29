@@ -1,18 +1,21 @@
 import React from 'react';
 import MapView from 'react-native-maps';
 import darkMapStyle from '../../constants/darkMapStyle';
+import { RESOLVED_THEMES, useTheme } from '../../theme';
 
 const AppMapView = React.forwardRef(
     (
         {
-            theme = 'light',
+            theme: themeOverride,
             customMapStyle,
             userInterfaceStyle,
             ...rest
         },
         ref,
     ) => {
-        const isDark = theme === 'dark';
+        const { resolvedTheme } = useTheme();
+        const effectiveTheme = themeOverride || resolvedTheme;
+        const isDark = effectiveTheme === RESOLVED_THEMES.DARK;
 
         const resolvedCustomMapStyle =
             customMapStyle ?? (isDark ? darkMapStyle : undefined);

@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import LabelField from './LabelField';
-import { fieldStyles } from './styles';
+import { useTheme } from '../../theme';
+import { getFieldStyles } from './styles';
 
 /**
  * DropdownField — labelled touchable that opens a picker/modal.
@@ -23,9 +24,13 @@ export default function DropdownField({
     leftIcon,
     error,
 }) {
+    const { theme } = useTheme();
+    const fieldStyles = useMemo(() => getFieldStyles(theme), [theme]);
     const stateStyle = isEditing ? fieldStyles.editing : fieldStyles.readOnly;
     const errorStyle = error ? fieldStyles.error : null;
-    const textColor = value ? (isEditing ? '#fff' : '#888') : '#444';
+    const textColor = value
+        ? (isEditing ? theme.colors.fieldEditingText : theme.colors.fieldReadOnlyText)
+        : theme.colors.fieldPlaceholder;
 
     return (
         <View style={fieldStyles.group}>
@@ -40,7 +45,7 @@ export default function DropdownField({
                     {value || placeholder}
                 </Text>
                 {isEditing && (
-                    <Ionicons name="chevron-down" size={20} color="rgba(255,255,255,0.5)" />
+                    <Ionicons name="chevron-down" size={20} color={theme.colors.iconMuted} />
                 )}
             </TouchableOpacity>
             {typeof error === 'string' && error.length > 0 ? (

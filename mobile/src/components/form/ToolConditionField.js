@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
     View,
     Text,
@@ -10,6 +10,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import DropdownField from './DropdownField';
 import { TOOL_CONDITION_OPTIONS, getToolConditionLabel } from '../../constants/toolConditions';
+import { useTheme } from '../../theme';
 
 export default function ToolConditionField({
     label = 'Condition',
@@ -18,6 +19,8 @@ export default function ToolConditionField({
     onSelect,
     error,
 }) {
+    const { theme } = useTheme();
+    const styles = useMemo(() => createStyles(theme), [theme]);
     const [visible, setVisible] = useState(false);
 
     const handleSelect = (optionValue) => {
@@ -37,21 +40,23 @@ export default function ToolConditionField({
             />
 
             <Modal visible={visible} transparent animationType="slide">
-                <TouchableOpacity style={s.overlay} activeOpacity={1} onPress={() => setVisible(false)}>
-                    <TouchableOpacity activeOpacity={1} style={s.sheet}>
-                        <View style={s.handle} />
-                        <Text style={s.title}>Select condition</Text>
+                <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={() => setVisible(false)}>
+                    <TouchableOpacity activeOpacity={1} style={styles.sheet}>
+                        <View style={styles.handle} />
+                        <Text style={styles.title}>Select condition</Text>
                         <FlatList
                             data={TOOL_CONDITION_OPTIONS}
                             keyExtractor={(item) => item.value}
                             renderItem={({ item }) => {
                                 const isSelected = item.value === value;
                                 return (
-                                    <TouchableOpacity style={s.option} onPress={() => handleSelect(item.value)}>
-                                        <Text style={[s.optionText, isSelected && s.optionTextActive]}>
+                                    <TouchableOpacity style={styles.option} onPress={() => handleSelect(item.value)}>
+                                        <Text style={[styles.optionText, isSelected && styles.optionTextActive]}>
                                             {item.label}
                                         </Text>
-                                        {isSelected ? <Ionicons name="checkmark" size={18} color="#6366f1" /> : null}
+                                        {isSelected ? (
+                                            <Ionicons name="checkmark" size={18} color={theme.colors.accent} />
+                                        ) : null}
                                     </TouchableOpacity>
                                 );
                             }}
@@ -63,49 +68,50 @@ export default function ToolConditionField({
     );
 }
 
-const s = StyleSheet.create({
-    overlay: {
-        flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.6)',
-        justifyContent: 'flex-end',
-    },
-    sheet: {
-        backgroundColor: '#1a1a1a',
-        borderTopLeftRadius: 20,
-        borderTopRightRadius: 20,
-        paddingTop: 12,
-        paddingBottom: 40,
-        paddingHorizontal: 20,
-        maxHeight: '70%',
-    },
-    handle: {
-        width: 40,
-        height: 4,
-        backgroundColor: '#444',
-        borderRadius: 2,
-        alignSelf: 'center',
-        marginBottom: 16,
-    },
-    title: {
-        fontSize: 16,
-        fontWeight: '700',
-        color: '#fff',
-        marginBottom: 12,
-    },
-    option: {
-        paddingVertical: 14,
-        borderBottomWidth: 1,
-        borderBottomColor: '#262626',
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-    },
-    optionText: {
-        fontSize: 16,
-        color: '#ddd',
-    },
-    optionTextActive: {
-        color: '#6366f1',
-        fontWeight: '600',
-    },
-});
+const createStyles = (theme) =>
+    StyleSheet.create({
+        overlay: {
+            flex: 1,
+            backgroundColor: theme.colors.modalBackdrop,
+            justifyContent: 'flex-end',
+        },
+        sheet: {
+            backgroundColor: theme.colors.modalSurface,
+            borderTopLeftRadius: 20,
+            borderTopRightRadius: 20,
+            paddingTop: 12,
+            paddingBottom: 40,
+            paddingHorizontal: 20,
+            maxHeight: '70%',
+        },
+        handle: {
+            width: 40,
+            height: 4,
+            backgroundColor: theme.colors.modalHandle,
+            borderRadius: 2,
+            alignSelf: 'center',
+            marginBottom: 16,
+        },
+        title: {
+            fontSize: 16,
+            fontWeight: '700',
+            color: theme.colors.textPrimary,
+            marginBottom: 12,
+        },
+        option: {
+            paddingVertical: 14,
+            borderBottomWidth: 1,
+            borderBottomColor: theme.colors.rowDivider,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+        },
+        optionText: {
+            fontSize: 16,
+            color: theme.colors.textSecondary,
+        },
+        optionTextActive: {
+            color: theme.colors.accent,
+            fontWeight: '600',
+        },
+    });

@@ -1,10 +1,14 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Platform, Modal, StyleSheet, Button } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { View, Text, TouchableOpacity, Platform, Modal, StyleSheet } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import LabelField from './LabelField';
-import { fieldStyles } from './styles';
+import { RESOLVED_THEMES, useTheme } from '../../theme';
+import { getFieldStyles } from './styles';
 
 export default function DateField({ label, value, isEditing, onChange }) {
+    const { theme, resolvedTheme } = useTheme();
+    const fieldStyles = useMemo(() => getFieldStyles(theme), [theme]);
+    const styles = useMemo(() => createStyles(theme), [theme]);
     const [showPicker, setShowPicker] = useState(false);
 
     const onDateChange = (event, selectedDate) => {
@@ -18,6 +22,7 @@ export default function DateField({ label, value, isEditing, onChange }) {
 
     const displayDate = value ? new Date(value).toLocaleDateString([], { day: '2-digit', month: '2-digit', year: 'numeric' }) : 'Select Date';
     const stateStyle = isEditing ? fieldStyles.editing : fieldStyles.readOnly;
+    const displayDateColor = value ? theme.colors.fieldEditingText : theme.colors.fieldPlaceholder;
 
     return (
         <View style={fieldStyles.group}>
@@ -28,7 +33,7 @@ export default function DateField({ label, value, isEditing, onChange }) {
                         style={[fieldStyles.base, stateStyle, { justifyContent: 'center' }]}
                         onPress={() => setShowPicker(true)}
                     >
-                        <Text style={{ color: value ? '#fff' : '#444' }}>{displayDate}</Text>
+                        <Text style={{ color: displayDateColor }}>{displayDate}</Text>
                     </TouchableOpacity>
 
                     {showPicker && Platform.OS === 'ios' && (
@@ -46,7 +51,7 @@ export default function DateField({ label, value, isEditing, onChange }) {
                                         mode="date"
                                         display="spinner"
                                         onChange={onDateChange}
-                                        themeVariant="dark"
+                                        themeVariant={resolvedTheme === RESOLVED_THEMES.DARK ? 'dark' : 'light'}
                                         maximumDate={new Date()}
                                     />
                                 </View>
@@ -67,33 +72,34 @@ export default function DateField({ label, value, isEditing, onChange }) {
                 </>
             ) : (
                 <View style={[fieldStyles.base, stateStyle, { justifyContent: 'center' }]}>
-                    <Text style={{ color: '#888' }}>{displayDate}</Text>
+                    <Text style={{ color: theme.colors.fieldReadOnlyText }}>{displayDate}</Text>
                 </View>
             )}
         </View>
     );
 }
 
-const styles = StyleSheet.create({
-    modalOverlay: {
-        flex: 1,
-        justifyContent: 'flex-end',
-        backgroundColor: 'rgba(0,0,0,0.5)',
-    },
-    pickerContainer: {
-        backgroundColor: '#1a1a1a',
-        paddingBottom: 20,
-    },
-    pickerHeader: {
-        flexDirection: 'row',
-        justifyContent: 'flex-end',
-        padding: 15,
-        borderBottomWidth: 1,
-        borderBottomColor: '#333',
-    },
-    doneText: {
-        color: '#6366f1',
-        fontSize: 16,
-        fontWeight: 'bold',
-    },
-});
+const createStyles = (theme) =>
+    StyleSheet.create({
+        modalOverlay: {
+            flex: 1,
+            justifyContent: 'flex-end',
+            backgroundColor: theme.colors.modalBackdrop,
+        },
+        pickerContainer: {
+            backgroundColor: theme.colors.modalSurface,
+            paddingBottom: 20,
+        },
+        pickerHeader: {
+            flexDirection: 'row',
+            justifyContent: 'flex-end',
+            padding: 15,
+            borderBottomWidth: 1,
+            borderBottomColor: theme.colors.rowDivider,
+        },
+        doneText: {
+            color: theme.colors.accent,
+            fontSize: 16,
+            fontWeight: 'bold',
+        },
+    });
