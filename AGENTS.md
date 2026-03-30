@@ -15,12 +15,15 @@ This file defines the coding style and guidelines for the `rent_a_tool` monorepo
 
 ## Mobile (React Native / Expo)
 - **API calls:** Never use `axios` directly in UI components. Always use the pre-configured wrappers in `src/api/client.js` or dedicated service files such as `locationService.js`.
+- **UI vs service logic:** Keep UI components/screens focused on rendering and interaction. Move API orchestration, data mapping, and reusable business logic into service wrappers. Add a new service when needed; otherwise extend an existing one.
 - **Styling:** Use React Native's `StyleSheet.create` for styling. Do not use TailwindCSS. Avoid inline styles unless they are required for dynamic layout calculations.
+- **Style file separation:** Keep styles in separate style files when practical (`*.styles.js`) instead of embedding large style blocks in screen/component files. If styles are page-specific, keep them in a page-level style file; if reused, move them to shared/common style modules.
 - **Navigation:** Use standard React Navigation patterns. Ensure global state errors are cleared on screen blur using `useFocusEffect` where relevant, such as auth flows.
 - **Form submission:** Keep submit buttons disabled until all required fields on the current page are filled and valid. Provide visual feedback, such as lower opacity or a grayed out button, when disabled.
 - **Form components:** Use the shared components in `src/components/form/` for form inputs, text areas, date pickers, and related styling so forms stay visually consistent across the app.
 - **Shared UI components:** Reuse or create shared components under `src/components/` for common UI controls (especially buttons and loading/disabled button states) instead of re-implementing button logic per screen.
 - **Validation:** Implement validation for required fields and business-specific checks anywhere data is saved. Provide real-time inline feedback through the common form components' `error` prop. Submit buttons must remain disabled, with visual feedback, until the form is valid.
+- **Enums:** Do not hardcode string literals for enum-based checks. Use generated/shared enum constants (for example from `src/generated/api-enums.js`) in UI and service logic.
 - **Loading feedback:** Every async action, including form submission, initial data fetching, and destructive operations such as delete, must show clear in-progress feedback. Match the UI pattern to the situation: use an `ActivityIndicator` for saves, a full-screen or inline spinner for screen loads, and disable controls to prevent duplicate submissions.
 - **Theming:** For any new or modified mobile UI, use shared theme tokens and hooks from `src/theme/` (for example `useTheme` and themed style helpers) instead of introducing new hardcoded color literals.
 
