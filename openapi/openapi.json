@@ -914,11 +914,56 @@
       },
       "CreateBookingDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "toolId": {
+            "type": "string"
+          },
+          "startDate": {
+            "type": "string"
+          },
+          "endDate": {
+            "type": "string"
+          },
+          "usePurposeNote": {
+            "type": "string",
+            "minLength": 20,
+            "maxLength": 500
+          },
+          "preferredPickupWindow": {
+            "type": "string",
+            "enum": [
+              "MORNING",
+              "AFTERNOON",
+              "EVENING",
+              "FLEXIBLE"
+            ]
+          }
+        },
+        "required": [
+          "toolId",
+          "startDate",
+          "endDate",
+          "usePurposeNote",
+          "preferredPickupWindow"
+        ]
       },
       "UpdateBookingStatusDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "APPROVED",
+              "REJECTED",
+              "CANCELLED",
+              "COMPLETED"
+            ]
+          }
+        },
+        "required": [
+          "status"
+        ]
       },
       "SetDefaultPaymentMethodDto": {
         "type": "object",

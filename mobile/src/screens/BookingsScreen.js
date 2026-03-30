@@ -12,8 +12,9 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useStripe } from "@stripe/stripe-react-native";
 import ThemedSafeAreaView from '../components/layout/ThemedSafeAreaView';
-import api, { paymentsApi } from "../api/client";
+import { bookingsApi, paymentsApi } from "../api/client";
 import AppButton from "../components/ui/AppButton";
+import { BookingStatus } from '../generated/api-enums';
 
 const PAYMENT_SHEET_RETURN_URL = "shareatool://payment-details";
 
@@ -51,9 +52,10 @@ const BookingsScreen = ({ navigation }) => {
     if (!isRefreshing) setLoading(true);
 
     try {
-      const endpoint = isRentalsMode ? "/bookings/renter" : "/bookings/owner";
-      const response = await api.get(endpoint);
-      setBookings(response.data || []);
+      const data = isRentalsMode
+        ? await bookingsApi.getRenterBookings()
+        : await bookingsApi.getOwnerBookings();
+      setBookings(data || []);
     } catch (error) {
       console.error("Error fetching bookings:", error);
       Alert.alert("Error", "Failed to load bookings");
@@ -77,20 +79,20 @@ const BookingsScreen = ({ navigation }) => {
     Boolean(booking.paidAt || booking.stripePaymentStatus === "succeeded");
 
   const getStatusColor = (booking) => {
-    if (booking.status === "APPROVED" && !isBookingPaid(booking)) {
+    if (booking.status === BookingStatus.APPROVED && !isBookingPaid(booking)) {
       return C.warning;
     }
 
     switch (booking.status) {
-      case "PENDING":
+      case BookingStatus.PENDING:
         return C.accent;
-      case "APPROVED":
+      case BookingStatus.APPROVED:
         return C.success;
-      case "REJECTED":
+      case BookingStatus.REJECTED:
         return C.danger;
-      case "CANCELLED":
+      case BookingStatus.CANCELLED:
         return "#888";
-      case "COMPLETED":
+      case BookingStatus.COMPLETED:
         return "#10b981";
       default:
         return "#fff";
@@ -98,7 +100,7 @@ const BookingsScreen = ({ navigation }) => {
   };
 
   const getStatusLabel = (booking) => {
-    if (booking.status === "APPROVED" && !isBookingPaid(booking)) {
+    if (booking.status === BookingStatus.APPROVED && !isBookingPaid(booking)) {
       return "APPROVED - PAYMENT DUE";
     }
 
@@ -113,7 +115,7 @@ const BookingsScreen = ({ navigation }) => {
     setActionLoadingId(loadingKey);
 
     try {
-      await api.patch(`/bookings/${id}/status`, { status });
+      await bookingsApi.updateStatus(id, status);
       Alert.alert("Success", `Booking ${status.toLowerCase()} successfully`);
       fetchBookings();
     } catch (error) {
@@ -198,7 +200,7 @@ const BookingsScreen = ({ navigation }) => {
       : item.renter?.displayName || "Unknown Renter";
 
     const showPayNow =
-      isRenting && item.status === "APPROVED" && !isBookingPaid(item);
+      isRenting && item.status === BookingStatus.APPROVED && !isBookingPaid(item);
 
     return (
       <View style={styles.card}>
@@ -267,10 +269,10 @@ const BookingsScreen = ({ navigation }) => {
           <View style={styles.actions}>
             <TouchableOpacity
               style={[styles.actionButton, styles.rejectButton]}
-              disabled={actionLoadingId === `status-${item.id}-REJECTED`}
-              onPress={() => handleUpdateStatus(item.id, "REJECTED")}
+              disabled={actionLoadingId === `status-${item.id}-${BookingStatus.REJECTED}`}
+              onPress={() => handleUpdateStatus(item.id, BookingStatus.REJECTED)}
             >
-              {actionLoadingId === `status-${item.id}-REJECTED` ? (
+              {actionLoadingId === `status-${item.id}-${BookingStatus.REJECTED}` ? (
                 <ActivityIndicator size="small" color={C.danger} />
               ) : (
                 <Text style={styles.rejectButtonText}>Decline</Text>
@@ -279,10 +281,10 @@ const BookingsScreen = ({ navigation }) => {
 
             <TouchableOpacity
               style={[styles.actionButton, styles.approveButton]}
-              disabled={actionLoadingId === `status-${item.id}-APPROVED`}
-              onPress={() => handleUpdateStatus(item.id, "APPROVED")}
+              disabled={actionLoadingId === `status-${item.id}-${BookingStatus.APPROVED}`}
+              onPress={() => handleUpdateStatus(item.id, BookingStatus.APPROVED)}
             >
-              {actionLoadingId === `status-${item.id}-APPROVED` ? (
+              {actionLoadingId === `status-${item.id}-${BookingStatus.APPROVED}` ? (
                 <ActivityIndicator size="small" color="#fff" />
               ) : (
                 <Text style={styles.approveButtonText}>Approve</Text>
@@ -291,13 +293,13 @@ const BookingsScreen = ({ navigation }) => {
           </View>
         )}
 
-        {isRenting && item.status === "PENDING" && (
+        {isRenting && item.status === BookingStatus.PENDING && (
           <TouchableOpacity
             style={styles.cancelLink}
-            disabled={actionLoadingId === `status-${item.id}-CANCELLED`}
-            onPress={() => handleUpdateStatus(item.id, "CANCELLED")}
+            disabled={actionLoadingId === `status-${item.id}-${BookingStatus.CANCELLED}`}
+            onPress={() => handleUpdateStatus(item.id, BookingStatus.CANCELLED)}
           >
-            {actionLoadingId === `status-${item.id}-CANCELLED` ? (
+            {actionLoadingId === `status-${item.id}-${BookingStatus.CANCELLED}` ? (
               <ActivityIndicator size="small" color={C.muted} />
             ) : (
               <Text style={styles.cancelLinkText}>Cancel request</Text>

@@ -43,11 +43,25 @@ for (const [schemaName, schema] of Object.entries(schemas)) {
         ['NEW', 'LIKE_NEW', 'GOOD', 'FAIR', 'POOR'].every((value) =>
           propertySchema.enum.includes(value),
         );
+      const isPreferredPickupWindowEnum =
+        propertyName === 'preferredPickupWindow' &&
+        ['MORNING', 'AFTERNOON', 'EVENING', 'FLEXIBLE'].every((value) =>
+          propertySchema.enum.includes(value),
+        );
+      const isBookingStatusEnum =
+        propertyName === 'status' &&
+        ['PENDING', 'APPROVED', 'REJECTED', 'CANCELLED', 'COMPLETED'].every((value) =>
+          propertySchema.enum.includes(value),
+        );
       const name =
         propertyName === 'verificationTier'
           ? 'VerificationTier'
           : isToolConditionEnum
             ? 'ToolCondition'
+            : isPreferredPickupWindowEnum
+              ? 'PreferredPickupWindow'
+              : isBookingStatusEnum
+                ? 'BookingStatus'
             : toConstName(`${schemaName} ${propertyName}`);
       enumMap.set(name, propertySchema.enum);
     }

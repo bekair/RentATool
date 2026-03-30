@@ -15,3 +15,18 @@ export const ToolCondition = Object.freeze({
   FAIR: 'FAIR',
   POOR: 'POOR',
 });
+
+export const PreferredPickupWindow = Object.freeze({
+  MORNING: 'MORNING',
+  AFTERNOON: 'AFTERNOON',
+  EVENING: 'EVENING',
+  FLEXIBLE: 'FLEXIBLE',
+});
+
+export const BookingStatus = Object.freeze({
+  PENDING: 'PENDING',
+  APPROVED: 'APPROVED',
+  REJECTED: 'REJECTED',
+  CANCELLED: 'CANCELLED',
+  COMPLETED: 'COMPLETED',
+});

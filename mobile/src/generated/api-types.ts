@@ -570,8 +570,18 @@ export interface components {
             /** @enum {string} */
             condition?: "NEW" | "LIKE_NEW" | "GOOD" | "FAIR" | "POOR";
         };
-        CreateBookingDto: Record<string, never>;
-        UpdateBookingStatusDto: Record<string, never>;
+        CreateBookingDto: {
+            toolId: string;
+            startDate: string;
+            endDate: string;
+            usePurposeNote: string;
+            /** @enum {string} */
+            preferredPickupWindow: "MORNING" | "AFTERNOON" | "EVENING" | "FLEXIBLE";
+        };
+        UpdateBookingStatusDto: {
+            /** @enum {string} */
+            status: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED" | "COMPLETED";
+        };
         SetDefaultPaymentMethodDto: Record<string, never>;
     };
     responses: never;

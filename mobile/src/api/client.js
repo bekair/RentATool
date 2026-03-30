@@ -61,6 +61,23 @@ export const toolsApi = {
     },
 };
 
+export const bookingsApi = {
+    getRenterBookings: async () => {
+        const response = await api.get('/bookings/renter');
+        return response.data;
+    },
+
+    getOwnerBookings: async () => {
+        const response = await api.get('/bookings/owner');
+        return response.data;
+    },
+
+    updateStatus: async (bookingId, status) => {
+        const response = await api.patch(`/bookings/${bookingId}/status`, { status });
+        return response.data;
+    },
+};
+
 export const paymentsApi = {
     getSummary: async () => {
         const response = await api.get('/payments/me/summary');
