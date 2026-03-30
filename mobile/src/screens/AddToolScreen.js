@@ -23,6 +23,7 @@ import { InputField, CategoryField, ToolConditionField } from '../components/for
 import ToolLocationSelector from '../components/location/ToolLocationSelector';
 import AppButton from '../components/ui/AppButton';
 import AppMapView from '../components/ui/AppMapView';
+import AppScreenHeader from '../components/ui/AppScreenHeader';
 
 const AddToolScreen = ({ navigation }) => {
     const insets = useSafeAreaInsets();
@@ -409,13 +410,12 @@ const AddToolScreen = ({ navigation }) => {
 
     return (
         <ThemedSafeAreaView>
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                    <Ionicons name="close" size={24} color="#ffffff" />
-                </TouchableOpacity>
-                <Text style={styles.headerTitle}>List your tool</Text>
-                <View style={{ width: 40 }} />
-            </View>
+            <AppScreenHeader
+                title="List your tool"
+                onBack={() => navigation.goBack()}
+                iconName="close"
+                right={<View style={styles.headerRightSpacer} />}
+            />
 
             <KeyboardAvoidingView
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -609,22 +609,8 @@ const AddToolScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-    header: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingHorizontal: 15,
-        paddingVertical: 10,
-        borderBottomWidth: 1,
-        borderBottomColor: '#2a2a2a',
-    },
-    headerTitle: {
-        fontSize: 16,
-        fontWeight: '700',
-        color: '#ffffff',
-    },
-    backButton: {
-        padding: 5,
+    headerRightSpacer: {
+        width: 40,
     },
     scrollContent: {
         padding: 24,

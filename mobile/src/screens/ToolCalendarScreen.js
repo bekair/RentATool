@@ -2,8 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { Calendar } from 'react-native-calendars';
 import { toolsApi } from '../api/client';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../theme';
+import AppScreenHeader from '../components/ui/AppScreenHeader';
 
 export default function ToolCalendarScreen({ route, navigation }) {
     const { theme } = useTheme();
@@ -177,13 +177,13 @@ export default function ToolCalendarScreen({ route, navigation }) {
 
     return (
         <View style={[styles.container, { backgroundColor: theme.colors.bg }]}>
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                    <MaterialCommunityIcons name="arrow-left" size={24} color="#fff" />
-                </TouchableOpacity>
-                <Text style={styles.title}>Manage Availability</Text>
-                <View style={{ width: 40 }} />
-            </View>
+            <AppScreenHeader
+                title="Manage Availability"
+                onBack={() => navigation.goBack()}
+                iconColor="#fff"
+                style={styles.header}
+                right={<View style={styles.headerRightSpacer} />}
+            />
 
             <View style={styles.toolInfo}>
                 <Text style={styles.toolName}>{toolItem.name}</Text>
@@ -258,22 +258,12 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: 20,
         paddingTop: 60,
         paddingBottom: 20,
         backgroundColor: '#1a1a1a',
     },
-    backButton: {
-        padding: 8,
-        marginLeft: -8,
-    },
-    title: {
-        fontSize: 18,
-        fontWeight: '700',
-        color: '#fff',
+    headerRightSpacer: {
+        width: 40,
     },
     toolInfo: {
         padding: 20,

@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import ThemedSafeAreaView from '../components/layout/ThemedSafeAreaView';
 import { Ionicons } from '@expo/vector-icons';
+import AppScreenHeader from '../components/ui/AppScreenHeader';
 import * as WebBrowser from 'expo-web-browser';
 
 export default function LegalScreen({ navigation }) {
@@ -41,14 +42,7 @@ export default function LegalScreen({ navigation }) {
 
     return (
         <ThemedSafeAreaView>
-            {/* Header */}
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                    <Ionicons name="arrow-back" size={24} color="#fff" />
-                </TouchableOpacity>
-                <Text style={styles.headerTitle}>Legal</Text>
-                <View style={{ width: 34 }} />
-            </View>
+            <AppScreenHeader title="Legal" onBack={() => navigation.goBack()} style={styles.headerSpacing} />
 
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
                 <View style={styles.menuContainer}>
@@ -60,22 +54,8 @@ export default function LegalScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-    header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: 20,
-        paddingTop: 10,
+    headerSpacing: {
         paddingBottom: 20,
-    },
-    backButton: {
-        padding: 5,
-        marginLeft: -5,
-    },
-    headerTitle: {
-        fontSize: 18,
-        fontWeight: '700',
-        color: '#fff',
     },
     scrollContent: {
         paddingHorizontal: 20,

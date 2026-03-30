@@ -10,6 +10,7 @@ import {
 import ThemedSafeAreaView from '../components/layout/ThemedSafeAreaView';
 import { Ionicons } from '@expo/vector-icons';
 import AppButton from '../components/ui/AppButton';
+import AppScreenHeader from '../components/ui/AppScreenHeader';
 
 const FAQ_ITEMS = [
     {
@@ -74,18 +75,18 @@ export default function HelpScreen({ navigation }) {
 
     return (
         <ThemedSafeAreaView>
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                    <Ionicons name="arrow-back" size={24} color="#fff" />
-                </TouchableOpacity>
-                <Text style={styles.headerTitle}>Help</Text>
-                <TouchableOpacity
-                    style={styles.headerIconButton}
-                    onPress={() => navigation.navigate('Legal')}
-                >
-                    <Ionicons name="document-text-outline" size={18} color="#c4b5fd" />
-                </TouchableOpacity>
-            </View>
+            <AppScreenHeader
+                title="Help"
+                onBack={() => navigation.goBack()}
+                right={(
+                    <TouchableOpacity
+                        style={styles.headerIconButton}
+                        onPress={() => navigation.navigate('Legal')}
+                    >
+                        <Ionicons name="document-text-outline" size={18} color="#c4b5fd" />
+                    </TouchableOpacity>
+                )}
+            />
 
             <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
                 <View style={styles.heroCard}>
@@ -156,23 +157,6 @@ export default function HelpScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-    header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: 20,
-        paddingTop: 10,
-        paddingBottom: 12,
-    },
-    backButton: {
-        padding: 5,
-        marginLeft: -5,
-    },
-    headerTitle: {
-        fontSize: 18,
-        fontWeight: '700',
-        color: '#fff',
-    },
     headerIconButton: {
         width: 34,
         height: 34,

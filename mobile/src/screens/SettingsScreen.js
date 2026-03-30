@@ -15,6 +15,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { getAppSettings, updateAppSettings } from '../services/appSettingsService';
 import { useTheme } from '../theme';
+import AppScreenHeader from '../components/ui/AppScreenHeader';
 
 const PUSH_NOTIFICATION_ITEMS = [
     {
@@ -230,14 +231,7 @@ export default function SettingsScreen({ navigation }) {
 
     return (
         <ThemedSafeAreaView>
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                    <Ionicons name="arrow-back" size={24} color={theme.colors.textPrimary} />
-                </TouchableOpacity>
-                <Text style={styles.headerTitle}>Settings</Text>
-                <View style={styles.headerRightSpacer} />
-            </View>
-
+            <AppScreenHeader title="Settings" onBack={() => navigation.goBack()} />
             {loading ? (
                 <View style={styles.loadingWrap}>
                     <ActivityIndicator size="large" color={theme.colors.accent} />
@@ -450,27 +444,7 @@ export default function SettingsScreen({ navigation }) {
     );
 }
 
-const createStyles = (theme) => StyleSheet.create({
-    header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: 20,
-        paddingTop: 10,
-        paddingBottom: 12,
-    },
-    backButton: {
-        padding: 5,
-        marginLeft: -5,
-    },
-    headerTitle: {
-        fontSize: 18,
-        fontWeight: '700',
-        color: theme.colors.textPrimary,
-    },
-    headerRightSpacer: {
-        width: 34,
-    },
+const createStyles = (theme) => StyleSheet.create({
     loadingWrap: {
         flex: 1,
         alignItems: 'center',

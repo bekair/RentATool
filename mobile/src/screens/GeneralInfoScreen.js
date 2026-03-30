@@ -16,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/client';
 import { InputField, CountryField, DateField } from '../components/form';
+import AppScreenHeader from '../components/ui/AppScreenHeader';
 
 
 export default function GeneralInfoScreen({ navigation }) {
@@ -70,26 +71,25 @@ export default function GeneralInfoScreen({ navigation }) {
 
     return (
         <ThemedSafeAreaView>
-            {/* Header */}
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                    <Ionicons name="arrow-back" size={24} color="#fff" />
-                </TouchableOpacity>
-                <Text style={styles.headerTitle}>General Information</Text>
-                <TouchableOpacity
-                    onPress={isEditing ? handleSave : () => setIsEditing(true)}
-                    disabled={loading || (isEditing && !isFormValid)}
-                    style={[styles.saveButton, (isEditing && !isFormValid) && { opacity: 0.4 }]}
-                >
-                    {loading ? (
-                        <ActivityIndicator size="small" color="#6366f1" />
-                    ) : (
-                        <Text style={[styles.saveButtonText, (isEditing && !isFormValid) && { color: '#444' }]}>
-                            {isEditing ? 'Save' : 'Edit'}
-                        </Text>
-                    )}
-                </TouchableOpacity>
-            </View>
+            <AppScreenHeader
+                title="General Information"
+                onBack={() => navigation.goBack()}
+                right={(
+                    <TouchableOpacity
+                        onPress={isEditing ? handleSave : () => setIsEditing(true)}
+                        disabled={loading || (isEditing && !isFormValid)}
+                        style={[styles.saveButton, (isEditing && !isFormValid) && { opacity: 0.4 }]}
+                    >
+                        {loading ? (
+                            <ActivityIndicator size="small" color="#6366f1" />
+                        ) : (
+                            <Text style={[styles.saveButtonText, (isEditing && !isFormValid) && { color: '#444' }]}>
+                                {isEditing ? 'Save' : 'Edit'}
+                            </Text>
+                        )}
+                    </TouchableOpacity>
+                )}
+            />
 
             <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : null}>
                 <ScrollView
@@ -158,17 +158,6 @@ export default function GeneralInfoScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-    header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: 20,
-        paddingVertical: 15,
-        borderBottomWidth: 1,
-        borderBottomColor: '#1a1a1a',
-    },
-    backButton: { padding: 5, marginLeft: -5 },
-    headerTitle: { fontSize: 18, fontWeight: '700', color: '#fff' },
     saveButton: { padding: 5 },
     saveButtonText: { fontSize: 16, fontWeight: '600', color: '#6366f1' },
 

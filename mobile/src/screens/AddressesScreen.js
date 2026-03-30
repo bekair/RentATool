@@ -21,6 +21,7 @@ import MapView from 'react-native-maps';
 import * as Location from 'expo-location';
 import { useAuth } from '../context/AuthContext';
 import { InputField, CountryField } from '../components/form';
+import AppScreenHeader from '../components/ui/AppScreenHeader';
 import api from '../api/client';
 import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
 import Constants from 'expo-constants';
@@ -468,14 +469,7 @@ export default function AddressesScreen({ navigation }) {
 
     return (
         <ThemedSafeAreaView>
-            {/* Header */}
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                    <Ionicons name="arrow-back" size={24} color="#fff" />
-                </TouchableOpacity>
-                <Text style={styles.headerTitle}>Addresses</Text>
-                <View style={{ width: 34 }} />
-            </View>
+            <AppScreenHeader title="Addresses" onBack={() => navigation.goBack()} />
 
             <ScrollView
                 showsVerticalScrollIndicator={false}
@@ -812,13 +806,6 @@ export default function AddressesScreen({ navigation }) {
 
 // ─── Stylesheet ───────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-    header: {
-        flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-        paddingHorizontal: 20, paddingVertical: 15,
-        borderBottomWidth: 1, borderBottomColor: '#1a1a1a',
-    },
-    backButton: { padding: 5, marginLeft: -5 },
-    headerTitle: { fontSize: 18, fontWeight: '700', color: '#fff' },
     scrollContent: { paddingHorizontal: 16, paddingTop: 20, paddingBottom: 50 },
 
     emptyState: { alignItems: 'center', paddingVertical: 60, paddingHorizontal: 30 },

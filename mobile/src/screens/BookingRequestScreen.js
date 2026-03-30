@@ -14,6 +14,7 @@ import { Ionicons } from "@expo/vector-icons";
 import api, { toolsApi } from "../api/client";
 import AppButton from "../components/ui/AppButton";
 import InputField from "../components/form/InputField";
+import AppScreenHeader from '../components/ui/AppScreenHeader';
 
 const PICKUP_WINDOWS = [
   { value: "MORNING", label: "Morning" },
@@ -244,16 +245,13 @@ export default function BookingRequestScreen({ route, navigation }) {
 
   return (
     <ThemedSafeAreaView>
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.headerBtn}
-          onPress={() => navigation.goBack()}
-        >
-          <Ionicons name="arrow-back" size={22} color={C.text} />
-        </TouchableOpacity>
-        <Text style={styles.title}>Request reservation</Text>
-        <View style={styles.headerBtn} />
-      </View>
+      <AppScreenHeader
+        title="Request reservation"
+        onBack={() => navigation.goBack()}
+        iconColor={C.text}
+        style={styles.header}
+        right={<View style={styles.headerBtn} />}
+      />
 
       <ScrollView
         style={styles.scroll}
@@ -388,10 +386,6 @@ const styles = StyleSheet.create({
     backgroundColor: C.bg,
   },
   header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
     paddingVertical: 14,
     borderBottomWidth: 1,
     borderBottomColor: C.border,
@@ -399,13 +393,6 @@ const styles = StyleSheet.create({
   },
   headerBtn: {
     width: 28,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  title: {
-    color: C.text,
-    fontSize: 18,
-    fontWeight: "700",
   },
   scroll: {
     flex: 1,

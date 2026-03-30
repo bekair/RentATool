@@ -17,6 +17,7 @@ import * as WebBrowser from 'expo-web-browser';
 import { paymentsApi } from '../api/client';
 import CardBrandMark from '../components/payments/CardBrandMark';
 import AppButton from '../components/ui/AppButton';
+import AppScreenHeader from '../components/ui/AppScreenHeader';
 import { formatCardExpiry, formatCardMainLabel } from '../utils/paymentCards';
 
 const PAYMENT_DETAILS_DEEP_LINK = 'shareatool://payment-details';
@@ -265,13 +266,7 @@ export default function PaymentDetailsScreen({ navigation }) {
 
     return (
         <ThemedSafeAreaView>
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                    <Ionicons name="arrow-back" size={24} color="#fff" />
-                </TouchableOpacity>
-                <Text style={styles.headerTitle}>Payment Details</Text>
-                <View style={styles.headerRightSpacer} />
-            </View>
+            <AppScreenHeader title="Payment Details" onBack={() => navigation.goBack()} />
             {refreshing && (
                 <View style={styles.topLoader}>
                     <ActivityIndicator size="small" color="#6366f1" />
@@ -405,30 +400,10 @@ export default function PaymentDetailsScreen({ navigation }) {
     );
 }
 
-const styles = StyleSheet.create({
-    header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: 20,
-        paddingTop: 10,
-        paddingBottom: 12,
-    },
-    backButton: {
-        padding: 5,
-        marginLeft: -5,
-    },
-    headerRightSpacer: {
-        width: 34,
-    },
+const styles = StyleSheet.create({
     topLoader: {
         paddingVertical: 10,
         alignItems: 'center',
-    },
-    headerTitle: {
-        fontSize: 18,
-        fontWeight: '700',
-        color: '#fff',
     },
     loadingWrap: {
         flex: 1,

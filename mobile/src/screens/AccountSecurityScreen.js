@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import ThemedSafeAreaView from '../components/layout/ThemedSafeAreaView';
 import { Ionicons } from '@expo/vector-icons';
+import AppScreenHeader from '../components/ui/AppScreenHeader';
 
 export default function AccountSecurityScreen({ navigation }) {
     const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -21,13 +22,7 @@ export default function AccountSecurityScreen({ navigation }) {
 
     return (
         <ThemedSafeAreaView>
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                    <Ionicons name="arrow-back" size={24} color="#fff" />
-                </TouchableOpacity>
-                <Text style={styles.headerTitle}>Account Security</Text>
-                <View style={{ width: 34 }} />
-            </View>
+            <AppScreenHeader title="Account Security" onBack={() => navigation.goBack()} />
 
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
                 <View style={styles.card}>
@@ -81,13 +76,6 @@ export default function AccountSecurityScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-    header: {
-        flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-        paddingHorizontal: 20, paddingVertical: 15,
-        borderBottomWidth: 1, borderBottomColor: '#1a1a1a',
-    },
-    backButton: { padding: 5, marginLeft: -5 },
-    headerTitle: { fontSize: 18, fontWeight: '700', color: '#fff' },
     scrollContent: { padding: 20, paddingBottom: 40 },
     card: {
         backgroundColor: '#161616', borderRadius: 12, borderWidth: 1,

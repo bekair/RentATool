@@ -22,6 +22,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { CategoryField, ToolConditionField } from '../components/form';
 import ToolLocationSelector from '../components/location/ToolLocationSelector';
 import AppMapView from '../components/ui/AppMapView';
+import AppScreenHeader from '../components/ui/AppScreenHeader';
 import { isValidToolCondition } from '../constants/toolConditions';
 
 const EditToolScreen = ({ route, navigation }) => {
@@ -413,13 +414,12 @@ const EditToolScreen = ({ route, navigation }) => {
 
     return (
         <ThemedSafeAreaView>
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                    <Ionicons name="close" size={24} color="#ffffff" />
-                </TouchableOpacity>
-                <Text style={styles.headerTitle}>Edit your tool</Text>
-                <View style={{ width: 40 }} />
-            </View>
+            <AppScreenHeader
+                title="Edit your tool"
+                onBack={() => navigation.goBack()}
+                iconName="close"
+                right={<View style={styles.headerRightSpacer} />}
+            />
 
             <KeyboardAvoidingView
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -624,22 +624,8 @@ const EditToolScreen = ({ route, navigation }) => {
 };
 
 const styles = StyleSheet.create({
-    header: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingHorizontal: 15,
-        paddingVertical: 10,
-        borderBottomWidth: 1,
-        borderBottomColor: '#2a2a2a',
-    },
-    headerTitle: {
-        fontSize: 16,
-        fontWeight: '700',
-        color: '#ffffff',
-    },
-    backButton: {
-        padding: 5,
+    headerRightSpacer: {
+        width: 40,
     },
     scrollContent: {
         padding: 24,
