@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { RESOLVED_THEMES } from '../theme';
+import { THEME_MODES } from '../theme/themes';
 
 const APP_SETTINGS_STORAGE_KEY = 'app_settings_v1';
 
@@ -13,7 +13,7 @@ export const defaultAppSettings = {
     pushNotifications: { ...defaultPushNotifications },
     emailUpdatesEnabled: true,
     biometricLockEnabled: false,
-    themeMode: RESOLVED_THEMES.DARK,
+    themeMode: THEME_MODES.DARK,
 };
 
 function resolveLegacyNotificationsEnabled(value) {

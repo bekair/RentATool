@@ -1,0 +1,102 @@
+import { StyleSheet } from 'react-native';
+
+export default function createStyles(theme) {
+    return StyleSheet.create({
+        scrollContent: { padding: 20, paddingBottom: 40 },
+        card: {
+            backgroundColor: theme.colors.surface,
+            borderRadius: 12,
+            borderWidth: 1,
+            borderColor: theme.colors.border,
+            overflow: 'hidden',
+            marginBottom: 15,
+        },
+        actionRow: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: 16,
+        },
+        actionRowLeft: { flexDirection: 'row', alignItems: 'center' },
+        actionIcon: { marginRight: 12 },
+        actionText: { fontSize: 16, color: theme.colors.textSecondary },
+        helpText: {
+            fontSize: 13,
+            color: theme.colors.textMuted,
+            marginTop: 8,
+            paddingHorizontal: 5,
+            lineHeight: 18,
+        },
+        modalOverlay: {
+            flex: 1,
+            backgroundColor: theme.colors.modalBackdrop,
+            justifyContent: 'center',
+            alignItems: 'center',
+            paddingHorizontal: 28,
+        },
+        modalCard: {
+            width: '100%',
+            backgroundColor: theme.colors.modalSurface,
+            borderRadius: 20,
+            padding: 28,
+            alignItems: 'center',
+            borderWidth: 1,
+            borderColor: theme.colors.border,
+        },
+        modalIconWrapper: {
+            width: 60,
+            height: 60,
+            borderRadius: 30,
+            backgroundColor: theme.colors.accentSurface,
+            justifyContent: 'center',
+            alignItems: 'center',
+            marginBottom: 16,
+            borderWidth: 1,
+            borderColor: theme.colors.accent,
+        },
+        modalTitle: {
+            fontSize: 20,
+            fontWeight: '700',
+            color: theme.colors.textPrimary,
+            marginBottom: 10,
+        },
+        modalMessage: {
+            fontSize: 14,
+            color: theme.colors.textMuted,
+            textAlign: 'center',
+            lineHeight: 22,
+            marginBottom: 28,
+        },
+        modalButtons: {
+            flexDirection: 'row',
+            gap: 12,
+            width: '100%',
+        },
+        cancelButton: {
+            flex: 1,
+            paddingVertical: 14,
+            borderRadius: 12,
+            alignItems: 'center',
+            backgroundColor: theme.colors.surfaceAlt,
+            borderWidth: 1,
+            borderColor: theme.colors.borderStrong,
+        },
+        cancelButtonText: {
+            fontSize: 15,
+            fontWeight: '600',
+            color: theme.colors.textMuted,
+        },
+        sendButton: {
+            flex: 1,
+            paddingVertical: 14,
+            borderRadius: 12,
+            alignItems: 'center',
+            backgroundColor: theme.colors.buttonPrimary,
+        },
+        sendButtonText: {
+            fontSize: 15,
+            fontWeight: '600',
+            color: theme.colors.buttonPrimaryText,
+        },
+    });
+}

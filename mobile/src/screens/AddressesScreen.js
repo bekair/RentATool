@@ -862,6 +862,10 @@ const cardStyles = StyleSheet.create({
 });
 
 const modal = StyleSheet.create({
+    container: {
+        flex: 1,
+        backgroundColor: '#0a0a0a',
+    },
     header: {
         flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
         paddingHorizontal: 20, paddingVertical: 14,

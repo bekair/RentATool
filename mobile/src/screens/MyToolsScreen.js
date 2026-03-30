@@ -12,6 +12,7 @@ import {
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../api/client';
+import ThemedSafeAreaView from '../components/layout/ThemedSafeAreaView';
 
 const MyToolsScreen = ({ navigation }) => {
     const [tools, setTools] = useState([]);
