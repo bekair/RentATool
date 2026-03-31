@@ -15,6 +15,12 @@ export class ToolsService {
     private countriesService: CountriesService,
   ) {}
 
+  private getTodayUtc(): Date {
+    const todayUtc = new Date();
+    todayUtc.setUTCHours(0, 0, 0, 0);
+    return todayUtc;
+  }
+
   async create(ownerId: string, createToolDto: CreateToolDto): Promise<any> {
     const {
       name,
@@ -144,6 +150,8 @@ export class ToolsService {
   }
 
   async findOne(id: string): Promise<any> {
+    const todayUtc = this.getTodayUtc();
+
     const tool = await this.prisma.tool.findUnique({
       where: { id },
       include: {
@@ -161,7 +169,11 @@ export class ToolsService {
             address: true,
           },
         },
-        blocks: true,
+        blocks: {
+          where: {
+            date: { gte: todayUtc },
+          },
+        },
       },
     });
 
@@ -183,6 +195,8 @@ export class ToolsService {
   }
 
   async findByOwner(ownerId: string): Promise<any[]> {
+    const todayUtc = this.getTodayUtc();
+
     const tools = await this.prisma.tool.findMany({
       where: { ownerId },
       include: {
@@ -192,7 +206,11 @@ export class ToolsService {
             address: true,
           },
         },
-        blocks: true,
+        blocks: {
+          where: {
+            date: { gte: todayUtc },
+          },
+        },
       },
     });
 
@@ -318,8 +336,7 @@ export class ToolsService {
   }
 
   async getAvailability(id: string) {
-    const today = new Date();
-    today.setUTCHours(0, 0, 0, 0);
+    const today = this.getTodayUtc();
 
     const tool = await this.prisma.tool.findUnique({
       where: { id },
@@ -383,8 +400,7 @@ export class ToolsService {
       );
     }
 
-    const todayDate = new Date();
-    todayDate.setUTCHours(0, 0, 0, 0);
+    const todayDate = this.getTodayUtc();
     const todayString = todayDate.toISOString().split('T')[0];
 
     // 1. Past dates restriction

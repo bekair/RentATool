@@ -53,10 +53,15 @@ const EditToolScreen = ({ route, navigation }) => {
     const [manualBlockedDates, setManualBlockedDates] = useState(() => {
         const blocks = tool.blocks || [];
         const initialSet = new Set();
+        const today = new Date();
+        today.setUTCHours(0, 0, 0, 0);
+
         blocks.forEach(block => {
             if (block.date) {
                 const dateObj = new Date(block.date);
-                initialSet.add(dateObj.toISOString().split('T')[0]);
+                if (dateObj >= today) {
+                    initialSet.add(dateObj.toISOString().split('T')[0]);
+                }
             }
         });
         return initialSet;
@@ -378,6 +383,10 @@ const EditToolScreen = ({ route, navigation }) => {
 
         setLoading(true);
         try {
+            const futureBlockedDates = Array.from(manualBlockedDates).filter(
+                (date) => date >= todayString,
+            );
+
             await api.patch(`/tools/${tool.id}`, {
                 name,
                 categoryId: selectedCategory.id,
@@ -398,7 +407,7 @@ const EditToolScreen = ({ route, navigation }) => {
 
             // If user selected any calendar dates, patch them immediately
             await api.patch(`/tools/${tool.id}/availability`, {
-                manualBlockedDates: Array.from(manualBlockedDates)
+                manualBlockedDates: futureBlockedDates,
             });
 
             Alert.alert('Success!', 'Your tool has been updated.', [
