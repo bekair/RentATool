@@ -442,27 +442,6 @@ export class ToolsService {
     return this.getAvailability(id);
   }
 
-  async cleanupPastDateBlocks(): Promise<{
-    deletedCount: number;
-    cutoff: string;
-  }> {
-    const todayUtc = new Date();
-    todayUtc.setUTCHours(0, 0, 0, 0);
-
-    const deleted = await this.prisma.toolDateBlock.deleteMany({
-      where: {
-        date: {
-          lt: todayUtc,
-        },
-      },
-    });
-
-    return {
-      deletedCount: deleted.count,
-      cutoff: todayUtc.toISOString().slice(0, 10),
-    };
-  }
-
   private currencyForCountry(countryCode: string): string | null {
     const byCountry: Record<string, string> = {
       BE: 'eur',

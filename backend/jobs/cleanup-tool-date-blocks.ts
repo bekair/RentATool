@@ -1,15 +1,15 @@
 import { NestFactory } from '@nestjs/core';
-import { AppModule } from '../src/app.module';
-import { ToolsService } from '../src/tools/tools.service';
+import { JobsModule } from '../src/jobs/jobs.module';
+import { ToolDateBlocksCleanupService } from '../src/jobs/tool-date-blocks-cleanup.service';
 
 async function main(): Promise<void> {
-  const app = await NestFactory.createApplicationContext(AppModule, {
+  const app = await NestFactory.createApplicationContext(JobsModule, {
     logger: ['error', 'warn'],
   });
 
   try {
-    const toolsService = app.get(ToolsService);
-    const result = await toolsService.cleanupPastDateBlocks();
+    const cleanupService = app.get(ToolDateBlocksCleanupService);
+    const result = await cleanupService.cleanupPastDateBlocks();
 
     console.log(
       `[cleanup-tool-date-blocks] deleted=${result.deletedCount} cutoff=${result.cutoff} (UTC)`,
