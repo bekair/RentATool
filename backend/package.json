@@ -8,6 +8,7 @@
   "scripts": {
     "build": "npx nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
+    "job:cleanup:tool-date-blocks": "node ./node_modules/ts-node/dist/bin.js --project tsconfig.json jobs/cleanup-tool-date-blocks.ts",
     "openapi:generate": "node ./node_modules/ts-node/dist/bin.js --project tsconfig.json scripts/generate-openapi.ts",
     "start": "nest start",
     "start:dev": "nest start --watch",
