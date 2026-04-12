@@ -29,6 +29,13 @@ import styles from './EditToolScreen.styles';
 const EditToolScreen = ({ route, navigation }) => {
     const { tool } = route.params;
     const insets = useSafeAreaInsets();
+    const initialToolAddress = tool.address
+        ? {
+            street: tool.address.street || '',
+            city: tool.address.city || '',
+            country: tool.address.country || '',
+        }
+        : null;
     const [name, setName] = useState(tool.name || '');
     const [selectedCategory, setSelectedCategory] = useState(tool.category || null);
     const [description, setDescription] = useState(tool.description || '');
@@ -37,12 +44,12 @@ const EditToolScreen = ({ route, navigation }) => {
     const [condition, setCondition] = useState(tool.condition || '');
     const [latitude, setLatitude] = useState(tool.latitude || null);
     const [longitude, setLongitude] = useState(tool.longitude || null);
-    const [locationAddress, setLocationAddress] = useState(null); // { street, city, country }
+    const [locationAddress, setLocationAddress] = useState(initialToolAddress); // { street, city, country }
     const [tempCoords, setTempCoords] = useState(null);
     const [showMapModal, setShowMapModal] = useState(false);
     const [locationLoading, setLocationLoading] = useState(false);
     const [loading, setLoading] = useState(false);
-    const [locationSource, setLocationSource] = useState('map');
+    const [locationSource, setLocationSource] = useState('savedAddress');
     const [savedAddresses, setSavedAddresses] = useState([]);
     const [savedAddressesLoading, setSavedAddressesLoading] = useState(false);
     const [selectedSavedAddressId, setSelectedSavedAddressId] = useState(null);
@@ -79,29 +86,16 @@ const EditToolScreen = ({ route, navigation }) => {
 
     const hydrateSavedAddresses = useCallback((addresses) => {
         const fallbackAddress = addresses.find((address) => address.isDefault) || addresses[0] || null;
-        const hasToolLocation =
-            Number.isFinite(Number(tool.latitude)) && Number.isFinite(Number(tool.longitude));
-        const matchingSavedAddress = hasToolLocation
-            ? addresses.find((address) => {
-                const savedLatitude = Number(address.latitude);
-                const savedLongitude = Number(address.longitude);
-                if (!Number.isFinite(savedLatitude) || !Number.isFinite(savedLongitude)) {
-                    return false;
-                }
-
-                return (
-                    Math.abs(savedLatitude - Number(tool.latitude)) < 0.00001 &&
-                    Math.abs(savedLongitude - Number(tool.longitude)) < 0.00001
-                );
-            }) || null
-            : null;
 
         setSavedAddresses(addresses);
-        setSelectedSavedAddressId((currentId) => {
-            if (!hasInitializedSavedLocationRef.current) {
-                return matchingSavedAddress?.id || null;
-            }
+        if (!hasInitializedSavedLocationRef.current) {
+            hasInitializedSavedLocationRef.current = true;
+            setSelectedSavedAddressId(null);
+            setLocationSource(fallbackAddress ? 'savedAddress' : 'map');
+            return;
+        }
 
+        setSelectedSavedAddressId((currentId) => {
             if (currentId === null) {
                 return null;
             }
@@ -110,22 +104,14 @@ const EditToolScreen = ({ route, navigation }) => {
                 return currentId;
             }
 
-            return fallbackAddress?.id || null;
+            return null;
         });
-        setLocationSource((currentSource) => {
-            if (!hasInitializedSavedLocationRef.current) {
-                hasInitializedSavedLocationRef.current = true;
-                if (matchingSavedAddress) {
-                    return 'savedAddress';
-                }
 
-                return hasToolLocation ? 'map' : fallbackAddress ? 'savedAddress' : 'map';
-            }
-            if (!fallbackAddress && currentSource === 'savedAddress') {
-                return 'map';
-            }
-            return currentSource;
-        });
+        if (!fallbackAddress) {
+            setLocationSource((currentSource) =>
+                currentSource === 'savedAddress' ? 'map' : currentSource,
+            );
+        }
     }, []);
 
     const loadSavedAddresses = useCallback(async () => {
@@ -147,7 +133,7 @@ const EditToolScreen = ({ route, navigation }) => {
     );
 
     useEffect(() => {
-        if (latitude && longitude) {
+        if (latitude && longitude && !locationAddress?.country) {
             Location.reverseGeocodeAsync({ latitude, longitude })
                 .then(([result]) => {
                     if (result) {
@@ -167,7 +153,7 @@ const EditToolScreen = ({ route, navigation }) => {
                     });
                 });
         }
-    }, []);
+    }, [latitude, longitude, locationAddress?.country]);
 
     const handleDayPress = (day) => {
         const dateString = day.dateString;
@@ -319,8 +305,16 @@ const EditToolScreen = ({ route, navigation }) => {
             return;
         }
 
-        const usingSavedAddress = locationSource === 'savedAddress';
+        const hasSavedSelection = Boolean(selectedSavedAddress);
+        const hasMapSelection = latitude != null && longitude != null;
+        const usingSavedAddress = hasSavedSelection;
+        const currentAddress = tool.address || {};
         let resolvedLocation = null;
+
+        if (!hasSavedSelection && !hasMapSelection) {
+            Alert.alert('Location Missing', 'Please choose a saved address or pin a map location.');
+            return;
+        }
 
         if (usingSavedAddress) {
             if (!selectedSavedAddress) {
@@ -360,10 +354,6 @@ const EditToolScreen = ({ route, navigation }) => {
                 country: selectedSavedAddress.country || undefined,
             };
         } else {
-            if (latitude == null || longitude == null) {
-                Alert.alert('Location Missing', 'Please select where the tool is located on the map.');
-                return;
-            }
             if (!locationAddress?.country) {
                 Alert.alert('Country Missing', 'Please pick a location with a valid country before updating.');
                 return;
@@ -371,44 +361,110 @@ const EditToolScreen = ({ route, navigation }) => {
             resolvedLocation = {
                 latitude,
                 longitude,
-                label: 'Tool Location',
+                label: currentAddress.label ?? undefined,
                 street: locationAddress?.street || undefined,
-                addressLine2: undefined,
+                addressLine2: currentAddress.addressLine2 ?? undefined,
                 city: locationAddress?.city || undefined,
-                state: undefined,
-                postalCode: undefined,
+                state: currentAddress.state ?? undefined,
+                postalCode: currentAddress.postalCode ?? undefined,
                 country: locationAddress?.country || undefined,
             };
         }
 
+        const isSameNumber = (a, b) => {
+            const n1 = Number(a);
+            const n2 = Number(b);
+            if (!Number.isFinite(n1) && !Number.isFinite(n2)) {
+                return true;
+            }
+            if (!Number.isFinite(n1) || !Number.isFinite(n2)) {
+                return false;
+            }
+            return Math.abs(n1 - n2) < 0.000001;
+        };
+
+        const isSameText = (a, b) => (a ?? '') === (b ?? '');
+        const nextPricePerDay = parseFloat(price);
+        const nextReplacementValue = replacementValue ? parseFloat(replacementValue) : undefined;
+        const currentReplacementValue = tool.replacementValue ?? undefined;
+
+        const toolPayload = {};
+
+        if (!isSameText(name, tool.name)) {
+            toolPayload.name = name;
+        }
+        if (selectedCategory?.id && selectedCategory.id !== tool.categoryId) {
+            toolPayload.categoryId = selectedCategory.id;
+        }
+        if (!isSameText(description, tool.description)) {
+            toolPayload.description = description;
+        }
+        if (!isSameNumber(nextPricePerDay, tool.pricePerDay)) {
+            toolPayload.pricePerDay = nextPricePerDay;
+        }
+        if (!isSameNumber(nextReplacementValue, currentReplacementValue)) {
+            toolPayload.replacementValue = nextReplacementValue;
+        }
+        if (!isSameText(condition, tool.condition)) {
+            toolPayload.condition = condition;
+        }
+
+        const hasLocationChanges =
+            !isSameNumber(resolvedLocation.latitude, tool.latitude) ||
+            !isSameNumber(resolvedLocation.longitude, tool.longitude) ||
+            !isSameText(resolvedLocation.label, currentAddress.label) ||
+            !isSameText(resolvedLocation.street, currentAddress.street) ||
+            !isSameText(resolvedLocation.addressLine2, currentAddress.addressLine2) ||
+            !isSameText(resolvedLocation.city, currentAddress.city) ||
+            !isSameText(resolvedLocation.state, currentAddress.state) ||
+            !isSameText(resolvedLocation.postalCode, currentAddress.postalCode) ||
+            !isSameText(resolvedLocation.country, currentAddress.country);
+
+        if (hasLocationChanges) {
+            toolPayload.latitude = resolvedLocation.latitude;
+            toolPayload.longitude = resolvedLocation.longitude;
+            toolPayload.label = resolvedLocation.label;
+            toolPayload.street = resolvedLocation.street;
+            toolPayload.addressLine2 = resolvedLocation.addressLine2;
+            toolPayload.city = resolvedLocation.city;
+            toolPayload.state = resolvedLocation.state;
+            toolPayload.postalCode = resolvedLocation.postalCode;
+            toolPayload.country = resolvedLocation.country;
+        }
+
+        const futureBlockedDates = Array.from(manualBlockedDates)
+            .filter((date) => date >= todayString)
+            .sort();
+        const initialFutureBlockedDates = Array.from(
+            new Set(
+                (tool.blocks || [])
+                    .map((block) =>
+                        block?.date ? new Date(block.date).toISOString().split('T')[0] : null,
+                    )
+                    .filter((date) => date && date >= todayString),
+            ),
+        ).sort();
+        const hasAvailabilityChanges =
+            futureBlockedDates.length !== initialFutureBlockedDates.length ||
+            futureBlockedDates.some((date, index) => date !== initialFutureBlockedDates[index]);
+        const hasToolChanges = Object.keys(toolPayload).length > 0;
+
+        if (!hasToolChanges && !hasAvailabilityChanges) {
+            Alert.alert('No Changes', 'Nothing changed, so there is nothing to save.');
+            return;
+        }
+
         setLoading(true);
         try {
-            const futureBlockedDates = Array.from(manualBlockedDates).filter(
-                (date) => date >= todayString,
-            );
+            if (hasToolChanges) {
+                await api.patch(`/tools/${tool.id}`, toolPayload);
+            }
 
-            await api.patch(`/tools/${tool.id}`, {
-                name,
-                categoryId: selectedCategory.id,
-                description,
-                pricePerDay: parseFloat(price),
-                replacementValue: replacementValue ? parseFloat(replacementValue) : undefined,
-                condition,
-                latitude: resolvedLocation.latitude,
-                longitude: resolvedLocation.longitude,
-                label: resolvedLocation.label,
-                street: resolvedLocation.street,
-                addressLine2: resolvedLocation.addressLine2,
-                city: resolvedLocation.city,
-                state: resolvedLocation.state,
-                postalCode: resolvedLocation.postalCode,
-                country: resolvedLocation.country,
-            });
-
-            // If user selected any calendar dates, patch them immediately
-            await api.patch(`/tools/${tool.id}/availability`, {
-                manualBlockedDates: futureBlockedDates,
-            });
+            if (hasAvailabilityChanges) {
+                await api.patch(`/tools/${tool.id}/availability`, {
+                    manualBlockedDates: futureBlockedDates,
+                });
+            }
 
             Alert.alert('Success!', 'Your tool has been updated.', [
                 { text: 'Great!', onPress: () => navigation.goBack() }

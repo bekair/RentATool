@@ -73,12 +73,13 @@ export default function ToolLocationSelector({
     const mapIsActive = mapLocation.latitude != null && mapLocation.longitude != null;
 
     const selectedSource = useMemo(() => {
-        if (mapIsActive) {
-            return 'map';
-        }
-
+        // Shared "Selected location" state: independent from active tab.
         if (selectedSavedAddress) {
             return 'savedAddress';
+        }
+
+        if (mapIsActive) {
+            return 'map';
         }
 
         return null;
