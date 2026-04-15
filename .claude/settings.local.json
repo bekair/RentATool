@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(for dir in \"C:\\\\Users\\\\bcbso\\\\Repos\\\\Own Repos\\\\rent_a_tool\\\\.codex/skills\"/*/)",
+      "Bash(do echo \"=== $dir ===\")",
+      "Read(//c/Users/bcbso/Repos/Own Repos/rent_a_tool/**)",
+      "Bash(done)",
+      "Bash(where claude)",
+      "Bash(claude --version)",
+      "Bash(npx claude-mem --help)",
+      "Bash(npx claude-mem install --ide claude-code)",
+      "Bash(claude update)",
+      "WebFetch(domain:github.com)",
+      "Bash(npx claude-mem start)",
+      "Bash(npx claude-mem status)"
+    ]
+  }
+}
