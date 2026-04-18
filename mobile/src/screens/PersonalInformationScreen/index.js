@@ -1,13 +1,16 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import ThemedSafeAreaView from '../../components/layout/ThemedSafeAreaView';
 import AppScreenHeader from '../../components/ui/AppScreenHeader';
 import { useAuth } from '../../context/AuthContext';
-import styles from './PersonalInformationScreen.styles';
+import { useTheme } from '../../theme';
+import createStyles from './PersonalInformationScreen.styles';
 
 export default function PersonalInformationScreen({ navigation }) {
     const { logout } = useAuth();
+    const { theme } = useTheme();
+    const styles = useMemo(() => createStyles(theme), [theme]);
 
     const sections = [
         { id: 'general-info', title: 'General information', icon: 'person-outline', screen: 'GeneralInfo' },
@@ -42,7 +45,7 @@ export default function PersonalInformationScreen({ navigation }) {
             activeOpacity={0.6}
         >
             <View style={styles.menuIconContainer}>
-                <Ionicons name={item.icon} size={24} color="#555" />
+                <Ionicons name={item.icon} size={24} color={theme.colors.iconSubtle} />
             </View>
             <Text style={styles.menuItemText}>{item.title}</Text>
         </TouchableOpacity>
