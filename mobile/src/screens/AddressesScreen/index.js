@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import {
     View,
     Text,
@@ -25,7 +25,8 @@ import AppScreenHeader from '../../components/ui/AppScreenHeader';
 import api from '../../api/client';
 import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
 import Constants from 'expo-constants';
-import { chipRow, styles, cardStyles, modal, cross } from './AddressesScreen.styles';
+import { useTheme } from '../../theme';
+import createStyles from './AddressesScreen.styles';
 
 const GOOGLE_API_KEY = Constants.expoConfig?.extra?.googleMapsApiKey;
 
@@ -35,6 +36,8 @@ const ADDRESS_TYPES = ['Home', 'Work', 'Workshop', 'Office'];
 LogBox.ignoreLogs(['VirtualizedLists should never be nested']);
 
 function LabelChips({ selected, onSelect }) {
+    const { theme } = useTheme();
+    const { chipRow } = useMemo(() => createStyles(theme), [theme]);
     const [showInput, setShowInput] = useState(false);
     const [customText, setCustomText] = useState('');
     const inputRef = useRef(null);
@@ -72,7 +75,7 @@ function LabelChips({ selected, onSelect }) {
                         style={chipRow.addChip}
                         onPress={handlePressCustom}
                     >
-                        <Ionicons name="add" size={14} color="#6366f1" />
+                        <Ionicons name="add" size={14} color={theme.colors.accent} />
                         <Text style={chipRow.addChipText}>Custom</Text>
                     </TouchableOpacity>
                 )}
@@ -96,16 +99,16 @@ function LabelChips({ selected, onSelect }) {
                         value={customText}
                         onChangeText={setCustomText}
                         placeholder="e.g. Garage, Studio…"
-                        placeholderTextColor="#555"
+                        placeholderTextColor={theme.colors.fieldPlaceholder}
                         onSubmitEditing={confirmCustom}
                         returnKeyType="done"
                         maxLength={30}
                     />
                     <TouchableOpacity style={chipRow.customConfirm} onPress={confirmCustom}>
-                        <Ionicons name="checkmark" size={18} color="#fff" />
+                        <Ionicons name="checkmark" size={18} color={theme.colors.accentContrast} />
                     </TouchableOpacity>
                     <TouchableOpacity style={chipRow.customCancel} onPress={cancelCustom}>
-                        <Ionicons name="close" size={18} color="#888" />
+                        <Ionicons name="close" size={18} color={theme.colors.iconMuted} />
                     </TouchableOpacity>
                 </View>
             )}
@@ -125,6 +128,9 @@ function LabelChips({ selected, onSelect }) {
 
 // ─── Small helper: renders one address card ──────────────────────────────────
 function AddressCard({ address, onDelete, onSetDefault }) {
+    const { theme } = useTheme();
+    const { cardStyles } = useMemo(() => createStyles(theme), [theme]);
+
     return (
         <View style={cardStyles.card}>
             <View style={cardStyles.iconCol}>
@@ -132,7 +138,7 @@ function AddressCard({ address, onDelete, onSetDefault }) {
                     <Ionicons
                         name={address.label === 'Home' ? 'home' : address.label === 'Work' ? 'briefcase' : 'location'}
                         size={20}
-                        color="#6366f1"
+                        color={theme.colors.accent}
                     />
                 </View>
             </View>
@@ -165,11 +171,11 @@ function AddressCard({ address, onDelete, onSetDefault }) {
             <View style={cardStyles.actions}>
                 {!address.isDefault && (
                     <TouchableOpacity style={cardStyles.actionBtn} onPress={() => onSetDefault(address.id)}>
-                        <Ionicons name="star-outline" size={18} color="#888" />
+                        <Ionicons name="star-outline" size={18} color={theme.colors.iconMuted} />
                     </TouchableOpacity>
                 )}
                 <TouchableOpacity style={cardStyles.actionBtn} onPress={() => onDelete(address.id)}>
-                    <Ionicons name="trash-outline" size={18} color="#ef4444" />
+                    <Ionicons name="trash-outline" size={18} color={theme.colors.danger} />
                 </TouchableOpacity>
             </View>
         </View>
@@ -180,6 +186,8 @@ function AddressCard({ address, onDelete, onSetDefault }) {
 export default function AddressesScreen({ navigation }) {
     const { user } = useAuth();
     const insets = useSafeAreaInsets();
+    const { theme } = useTheme();
+    const { styles, modal, cross } = useMemo(() => createStyles(theme), [theme]);
 
     const [addresses, setAddresses] = useState(user?.addresses || []);
     const [showAddModal, setShowAddModal] = useState(false);
@@ -437,10 +445,10 @@ export default function AddressesScreen({ navigation }) {
                 contentContainerStyle={styles.scrollContent}
             >
                 {loadingAddresses ? (
-                    <ActivityIndicator size="large" color="#6366f1" style={{ marginTop: 60 }} />
+                    <ActivityIndicator size="large" color={theme.colors.accent} style={{ marginTop: 60 }} />
                 ) : addresses.length === 0 ? (
                     <View style={styles.emptyState}>
-                        <Ionicons name="location-outline" size={52} color="#333" />
+                        <Ionicons name="location-outline" size={52} color={theme.colors.borderStrong} />
                         <Text style={styles.emptyTitle}>No addresses yet</Text>
                         <Text style={styles.emptySubtitle}>
                             Add your home, work, or any other location to make tool pickups easier.
@@ -459,7 +467,7 @@ export default function AddressesScreen({ navigation }) {
 
                 {/* Add Address Button */}
                 <TouchableOpacity style={styles.addButton} onPress={openModal} activeOpacity={0.8}>
-                    <Ionicons name="add-circle-outline" size={22} color="#6366f1" />
+                    <Ionicons name="add-circle-outline" size={22} color={theme.colors.accent} />
                     <Text style={styles.addButtonText}>Add New Address</Text>
                 </TouchableOpacity>
             </ScrollView>
@@ -483,7 +491,7 @@ export default function AddressesScreen({ navigation }) {
                             disabled={mapSaving || actionLoading}
                         >
                             {(mapSaving || actionLoading)
-                                ? <ActivityIndicator size="small" color="#6366f1" />
+                                ? <ActivityIndicator size="small" color={theme.colors.accent} />
                                 : <Text style={modal.confirm}>Add</Text>
                             }
                         </TouchableOpacity>
@@ -495,14 +503,14 @@ export default function AddressesScreen({ navigation }) {
                             style={[modal.tab, addTab === 'manual' && modal.tabActive]}
                             onPress={() => setAddTab('manual')}
                         >
-                            <Ionicons name="create-outline" size={16} color={addTab === 'manual' ? '#fff' : '#888'} />
+                            <Ionicons name="create-outline" size={16} color={addTab === 'manual' ? theme.colors.accentContrast : theme.colors.iconMuted} />
                             <Text style={[modal.tabText, addTab === 'manual' && modal.tabTextActive]}>Manual</Text>
                         </TouchableOpacity>
                         <TouchableOpacity
                             style={[modal.tab, addTab === 'map' && modal.tabActive]}
                             onPress={switchToMap}
                         >
-                            <Ionicons name="map-outline" size={16} color={addTab === 'map' ? '#fff' : '#888'} />
+                            <Ionicons name="map-outline" size={16} color={addTab === 'map' ? theme.colors.accentContrast : theme.colors.iconMuted} />
                             <Text style={[modal.tabText, addTab === 'map' && modal.tabTextActive]}>Pick from Map</Text>
                         </TouchableOpacity>
                     </View>
@@ -604,39 +612,39 @@ export default function AddressesScreen({ navigation }) {
                                             language: 'en',
                                         }}
                                         textInputProps={{
-                                            placeholderTextColor: '#555',
+                                            placeholderTextColor: theme.colors.fieldPlaceholder,
                                         }}
                                         styles={{
                                             textInput: {
                                                 height: 56,
-                                                backgroundColor: 'rgba(255, 255, 255, 0.12)',
+                                                backgroundColor: theme.colors.fieldEditingBg,
                                                 borderRadius: 10,
                                                 borderWidth: 1,
-                                                borderColor: 'rgba(99, 102, 241, 0.4)',
-                                                color: '#fff',
+                                                borderColor: theme.colors.fieldEditingBorder,
+                                                color: theme.colors.textPrimary,
                                                 paddingHorizontal: 16,
                                                 fontSize: 16,
                                             },
                                             container: { flex: 0 },
                                             listView: {
-                                                backgroundColor: '#1c1c1e',
+                                                backgroundColor: theme.colors.fieldReadOnlyBg,
                                                 borderRadius: 10,
                                                 marginTop: 4,
                                                 position: 'absolute',
                                                 top: 60, left: 0, right: 0,
                                                 zIndex: 999,
                                                 borderWidth: 1,
-                                                borderColor: '#333'
+                                                borderColor: theme.colors.borderStrong,
                                             },
                                             row: {
-                                                backgroundColor: '#1c1c1e',
+                                                backgroundColor: theme.colors.fieldReadOnlyBg,
                                                 padding: 13,
                                                 height: 48,
                                                 flexDirection: 'row',
                                                 borderBottomWidth: 1,
-                                                borderBottomColor: '#2a2a2a'
+                                                borderBottomColor: theme.colors.border,
                                             },
-                                            description: { color: '#ccc' }
+                                            description: { color: theme.colors.textSecondary },
                                         }}
                                         enablePoweredByContainer={false}
                                     />
@@ -718,13 +726,14 @@ export default function AddressesScreen({ navigation }) {
                             <View style={modal.mapContainer}>
                                 {locationLoading ? (
                                     <View style={modal.mapLoader}>
-                                        <ActivityIndicator size="large" color="#6366f1" />
+                                        <ActivityIndicator size="large" color={theme.colors.accent} />
                                         <Text style={modal.mapLoaderText}>Getting your location…</Text>
                                     </View>
                                 ) : tempCoords ? (
                                     <>
                                         <MapView
                                             style={StyleSheet.absoluteFill}
+                                            userInterfaceStyle={theme.id}
                                             initialRegion={{
                                                 latitude: tempCoords.latitude,
                                                 longitude: tempCoords.longitude,
@@ -745,7 +754,7 @@ export default function AddressesScreen({ navigation }) {
                                         </View>
                                         {/* Coords pill */}
                                         <View style={modal.coordsPill}>
-                                            <Ionicons name="location" size={12} color="#6366f1" />
+                                            <Ionicons name="location" size={12} color={theme.colors.accent} />
                                             <Text style={modal.coordsText}>
                                                 {tempCoords.latitude.toFixed(5)}, {tempCoords.longitude.toFixed(5)}
                                             </Text>
@@ -764,4 +773,3 @@ export default function AddressesScreen({ navigation }) {
         </ThemedSafeAreaView>
     );
 }
-
