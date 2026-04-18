@@ -24,10 +24,13 @@ import ToolLocationSelector from '../../components/location/ToolLocationSelector
 import AppButton from '../../components/ui/AppButton';
 import AppMapView from '../../components/ui/AppMapView';
 import AppScreenHeader from '../../components/ui/AppScreenHeader';
-import styles from './AddToolScreen.styles';
+import { useTheme, RESOLVED_THEMES } from '../../theme';
+import createStyles from './AddToolScreen.styles';
 
 const AddToolScreen = ({ navigation }) => {
     const insets = useSafeAreaInsets();
+    const { theme } = useTheme();
+    const styles = useMemo(() => createStyles(theme), [theme]);
     const [name, setName] = useState('');
     const [selectedCategory, setSelectedCategory] = useState(null);
     const [description, setDescription] = useState('');
@@ -56,6 +59,8 @@ const AddToolScreen = ({ navigation }) => {
     maxDateObj.setDate(maxDateObj.getDate() + 21);
     const maxDateString = maxDateObj.toISOString().split('T')[0];
     const todayString = new Date().toISOString().split('T')[0];
+    const currentMonthKey = todayString.slice(0, 7);
+    const [displayedMonth, setDisplayedMonth] = useState(currentMonthKey);
     const selectedSavedAddress = useMemo(
         () => savedAddresses.find((address) => address.id === selectedSavedAddressId) || null,
         [savedAddresses, selectedSavedAddressId],
@@ -212,8 +217,8 @@ const AddToolScreen = ({ navigation }) => {
             const nextStr = next.toISOString().split('T')[0];
 
             marks[dStr] = {
-                color: '#4a4a5a',
-                textColor: '#fff',
+                color: theme.colors.accent,
+                textColor: theme.colors.accentContrast,
                 startingDay: !manualBlockedDates.has(prevStr),
                 endingDay: !manualBlockedDates.has(nextStr),
             };
@@ -225,8 +230,8 @@ const AddToolScreen = ({ navigation }) => {
                 ...marks[selectionStart],
                 startingDay: true,
                 endingDay: true,
-                color: '#6366f1',
-                textColor: 'white',
+                color: theme.colors.accent,
+                textColor: theme.colors.accentContrast,
             };
         }
 
@@ -485,18 +490,20 @@ const AddToolScreen = ({ navigation }) => {
                             <Calendar
                                 style={[styles.calendar, { borderRadius: 12, overflow: 'hidden' }]}
                                 theme={{
-                                    backgroundColor: '#1a1a1a',
-                                    calendarBackground: '#1a1a1a',
-                                    textSectionTitleColor: '#888',
-                                    todayTextColor: '#6366f1',
-                                    dayTextColor: '#ffffff',
-                                    textDisabledColor: '#333',
-                                    arrowColor: '#6366f1',
-                                    monthTextColor: '#ffffff',
+                                    backgroundColor: theme.id === RESOLVED_THEMES.LIGHT ? theme.colors.fieldEditingBg : theme.colors.surfaceMuted,
+                                    calendarBackground: theme.id === RESOLVED_THEMES.LIGHT ? theme.colors.fieldEditingBg : theme.colors.surfaceMuted,
+                                    textSectionTitleColor: theme.colors.iconMuted,
+                                    todayTextColor: theme.colors.accent,
+                                    dayTextColor: theme.colors.textPrimary,
+                                    textDisabledColor: theme.colors.borderStrong,
+                                    arrowColor: theme.colors.accent,
+                                    monthTextColor: theme.colors.textPrimary,
                                 }}
                                 markingType={'period'}
                                 onDayPress={handleDayPress}
                                 markedDates={markedDates}
+                                disableArrowLeft={displayedMonth === currentMonthKey}
+                                onMonthChange={(month) => setDisplayedMonth(month.dateString.slice(0, 7))}
                                 minDate={todayString}
                                 maxDate={maxDateString}
                             />
@@ -559,7 +566,7 @@ const AddToolScreen = ({ navigation }) => {
                     <View style={styles.mapWrapper}>
                         <AppMapView
                             style={StyleSheet.absoluteFill}
-                            theme="dark"
+                            theme={theme.id}
                             initialRegion={{
                                 latitude: tempCoords?.latitude || 50.8503,
                                 longitude: tempCoords?.longitude || 4.3517,
@@ -598,7 +605,7 @@ const AddToolScreen = ({ navigation }) => {
                                 style={styles.modalConfirmBtn}
                                 onPress={confirmLocation}
                             >
-                                <Ionicons name="checkmark" size={18} color="#fff" style={{ marginRight: 6 }} />
+                                <Ionicons name="checkmark" size={18} color={theme.colors.accentContrast} style={{ marginRight: 6 }} />
                                 <Text style={styles.modalConfirmText}>Confirm Location</Text>
                             </TouchableOpacity>
                         </View>
