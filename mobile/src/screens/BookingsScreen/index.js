@@ -14,7 +14,8 @@ import ThemedSafeAreaView from '../../components/layout/ThemedSafeAreaView';
 import { bookingsApi, paymentsApi } from "../../api/client";
 import AppButton from "../../components/ui/AppButton";
 import { BookingStatus } from '../../generated/api-enums';
-import { C, styles } from './BookingsScreen.styles';
+import { useTheme } from '../../theme';
+import createStyles from './BookingsScreen.styles';
 
 const PAYMENT_SHEET_RETURN_URL = "shareatool://payment-details";
 
@@ -28,6 +29,8 @@ const PICKUP_WINDOW_LABELS = {
 const BookingsScreen = ({ navigation }) => {
   const { initPaymentSheet, presentPaymentSheet, confirmPaymentSheetPayment } =
     useStripe();
+  const { theme } = useTheme();
+  const { styles, C } = useMemo(() => createStyles(theme), [theme]);
   const [viewMode, setViewMode] = useState("rentals");
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -79,11 +82,11 @@ const BookingsScreen = ({ navigation }) => {
       case BookingStatus.REJECTED:
         return C.danger;
       case BookingStatus.CANCELLED:
-        return "#888";
+        return C.muted;
       case BookingStatus.COMPLETED:
-        return "#10b981";
+        return C.success;
       default:
-        return "#fff";
+        return theme.colors.textPrimary;
     }
   };
 
@@ -206,7 +209,7 @@ const BookingsScreen = ({ navigation }) => {
           <View
             style={[
               styles.statusBadge,
-              { backgroundColor: `${getStatusColor(item)}20` },
+              { backgroundColor: `${getStatusColor(item)}33` },
             ]}
           >
             <Text style={[styles.statusText, { color: getStatusColor(item) }]}>
@@ -225,7 +228,7 @@ const BookingsScreen = ({ navigation }) => {
             </Text>
           </View>
           <View style={styles.dateArrow}>
-            <Text style={{ color: "#666" }}>?</Text>
+            <Text style={{ color: theme.colors.iconSubtle }}>?</Text>
           </View>
           <View style={styles.dateInfo}>
             <Text style={styles.dateLabel}>End</Text>
@@ -273,7 +276,7 @@ const BookingsScreen = ({ navigation }) => {
               onPress={() => handleUpdateStatus(item.id, BookingStatus.APPROVED)}
             >
               {actionLoadingId === `status-${item.id}-${BookingStatus.APPROVED}` ? (
-                <ActivityIndicator size="small" color="#fff" />
+                <ActivityIndicator size="small" color={theme.colors.accentContrast} />
               ) : (
                 <Text style={styles.approveButtonText}>Approve</Text>
               )}
@@ -387,7 +390,7 @@ const BookingsScreen = ({ navigation }) => {
                     isRentalsMode ? "calendar-outline" : "construct-outline"
                   }
                   size={64}
-                  color="#333"
+                  color={C.muted}
                   style={{ marginBottom: 16 }}
                 />
                 <Text style={styles.emptyTitle}>
