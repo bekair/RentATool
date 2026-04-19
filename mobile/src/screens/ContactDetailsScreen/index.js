@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
     Text,
     TouchableOpacity,
@@ -13,10 +13,13 @@ import { useAuth } from '../../context/AuthContext';
 import api from '../../api/client';
 import { InputField, PhoneField } from '../../components/form';
 import AppScreenHeader from '../../components/ui/AppScreenHeader';
-import styles from './ContactDetailsScreen.styles';
+import { useTheme } from '../../theme';
+import createStyles from './ContactDetailsScreen.styles';
 
 export default function ContactDetailsScreen({ navigation }) {
     const { user, updateCurrentUser } = useAuth();
+    const { theme } = useTheme();
+    const styles = useMemo(() => createStyles(theme), [theme]);
     const [loading, setLoading] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
 
@@ -57,7 +60,7 @@ export default function ContactDetailsScreen({ navigation }) {
                         style={styles.saveButton}
                     >
                         {loading ? (
-                            <ActivityIndicator size="small" color="#6366f1" />
+                            <ActivityIndicator size="small" color={theme.colors.accent} />
                         ) : (
                             <Text style={styles.saveButtonText}>{isEditing ? 'Save' : 'Edit'}</Text>
                         )}
