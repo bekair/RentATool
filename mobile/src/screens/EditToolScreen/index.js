@@ -639,7 +639,6 @@ const EditToolScreen = ({ route, navigation }) => {
                     <View style={styles.mapWrapper}>
                         <AppMapView
                             style={StyleSheet.absoluteFill}
-                            theme="dark"
                             initialRegion={{
                                 latitude: tempCoords?.latitude || 50.8503,
                                 longitude: tempCoords?.longitude || 4.3517,

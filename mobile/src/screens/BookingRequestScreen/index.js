@@ -14,7 +14,8 @@ import api, { toolsApi } from "../../api/client";
 import AppButton from "../../components/ui/AppButton";
 import InputField from "../../components/form/InputField";
 import AppScreenHeader from '../../components/ui/AppScreenHeader';
-import { C, styles } from './BookingRequestScreen.styles';
+import { useTheme, RESOLVED_THEMES } from '../../theme';
+import createStyles from './BookingRequestScreen.styles';
 
 const PICKUP_WINDOWS = [
   { value: "MORNING", label: "Morning" },
@@ -25,6 +26,9 @@ const PICKUP_WINDOWS = [
 
 export default function BookingRequestScreen({ route, navigation }) {
   const { toolId, toolItem } = route.params;
+  const { theme } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
+
   const [tool, setTool] = useState(toolItem || null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -36,6 +40,10 @@ export default function BookingRequestScreen({ route, navigation }) {
     useState("FLEXIBLE");
   const [usePurposeNote, setUsePurposeNote] = useState("");
   const [errors, setErrors] = useState({ date: null, note: null });
+
+  const todayString = new Date().toISOString().split("T")[0];
+  const currentMonthKey = todayString.slice(0, 7);
+  const [displayedMonth, setDisplayedMonth] = useState(currentMonthKey);
 
   const fetchRequestData = useCallback(async () => {
     try {
@@ -124,8 +132,8 @@ export default function BookingRequestScreen({ route, navigation }) {
         ...marks[startDate],
         startingDay: true,
         endingDay: !endDate,
-        color: C.accent,
-        textColor: "#fff",
+        color: theme.colors.accent,
+        textColor: theme.colors.accentContrast,
       };
     }
 
@@ -133,8 +141,8 @@ export default function BookingRequestScreen({ route, navigation }) {
       marks[endDate] = {
         ...marks[endDate],
         endingDay: true,
-        color: C.accent,
-        textColor: "#fff",
+        color: theme.colors.accent,
+        textColor: theme.colors.accentContrast,
       };
 
       const current = new Date(startDate);
@@ -144,15 +152,15 @@ export default function BookingRequestScreen({ route, navigation }) {
       while (current < last) {
         const dateString = current.toISOString().split("T")[0];
         marks[dateString] = {
-          color: C.accentSoft,
-          textColor: "#fff",
+          color: theme.colors.accent,
+          textColor: theme.colors.accentContrast,
         };
         current.setDate(current.getDate() + 1);
       }
     }
 
     return marks;
-  }, [endDate, startDate, unavailableDates]);
+  }, [endDate, startDate, unavailableDates, theme]);
 
   const summary = useMemo(() => {
     if (!startDate || !tool) {
@@ -226,7 +234,7 @@ export default function BookingRequestScreen({ route, navigation }) {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={C.accent} />
+        <ActivityIndicator size="large" color={theme.colors.accent} />
       </View>
     );
   }
@@ -236,7 +244,7 @@ export default function BookingRequestScreen({ route, navigation }) {
       <AppScreenHeader
         title="Request reservation"
         onBack={() => navigation.goBack()}
-        iconColor={C.text}
+        iconColor={theme.colors.textPrimary}
         style={styles.header}
         right={<View style={styles.headerBtn} />}
       />
@@ -254,7 +262,7 @@ export default function BookingRequestScreen({ route, navigation }) {
           <Ionicons
             name="information-circle-outline"
             size={18}
-            color={C.accent}
+            color={theme.colors.accent}
           />
           <Text style={styles.payLaterText}>You pay after owner approval.</Text>
         </View>
@@ -264,19 +272,21 @@ export default function BookingRequestScreen({ route, navigation }) {
           <Calendar
             style={styles.calendar}
             theme={{
-              backgroundColor: C.bg,
-              calendarBackground: C.bg,
-              textSectionTitleColor: C.textMuted,
-              todayTextColor: C.accent,
-              dayTextColor: C.text,
-              textDisabledColor: "#333",
-              arrowColor: C.accent,
-              monthTextColor: C.text,
+              backgroundColor: theme.id === RESOLVED_THEMES.LIGHT ? theme.colors.fieldEditingBg : theme.colors.bg,
+              calendarBackground: theme.id === RESOLVED_THEMES.LIGHT ? theme.colors.fieldEditingBg : theme.colors.bg,
+              textSectionTitleColor: theme.colors.iconMuted,
+              todayTextColor: theme.colors.accent,
+              dayTextColor: theme.colors.textPrimary,
+              textDisabledColor: theme.colors.borderStrong,
+              arrowColor: theme.colors.accent,
+              monthTextColor: theme.colors.textPrimary,
             }}
             markingType="period"
             onDayPress={handleDayPress}
             markedDates={markedDates}
-            minDate={new Date().toISOString().split("T")[0]}
+            disableArrowLeft={displayedMonth === currentMonthKey}
+            onMonthChange={(month) => setDisplayedMonth(month.dateString.slice(0, 7))}
+            minDate={todayString}
           />
           {errors.date ? (
             <Text style={styles.errorText}>{errors.date}</Text>
@@ -365,5 +375,3 @@ export default function BookingRequestScreen({ route, navigation }) {
     </ThemedSafeAreaView>
   );
 }
-
-

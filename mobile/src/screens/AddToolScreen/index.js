@@ -566,7 +566,6 @@ const AddToolScreen = ({ navigation }) => {
                     <View style={styles.mapWrapper}>
                         <AppMapView
                             style={StyleSheet.absoluteFill}
-                            theme={theme.id}
                             initialRegion={{
                                 latitude: tempCoords?.latitude || 50.8503,
                                 longitude: tempCoords?.longitude || 4.3517,
