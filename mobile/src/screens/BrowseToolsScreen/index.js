@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
     View,
     Text,
@@ -13,10 +13,13 @@ import { Ionicons } from '@expo/vector-icons';
 import api from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
 import { isVerifiedTier } from '../../constants/verificationTier';
-import styles from './BrowseToolsScreen.styles';
+import { useTheme } from '../../theme';
+import createStyles from './BrowseToolsScreen.styles';
 
 const BrowseToolsScreen = ({ navigation }) => {
     const { user } = useAuth();
+    const { theme } = useTheme();
+    const styles = useMemo(() => createStyles(theme), [theme]);
     const [tools, setTools] = useState([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
@@ -80,7 +83,7 @@ const BrowseToolsScreen = ({ navigation }) => {
     if (loading) {
         return (
             <View style={styles.centerContainer}>
-                <ActivityIndicator size="large" color="#6366f1" />
+                <ActivityIndicator size="large" color={theme.colors.accent} />
             </View>
         );
     }
@@ -92,35 +95,40 @@ const BrowseToolsScreen = ({ navigation }) => {
             </View>
             {refreshing && (
                 <View style={styles.topLoader}>
-                    <ActivityIndicator size="small" color="#6366f1" />
+                    <ActivityIndicator size="small" color={theme.colors.accent} />
                 </View>
             )}
             <FlatList
                 data={tools}
                 renderItem={renderToolItem}
                 keyExtractor={(item) => item.id}
-                style={{ flex: 1 }}
+                style={styles.list}
                 contentContainerStyle={styles.listContainer}
                 alwaysBounceVertical={true}
                 refreshControl={
                     <RefreshControl
                         refreshing={false}
                         onRefresh={onRefresh}
-                        tintColor="transparent"
-                        colors={['transparent']}
+                        tintColor={theme.colors.accent}
+                        colors={[theme.colors.accent]}
                     />
                 }
                 ListEmptyComponent={
                     <View style={styles.emptyContainer}>
                         <View style={styles.emptyIconContainer}>
-                            <Ionicons name="search-outline" size={48} color="#6366f1" />
+                            <Ionicons name="search-outline" size={48} color={theme.colors.accent} />
                         </View>
                         <Text style={styles.emptyTitle}>Nothing to see here</Text>
                         <Text style={styles.emptyText}>
                             It looks like no one has listed any tools in your area yet. Check back soon for new listings!
                         </Text>
                         <View style={styles.swipeDownToRefreshContainer}>
-                            <Ionicons name="arrow-down" size={16} color="#6366f1" style={{ marginRight: 6 }} />
+                            <Ionicons
+                                name="arrow-down"
+                                size={16}
+                                color={theme.colors.accent}
+                                style={styles.swipeDownToRefreshIcon}
+                            />
                             <Text style={styles.swipeDownToRefreshText}>Swipe down to refresh</Text>
                         </View>
                     </View>
