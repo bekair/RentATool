@@ -3,7 +3,6 @@ import {
     View,
     Text,
     StyleSheet,
-    TextInput,
     TouchableOpacity,
     ScrollView,
     Alert,
@@ -14,21 +13,25 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ThemedSafeAreaView from '../../components/layout/ThemedSafeAreaView';
-import { Calendar } from 'react-native-calendars';
 import { useFocusEffect } from '@react-navigation/native';
 import api from '../../api/client';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
-import { CategoryField, ToolConditionField } from '../../components/form';
+import LabelField from '../../components/form/LabelField';
+import { InputField, CategoryField, ToolConditionField } from '../../components/form';
+import AvailabilityCalendar from '../../components/calendar/AvailabilityCalendar';
 import ToolLocationSelector from '../../components/location/ToolLocationSelector';
 import AppMapView from '../../components/ui/AppMapView';
 import AppScreenHeader from '../../components/ui/AppScreenHeader';
 import { isValidToolCondition } from '../../constants/toolConditions';
-import styles from './EditToolScreen.styles';
+import { useTheme } from '../../theme';
+import createStyles from './EditToolScreen.styles';
 
 const EditToolScreen = ({ route, navigation }) => {
     const { tool } = route.params;
     const insets = useSafeAreaInsets();
+    const { theme } = useTheme();
+    const styles = useMemo(() => createStyles(theme), [theme]);
     const initialToolAddress = tool.address
         ? {
             street: tool.address.street || '',
@@ -75,9 +78,6 @@ const EditToolScreen = ({ route, navigation }) => {
     });
     const [selectionStart, setSelectionStart] = useState(null);
 
-    const maxDateObj = new Date();
-    maxDateObj.setDate(maxDateObj.getDate() + 21);
-    const maxDateString = maxDateObj.toISOString().split('T')[0];
     const todayString = new Date().toISOString().split('T')[0];
     const selectedSavedAddress = useMemo(
         () => savedAddresses.find((address) => address.id === selectedSavedAddressId) || null,
@@ -154,88 +154,6 @@ const EditToolScreen = ({ route, navigation }) => {
                 });
         }
     }, [latitude, longitude, locationAddress?.country]);
-
-    const handleDayPress = (day) => {
-        const dateString = day.dateString;
-
-        // Prevent tapping past dates or beyond 3 weeks
-        if (dateString < todayString || dateString > maxDateString) {
-            Alert.alert('Invalid Date', 'You can only block dates within the next 3 weeks.');
-            return;
-        }
-
-        // Single tap to unblock an already blocked date
-        if (manualBlockedDates.has(dateString)) {
-            setManualBlockedDates(prev => {
-                const newSet = new Set(prev);
-                newSet.delete(dateString);
-                return newSet;
-            });
-            setSelectionStart(null);
-            return;
-        }
-
-        // If no selection start, start one
-        if (!selectionStart) {
-            setSelectionStart(dateString);
-        } else {
-            // End date selection
-            if (dateString < selectionStart) {
-                // Tapped before start date -> make it the new start date
-                setSelectionStart(dateString);
-            } else {
-                // Tapped after start date -> fill the range
-                const newBlocks = new Set(manualBlockedDates);
-                let cursor = selectionStart;
-
-                while (cursor <= dateString) {
-                    newBlocks.add(cursor);
-                    // Increment date using UTC-safe arithmetic
-                    const d = new Date(cursor + 'T00:00:00Z');
-                    d.setUTCDate(d.getUTCDate() + 1);
-                    cursor = d.toISOString().split('T')[0];
-                }
-
-                setManualBlockedDates(newBlocks);
-                setSelectionStart(null); // finish selection
-            }
-        }
-    };
-
-    const markedDates = React.useMemo(() => {
-        const marks = {};
-
-        // Render blocked dates as periods
-        manualBlockedDates.forEach(date => {
-            const dStr = date;
-            const d = new Date(dStr + 'T00:00:00Z');
-            const prev = new Date(d); prev.setUTCDate(prev.getUTCDate() - 1);
-            const next = new Date(d); next.setUTCDate(next.getUTCDate() + 1);
-
-            const prevStr = prev.toISOString().split('T')[0];
-            const nextStr = next.toISOString().split('T')[0];
-
-            marks[dStr] = {
-                color: '#4a4a5a',
-                textColor: '#fff',
-                startingDay: !manualBlockedDates.has(prevStr),
-                endingDay: !manualBlockedDates.has(nextStr),
-            };
-        });
-
-        // Add the active selection overlay
-        if (selectionStart) {
-            marks[selectionStart] = {
-                ...marks[selectionStart],
-                startingDay: true,
-                endingDay: true,
-                color: '#6366f1',
-                textColor: 'white',
-            };
-        }
-
-        return marks;
-    }, [manualBlockedDates, selectionStart]);
 
     const openMapPicker = async () => {
         setLocationLoading(true);
@@ -494,58 +412,48 @@ const EditToolScreen = ({ route, navigation }) => {
                 <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
                     <View style={styles.form}>
                         <View style={styles.section}>
-                            <Text style={styles.label}>Basic Information</Text>
-                            <TextInput
-                                style={styles.input}
-                                placeholder="Tool name (e.g. Bosch Hammer Drill)"
-                                placeholderTextColor="#999"
+                            <InputField
+                                label="Tool name *"
+                                isEditing={true}
                                 value={name}
                                 onChangeText={setName}
+                                placeholder="Tool name (e.g. Bosch Hammer Drill)"
                             />
                             <CategoryField
-                                label="Category"
+                                label="Category *"
                                 isEditing={true}
                                 value={selectedCategory}
                                 onSelect={setSelectedCategory}
                             />
-                            <TextInput
-                                style={[styles.input, styles.textArea]}
-                                placeholder="Tell us more about your tool..."
-                                placeholderTextColor="#999"
+                            <InputField
+                                label="Description *"
+                                isEditing={true}
                                 value={description}
                                 onChangeText={setDescription}
+                                placeholder="Tell us more about your tool..."
                                 multiline
                                 numberOfLines={4}
+                                style={styles.descriptionInput}
                             />
                         </View>
 
                         <View style={styles.section}>
-                            <Text style={styles.label}>Pricing & Value</Text>
-                            <View style={styles.row}>
-                                <View style={[styles.inputContainer, { flex: 1, marginRight: 10 }]}>
-                                    <Text style={styles.currencyPrefix}>€</Text>
-                                    <TextInput
-                                        style={styles.inputInner}
-                                        placeholder="15.00"
-                                        placeholderTextColor="#999"
-                                        value={price}
-                                        onChangeText={setPrice}
-                                        keyboardType="decimal-pad"
-                                    />
-                                    <Text style={styles.unitSuffix}>/day</Text>
-                                </View>
-                                <View style={[styles.inputContainer, { flex: 1 }]}>
-                                    <Text style={styles.currencyPrefix}>€</Text>
-                                    <TextInput
-                                        style={styles.inputInner}
-                                        placeholder="Value"
-                                        placeholderTextColor="#999"
-                                        value={replacementValue}
-                                        onChangeText={setReplacementValue}
-                                        keyboardType="decimal-pad"
-                                    />
-                                </View>
-                            </View>
+                            <InputField
+                                label="Price per day (EUR) *"
+                                isEditing={true}
+                                value={price}
+                                onChangeText={setPrice}
+                                placeholder="15.00"
+                                keyboardType="decimal-pad"
+                            />
+                            <InputField
+                                label="Replacement value (EUR)"
+                                isEditing={true}
+                                value={replacementValue}
+                                onChangeText={setReplacementValue}
+                                placeholder="0.00"
+                                keyboardType="decimal-pad"
+                            />
                         </View>
 
                         <View style={styles.section}>
@@ -559,31 +467,19 @@ const EditToolScreen = ({ route, navigation }) => {
 
                         <View style={styles.section}>
                             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                                <Text style={styles.label}>Availability (Optional)</Text>
+                                <LabelField>Availability (Optional)</LabelField>
                             </View>
                             <Text style={[styles.locationSub, { marginBottom: 10 }]}>Select a start and end date to block out a range of days (up to 3 weeks in advance).</Text>
-                            <Calendar
-                                style={[styles.calendar, { borderRadius: 12, overflow: 'hidden' }]}
-                                theme={{
-                                    backgroundColor: '#1a1a1a',
-                                    calendarBackground: '#1a1a1a',
-                                    textSectionTitleColor: '#888',
-                                    todayTextColor: '#6366f1',
-                                    dayTextColor: '#ffffff',
-                                    textDisabledColor: '#333',
-                                    arrowColor: '#6366f1',
-                                    monthTextColor: '#ffffff',
-                                }}
-                                markingType={'period'}
-                                onDayPress={handleDayPress}
-                                markedDates={markedDates}
-                                minDate={todayString}
-                                maxDate={maxDateString}
+                            <AvailabilityCalendar
+                                manualBlockedDates={manualBlockedDates}
+                                onManualBlockedDatesChange={setManualBlockedDates}
+                                selectionStart={selectionStart}
+                                onSelectionStartChange={setSelectionStart}
                             />
                         </View>
 
                         <View style={styles.section}>
-                            <Text style={styles.label}>Location</Text>
+                            <LabelField>Location</LabelField>
                             <ToolLocationSelector
                                 locationSource={locationSource}
                                 onChangeLocationSource={(nextSource) => {
@@ -615,7 +511,7 @@ const EditToolScreen = ({ route, navigation }) => {
                     disabled={loading}
                 >
                     {loading ? (
-                        <ActivityIndicator color="#fff" />
+                        <ActivityIndicator color={theme.colors.accentContrast} />
                     ) : (
                         <Text style={styles.submitButtonText}>Save Changes</Text>
                     )}
@@ -677,7 +573,7 @@ const EditToolScreen = ({ route, navigation }) => {
                                 style={styles.modalConfirmBtn}
                                 onPress={confirmLocation}
                             >
-                                <Ionicons name="checkmark" size={18} color="#fff" style={{ marginRight: 6 }} />
+                                <Ionicons name="checkmark" size={18} color={theme.colors.accentContrast} style={{ marginRight: 6 }} />
                                 <Text style={styles.modalConfirmText}>Confirm Location</Text>
                             </TouchableOpacity>
                         </View>
@@ -689,4 +585,5 @@ const EditToolScreen = ({ route, navigation }) => {
 };
 
 export default EditToolScreen;
+
 

@@ -6,14 +6,12 @@ import {
     TouchableOpacity,
     ScrollView,
     Alert,
-    ActivityIndicator,
     Modal,
     Platform,
     KeyboardAvoidingView,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ThemedSafeAreaView from '../../components/layout/ThemedSafeAreaView';
-import { Calendar } from 'react-native-calendars';
 import { useFocusEffect } from '@react-navigation/native';
 import api from '../../api/client';
 import * as Location from 'expo-location';
@@ -24,7 +22,8 @@ import ToolLocationSelector from '../../components/location/ToolLocationSelector
 import AppButton from '../../components/ui/AppButton';
 import AppMapView from '../../components/ui/AppMapView';
 import AppScreenHeader from '../../components/ui/AppScreenHeader';
-import { useTheme, RESOLVED_THEMES } from '../../theme';
+import AvailabilityCalendar from '../../components/calendar/AvailabilityCalendar';
+import { useTheme } from '../../theme';
 import createStyles from './AddToolScreen.styles';
 
 const AddToolScreen = ({ navigation }) => {
@@ -55,12 +54,6 @@ const AddToolScreen = ({ navigation }) => {
     const [manualBlockedDates, setManualBlockedDates] = useState(new Set());
     const [selectionStart, setSelectionStart] = useState(null);
 
-    const maxDateObj = new Date();
-    maxDateObj.setDate(maxDateObj.getDate() + 21);
-    const maxDateString = maxDateObj.toISOString().split('T')[0];
-    const todayString = new Date().toISOString().split('T')[0];
-    const currentMonthKey = todayString.slice(0, 7);
-    const [displayedMonth, setDisplayedMonth] = useState(currentMonthKey);
     const selectedSavedAddress = useMemo(
         () => savedAddresses.find((address) => address.id === selectedSavedAddressId) || null,
         [savedAddresses, selectedSavedAddressId],
@@ -155,88 +148,6 @@ const AddToolScreen = ({ navigation }) => {
         }, [loadSavedAddresses]),
     );
 
-
-    const handleDayPress = (day) => {
-        const dateString = day.dateString;
-
-        // Prevent tapping past dates or beyond 3 weeks
-        if (dateString < todayString || dateString > maxDateString) {
-            Alert.alert('Invalid Date', 'You can only block dates within the next 3 weeks.');
-            return;
-        }
-
-        // Single tap to unblock an already blocked date
-        if (manualBlockedDates.has(dateString)) {
-            setManualBlockedDates(prev => {
-                const newSet = new Set(prev);
-                newSet.delete(dateString);
-                return newSet;
-            });
-            setSelectionStart(null);
-            return;
-        }
-
-        // If no selection start, start one
-        if (!selectionStart) {
-            setSelectionStart(dateString);
-        } else {
-            // End date selection
-            if (dateString < selectionStart) {
-                // Tapped before start date -> make it the new start date
-                setSelectionStart(dateString);
-            } else {
-                // Tapped after start date -> fill the range
-                const newBlocks = new Set(manualBlockedDates);
-                let cursor = selectionStart;
-
-                while (cursor <= dateString) {
-                    newBlocks.add(cursor);
-                    // Increment date using UTC-safe arithmetic
-                    const d = new Date(cursor + 'T00:00:00Z');
-                    d.setUTCDate(d.getUTCDate() + 1);
-                    cursor = d.toISOString().split('T')[0];
-                }
-
-                setManualBlockedDates(newBlocks);
-                setSelectionStart(null); // finish selection
-            }
-        }
-    };
-
-    const markedDates = React.useMemo(() => {
-        const marks = {};
-
-        // Render blocked dates as periods
-        manualBlockedDates.forEach(date => {
-            const dStr = date;
-            const d = new Date(dStr + 'T00:00:00Z');
-            const prev = new Date(d); prev.setUTCDate(prev.getUTCDate() - 1);
-            const next = new Date(d); next.setUTCDate(next.getUTCDate() + 1);
-
-            const prevStr = prev.toISOString().split('T')[0];
-            const nextStr = next.toISOString().split('T')[0];
-
-            marks[dStr] = {
-                color: theme.colors.accent,
-                textColor: theme.colors.accentContrast,
-                startingDay: !manualBlockedDates.has(prevStr),
-                endingDay: !manualBlockedDates.has(nextStr),
-            };
-        });
-
-        // Add the active selection overlay
-        if (selectionStart) {
-            marks[selectionStart] = {
-                ...marks[selectionStart],
-                startingDay: true,
-                endingDay: true,
-                color: theme.colors.accent,
-                textColor: theme.colors.accentContrast,
-            };
-        }
-
-        return marks;
-    }, [manualBlockedDates, selectionStart]);
 
     const openMapPicker = async () => {
         setLocationLoading(true);
@@ -487,25 +398,11 @@ const AddToolScreen = ({ navigation }) => {
                                 <LabelField>Availability</LabelField>
                             </View>
                             <Text style={[styles.locationSub, { marginBottom: 10 }]}>Select a start and end date to block out a range of days (up to 3 weeks in advance).</Text>
-                            <Calendar
-                                style={[styles.calendar, { borderRadius: 12, overflow: 'hidden' }]}
-                                theme={{
-                                    backgroundColor: theme.id === RESOLVED_THEMES.LIGHT ? theme.colors.fieldEditingBg : theme.colors.surfaceMuted,
-                                    calendarBackground: theme.id === RESOLVED_THEMES.LIGHT ? theme.colors.fieldEditingBg : theme.colors.surfaceMuted,
-                                    textSectionTitleColor: theme.colors.iconMuted,
-                                    todayTextColor: theme.colors.accent,
-                                    dayTextColor: theme.colors.textPrimary,
-                                    textDisabledColor: theme.colors.borderStrong,
-                                    arrowColor: theme.colors.accent,
-                                    monthTextColor: theme.colors.textPrimary,
-                                }}
-                                markingType={'period'}
-                                onDayPress={handleDayPress}
-                                markedDates={markedDates}
-                                disableArrowLeft={displayedMonth === currentMonthKey}
-                                onMonthChange={(month) => setDisplayedMonth(month.dateString.slice(0, 7))}
-                                minDate={todayString}
-                                maxDate={maxDateString}
+                            <AvailabilityCalendar
+                                manualBlockedDates={manualBlockedDates}
+                                onManualBlockedDatesChange={setManualBlockedDates}
+                                selectionStart={selectionStart}
+                                onSelectionStartChange={setSelectionStart}
                             />
                         </View>
 

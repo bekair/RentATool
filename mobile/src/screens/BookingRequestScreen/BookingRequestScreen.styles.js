@@ -1,6 +1,4 @@
 import { StyleSheet } from 'react-native';
-import { RESOLVED_THEMES } from '../../theme';
-
 export default function createStyles(theme) {
     const c = theme.colors;
     return StyleSheet.create({
@@ -71,19 +69,6 @@ export default function createStyles(theme) {
             fontWeight: '700',
             marginBottom: 12,
         },
-        calendar: {
-            borderWidth: 1,
-            borderColor: theme.id === RESOLVED_THEMES.LIGHT ? c.fieldEditingBorder : c.border,
-            borderRadius: 12,
-            overflow: 'hidden',
-            ...(theme.id === RESOLVED_THEMES.LIGHT && {
-                shadowColor: c.inputShadow,
-                shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: 0.15,
-                shadowRadius: 10,
-                elevation: 4,
-            }),
-        },
         legendRow: {
             marginTop: 10,
             flexDirection: 'row',
@@ -93,7 +78,7 @@ export default function createStyles(theme) {
             width: 10,
             height: 10,
             borderRadius: 5,
-            backgroundColor: c.borderStrong,
+            backgroundColor: c.danger,
             marginRight: 8,
         },
         legendText: {

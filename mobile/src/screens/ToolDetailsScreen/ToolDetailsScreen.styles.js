@@ -15,6 +15,7 @@ export const COLORS = {
     violetSoft: 'rgba(129,140,248,0.15)',
     gold: '#FFB400',
     teal: '#00BFA5',
+    booked: '#ef4444',
 };
 
 export const styles = StyleSheet.create({
@@ -184,6 +185,36 @@ export const styles = StyleSheet.create({
         marginBottom: 12,
     },
     description: { fontSize: 15, color: COLORS.textSub, lineHeight: 22 },
+    availabilityHint: {
+        fontSize: 13,
+        color: COLORS.textSub,
+        lineHeight: 18,
+        marginBottom: 10,
+    },
+    availabilityLoading: {
+        paddingVertical: 12,
+        alignItems: 'center',
+    },
+    availabilityLegendRow: {
+        marginTop: 10,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+    },
+    availabilityLegendItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    availabilityLegendDot: {
+        width: 10,
+        height: 10,
+        borderRadius: 5,
+        marginRight: 6,
+    },
+    availabilityLegendText: {
+        color: COLORS.textSub,
+        fontSize: 12,
+    },
 
     specRow: {
         flexDirection: 'row',

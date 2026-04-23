@@ -1,5 +1,4 @@
 import { Platform, StyleSheet } from 'react-native';
-import { RESOLVED_THEMES } from '../../theme';
 
 export default function createStyles(theme) {
     const c = theme.colors;
@@ -156,17 +155,6 @@ export default function createStyles(theme) {
         },
         disabledButton: {
             opacity: 0.7,
-        },
-        calendar: {
-            ...(theme.id === RESOLVED_THEMES.LIGHT && {
-                borderWidth: 1,
-                borderColor: c.fieldEditingBorder,
-                shadowColor: c.inputShadow,
-                shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: 0.15,
-                shadowRadius: 10,
-                elevation: 4,
-            }),
         },
         modalContainer: {
             flex: 1,

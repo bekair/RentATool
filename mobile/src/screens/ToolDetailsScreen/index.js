@@ -12,6 +12,7 @@ import ThemedSafeAreaView from '../../components/layout/ThemedSafeAreaView';
 
 import { Ionicons } from "@expo/vector-icons";
 import api from "../../api/client";
+import ToolDetailsCalendar from "./ToolDetailsCalendar";
 import { useAuth } from "../../context/AuthContext";
 import { getToolConditionLabel } from "../../constants/toolConditions";
 import { COLORS as C, styles } from "./ToolDetailsScreen.styles";
@@ -40,11 +41,6 @@ const ToolDetailsScreen = ({ route, navigation }) => {
       })
       .finally(() => setLoading(false));
   }, [navigation, toolId]);
-
-  const openOwnerAvailability = () => {
-    if (!tool) return;
-    navigation.navigate("ToolCalendar", { toolItem: tool });
-  };
 
   const handleContinueToRequest = () => {
     if (!tool?.id) return;
@@ -205,6 +201,8 @@ const ToolDetailsScreen = ({ route, navigation }) => {
             <SpecRow label="Replacement value" value={replacementValue} />
           </View>
 
+          {isOwner ? <ToolDetailsCalendar toolId={tool.id} /> : null}
+
           <View style={[styles.section, styles.sectionCard]}>
             <Text style={styles.sectionTitle}>Location</Text>
             <View style={styles.locationCard}>
@@ -230,35 +228,27 @@ const ToolDetailsScreen = ({ route, navigation }) => {
           </View>
         </View>
       </ScrollView>
+      {isOwner ? null : (
+        <View style={styles.footer}>
+          <ThemedSafeAreaView edges={["bottom"]}>
+            <View style={styles.footerContent}>
+              <View style={styles.footerPriceWrap}>
+                <Text style={styles.footerPrice}>
+                  €{tool.pricePerDay}
+                  <Text style={styles.footerDay}> / day</Text>
+                </Text>
+              </View>
 
-      <View style={styles.footer}>
-        <ThemedSafeAreaView edges={["bottom"]}>
-          <View style={styles.footerContent}>
-            <View style={styles.footerPriceWrap}>
-              <Text style={styles.footerPrice}>
-                €{tool.pricePerDay}
-                <Text style={styles.footerDay}> / day</Text>
-              </Text>
-            </View>
-
-            {isOwner ? (
-              <TouchableOpacity
-                style={styles.reserveBtn}
-                onPress={openOwnerAvailability}
-              >
-                <Text style={styles.reserveBtnText}>Settings</Text>
-              </TouchableOpacity>
-            ) : (
               <TouchableOpacity
                 style={styles.reserveBtn}
                 onPress={handleContinueToRequest}
               >
                 <Text style={styles.reserveBtnText}>Continue to request</Text>
               </TouchableOpacity>
-            )}
-          </View>
-        </ThemedSafeAreaView>
-      </View>
+            </View>
+          </ThemedSafeAreaView>
+        </View>
+      )}
     </View>
   );
 };

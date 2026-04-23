@@ -20,7 +20,6 @@ import MapScreen from '../screens/MapScreen';
 import AddToolScreen from '../screens/AddToolScreen';
 import ToolDetailsScreen from '../screens/ToolDetailsScreen';
 import BookingsScreen from '../screens/BookingsScreen';
-import ToolCalendarScreen from '../screens/ToolCalendarScreen';
 import EditToolScreen from '../screens/EditToolScreen';
 import BookingRequestScreen from '../screens/BookingRequestScreen';
 import BrowseToolsScreen from '../screens/BrowseToolsScreen';
@@ -159,14 +158,6 @@ function AppStack() {
             <Stack.Screen
                 name="EditTool"
                 component={EditToolScreen}
-                options={{
-                    presentation: 'modal',
-                    animation: 'slide_from_bottom'
-                }}
-            />
-            <Stack.Screen
-                name="ToolCalendar"
-                component={ToolCalendarScreen}
                 options={{
                     presentation: 'modal',
                     animation: 'slide_from_bottom'

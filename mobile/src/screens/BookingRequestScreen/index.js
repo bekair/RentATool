@@ -7,14 +7,14 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { Calendar } from "react-native-calendars";
 import ThemedSafeAreaView from '../../components/layout/ThemedSafeAreaView';
 import { Ionicons } from "@expo/vector-icons";
 import api, { toolsApi } from "../../api/client";
 import AppButton from "../../components/ui/AppButton";
 import InputField from "../../components/form/InputField";
 import AppScreenHeader from '../../components/ui/AppScreenHeader';
-import { useTheme, RESOLVED_THEMES } from '../../theme';
+import AvailabilityCalendar from "../../components/calendar/AvailabilityCalendar";
+import { useTheme } from '../../theme';
 import createStyles from './BookingRequestScreen.styles';
 
 const PICKUP_WINDOWS = [
@@ -40,10 +40,6 @@ export default function BookingRequestScreen({ route, navigation }) {
     useState("FLEXIBLE");
   const [usePurposeNote, setUsePurposeNote] = useState("");
   const [errors, setErrors] = useState({ date: null, note: null });
-
-  const todayString = new Date().toISOString().split("T")[0];
-  const currentMonthKey = todayString.slice(0, 7);
-  const [displayedMonth, setDisplayedMonth] = useState(currentMonthKey);
 
   const fetchRequestData = useCallback(async () => {
     try {
@@ -73,94 +69,15 @@ export default function BookingRequestScreen({ route, navigation }) {
     fetchRequestData();
   }, [fetchRequestData]);
 
-  const isRangeValid = (start, end) => {
-    const current = new Date(start);
-    const last = new Date(end);
-
-    while (current <= last) {
-      const key = current.toISOString().split("T")[0];
-      if (unavailableDates.has(key)) {
-        return false;
-      }
-      current.setDate(current.getDate() + 1);
-    }
-
-    return true;
-  };
-
-  const handleDayPress = (day) => {
-    const dateString = day.dateString;
-    if (unavailableDates.has(dateString)) {
-      return;
-    }
-
+  const handleRangeStartChange = useCallback((nextStartDate) => {
+    setStartDate(nextStartDate);
     setErrors((prev) => ({ ...prev, date: null }));
+  }, []);
 
-    if (!startDate || (startDate && endDate)) {
-      setStartDate(dateString);
-      setEndDate(null);
-      return;
-    }
-
-    if (new Date(dateString) < new Date(startDate)) {
-      setStartDate(dateString);
-      return;
-    }
-
-    if (isRangeValid(startDate, dateString)) {
-      setEndDate(dateString);
-      return;
-    }
-
-    Alert.alert(
-      "Unavailable Dates",
-      "Your selection includes unavailable days.",
-    );
-    setStartDate(dateString);
-    setEndDate(null);
-  };
-
-  const markedDates = useMemo(() => {
-    const marks = {};
-
-    unavailableDates.forEach((date) => {
-      marks[date] = { disabled: true, disableTouchEvent: true };
-    });
-
-    if (startDate) {
-      marks[startDate] = {
-        ...marks[startDate],
-        startingDay: true,
-        endingDay: !endDate,
-        color: theme.colors.accent,
-        textColor: theme.colors.accentContrast,
-      };
-    }
-
-    if (endDate) {
-      marks[endDate] = {
-        ...marks[endDate],
-        endingDay: true,
-        color: theme.colors.accent,
-        textColor: theme.colors.accentContrast,
-      };
-
-      const current = new Date(startDate);
-      current.setDate(current.getDate() + 1);
-      const last = new Date(endDate);
-
-      while (current < last) {
-        const dateString = current.toISOString().split("T")[0];
-        marks[dateString] = {
-          color: theme.colors.accent,
-          textColor: theme.colors.accentContrast,
-        };
-        current.setDate(current.getDate() + 1);
-      }
-    }
-
-    return marks;
-  }, [endDate, startDate, unavailableDates, theme]);
+  const handleRangeEndChange = useCallback((nextEndDate) => {
+    setEndDate(nextEndDate);
+    setErrors((prev) => ({ ...prev, date: null }));
+  }, []);
 
   const summary = useMemo(() => {
     if (!startDate || !tool) {
@@ -269,24 +186,14 @@ export default function BookingRequestScreen({ route, navigation }) {
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Availability</Text>
-          <Calendar
-            style={styles.calendar}
-            theme={{
-              backgroundColor: theme.id === RESOLVED_THEMES.LIGHT ? theme.colors.fieldEditingBg : theme.colors.bg,
-              calendarBackground: theme.id === RESOLVED_THEMES.LIGHT ? theme.colors.fieldEditingBg : theme.colors.bg,
-              textSectionTitleColor: theme.colors.iconMuted,
-              todayTextColor: theme.colors.accent,
-              dayTextColor: theme.colors.textPrimary,
-              textDisabledColor: theme.colors.borderStrong,
-              arrowColor: theme.colors.accent,
-              monthTextColor: theme.colors.textPrimary,
-            }}
-            markingType="period"
-            onDayPress={handleDayPress}
-            markedDates={markedDates}
-            disableArrowLeft={displayedMonth === currentMonthKey}
-            onMonthChange={(month) => setDisplayedMonth(month.dateString.slice(0, 7))}
-            minDate={todayString}
+          <AvailabilityCalendar
+            mode="range"
+            unavailableDates={unavailableDates}
+            rangeStart={startDate}
+            rangeEnd={endDate}
+            onRangeStartChange={handleRangeStartChange}
+            onRangeEndChange={handleRangeEndChange}
+            resetSelectionToPressedOnInvalidRange
           />
           {errors.date ? (
             <Text style={styles.errorText}>{errors.date}</Text>
