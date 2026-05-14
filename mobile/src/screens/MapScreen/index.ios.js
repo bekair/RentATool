@@ -21,16 +21,19 @@ import {
     View, ActivityIndicator, Text, TextInput,
     TouchableOpacity, ScrollView,
 } from 'react-native';
-import MapView, { Marker } from 'react-native-maps';
+import { Marker } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
-import darkMapStyle from '../../constants/darkMapStyle';
-import styles from './MapScreen.ios.styles';
+import AppMapView from '../../components/ui/AppMapView';
+import { useTheme } from '../../theme';
+import createStyles from './MapScreen.ios.styles';
 
 const MapScreen = ({ navigation }) => {
     const { user } = useAuth();
+    const { theme } = useTheme();
+    const styles = React.useMemo(() => createStyles(theme), [theme]);
     const mapRef = useRef(null);
     const justTapped = useRef(false);
     const locationCache = useRef({});
@@ -129,7 +132,7 @@ const MapScreen = ({ navigation }) => {
     if (loading) {
         return (
             <View style={styles.loadingScreen}>
-                <ActivityIndicator size="large" color="#FF385C" />
+                <ActivityIndicator size="large" color={theme.colors.accent} />
                 <Text style={styles.loadingText}>Loading map...</Text>
             </View>
         );
@@ -138,11 +141,9 @@ const MapScreen = ({ navigation }) => {
     // ── Map ───────────────────────────────────────────────────────────────────
     return (
         <View style={styles.container}>
-            <MapView
+            <AppMapView
                 ref={mapRef}
                 style={styles.map}
-                customMapStyle={darkMapStyle}
-                userInterfaceStyle="dark"
                 initialRegion={{
                     latitude: location?.coords.latitude ?? 50.8503,
                     longitude: location?.coords.longitude ?? 4.3517,
@@ -194,21 +195,21 @@ const MapScreen = ({ navigation }) => {
                         </Marker>,
                     ];
                 })}
-            </MapView>
+            </AppMapView>
 
             {/* Search + filters */}
             <View style={styles.searchRow}>
                 <View style={styles.searchBar}>
-                    <Ionicons name="search" size={20} color="#FF385C" style={styles.searchIcon} />
+                    <Ionicons name="search" size={20} style={styles.searchIcon} />
                     <TextInput
                         placeholder="Search for tools..."
-                        placeholderTextColor="#717171"
+                        placeholderTextColor={theme.colors.fieldPlaceholder}
                         style={styles.searchInput}
                         value={searchQuery}
                         onChangeText={setSearchQuery}
                     />
                     <TouchableOpacity style={styles.filterMenuIcon}>
-                        <Ionicons name="options-outline" size={20} color="#222" />
+                        <Ionicons name="options-outline" size={20} style={styles.filterMenuIconColor} />
                     </TouchableOpacity>
                 </View>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}
@@ -235,14 +236,14 @@ const MapScreen = ({ navigation }) => {
                 <View style={styles.card}>
                     <View style={styles.cardImg}>
                         <View style={styles.cardImgPlaceholder}>
-                            <Ionicons name="construct-outline" size={40} color="#ccc" />
+                            <Ionicons name="construct-outline" size={40} style={styles.cardPlaceholderIcon} />
                         </View>
                         <View style={styles.cardImgTopRow}>
                             <View style={styles.guestBadge}>
                                 <Text style={styles.guestBadgeText}>Guest favorite</Text>
                             </View>
                             <TouchableOpacity>
-                                <Ionicons name="heart-outline" size={24} color="#fff" />
+                                <Ionicons name="heart-outline" size={24} style={styles.cardTopIcon} />
                             </TouchableOpacity>
                         </View>
                         <View style={styles.dots}>
@@ -255,7 +256,7 @@ const MapScreen = ({ navigation }) => {
                     <TouchableOpacity style={styles.cardBody} activeOpacity={0.9}
                         onPress={() => navigation.navigate('ToolDetails', { toolId: selectedTool.id })}>
                         <View style={styles.ratingRow}>
-                            <Ionicons name="star" size={14} color="#ffb400" />
+                            <Ionicons name="star" size={14} style={styles.ratingIcon} />
                             <Text style={styles.ratingText}> 4.91 (98)</Text>
                         </View>
                         <Text style={styles.categoryText}>
@@ -269,7 +270,7 @@ const MapScreen = ({ navigation }) => {
                     </TouchableOpacity>
 
                     <TouchableOpacity style={styles.closeBtn} onPress={() => setSelectedTool(null)}>
-                        <Ionicons name="close" size={20} color="#222" />
+                        <Ionicons name="close" size={20} style={styles.closeBtnIcon} />
                     </TouchableOpacity>
                 </View>
             )}

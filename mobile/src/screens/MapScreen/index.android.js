@@ -34,10 +34,13 @@ import { Ionicons } from '@expo/vector-icons';
 import api from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
 import AppMapView from '../../components/ui/AppMapView';
-import styles from './MapScreen.android.styles';
+import { useTheme } from '../../theme';
+import createStyles from './MapScreen.android.styles';
 
 const MapScreen = ({ navigation }) => {
     const { user } = useAuth();
+    const { theme } = useTheme();
+    const styles = React.useMemo(() => createStyles(theme), [theme]);
     const mapRef = useRef(null);
     const justTappedMarker = useRef(false);
     const locationCache = useRef({});
@@ -216,7 +219,7 @@ const MapScreen = ({ navigation }) => {
     if (phase === 'loading' || phase === 'capturing') {
         return (
             <View style={styles.loadingScreen}>
-                <ActivityIndicator size="large" color="#FF385C" />
+                <ActivityIndicator size="large" color={theme.colors.accent} />
                 <Text style={styles.loadingText}>Loading map...</Text>
 
                 {/* Pills rendered visibly so Android can snapshot them */}
@@ -256,7 +259,6 @@ const MapScreen = ({ navigation }) => {
             <AppMapView
                 ref={mapRef}
                 style={styles.map}
-                theme="dark"
                 initialRegion={{
                     latitude: location?.coords.latitude ?? 50.8503,
                     longitude: location?.coords.longitude ?? 4.3517,
@@ -320,16 +322,16 @@ const MapScreen = ({ navigation }) => {
             {/* ── Search + Filters ─────────────────────────────────────── */}
             <View style={styles.searchRow}>
                 <View style={styles.searchBar}>
-                    <Ionicons name="search" size={20} color="#FF385C" style={styles.searchIcon} />
+                    <Ionicons name="search" size={20} style={styles.searchIcon} />
                     <TextInput
                         placeholder="Search for tools..."
-                        placeholderTextColor="#717171"
+                        placeholderTextColor={theme.colors.fieldPlaceholder}
                         style={styles.searchInput}
                         value={searchQuery}
                         onChangeText={setSearchQuery}
                     />
                     <TouchableOpacity style={styles.filterMenuIcon}>
-                        <Ionicons name="options-outline" size={20} color="#222" />
+                        <Ionicons name="options-outline" size={20} style={styles.filterMenuIconColor} />
                     </TouchableOpacity>
                 </View>
 
@@ -363,14 +365,14 @@ const MapScreen = ({ navigation }) => {
                 <View style={styles.card}>
                     <View style={styles.cardImageContainer}>
                         <View style={styles.cardImagePlaceholder}>
-                            <Ionicons name="construct-outline" size={40} color="#ccc" />
+                            <Ionicons name="construct-outline" size={40} style={styles.cardPlaceholderIcon} />
                         </View>
                         <View style={styles.cardImageTopRow}>
                             <View style={styles.guestFavoriteBadge}>
                                 <Text style={styles.guestFavoriteText}>Guest favorite</Text>
                             </View>
                             <TouchableOpacity style={styles.heartButton}>
-                                <Ionicons name="heart-outline" size={24} color="#fff" />
+                                <Ionicons name="heart-outline" size={24} style={styles.cardTopIcon} />
                             </TouchableOpacity>
                         </View>
                         <View style={styles.carouselDots}>
@@ -386,7 +388,7 @@ const MapScreen = ({ navigation }) => {
                         onPress={() => navigation.navigate('ToolDetails', { toolId: selectedTool.id })}
                     >
                         <View style={styles.cardRatingRow}>
-                            <Ionicons name="star" size={14} color="#ffb400" />
+                            <Ionicons name="star" size={14} style={styles.cardRatingIcon} />
                             <Text style={styles.cardRatingText}> 4.91 (98)</Text>
                         </View>
                         <Text style={styles.cardCategoryText}>
@@ -400,7 +402,7 @@ const MapScreen = ({ navigation }) => {
                     </TouchableOpacity>
 
                     <TouchableOpacity style={styles.cardCloseX} onPress={() => setSelectedTool(null)}>
-                        <Ionicons name="close" size={20} color="#222" />
+                        <Ionicons name="close" size={20} style={styles.cardCloseXIcon} />
                     </TouchableOpacity>
                 </View>
             )}
