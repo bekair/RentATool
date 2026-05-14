@@ -10,7 +10,8 @@ import ThemedSafeAreaView from '../../components/layout/ThemedSafeAreaView';
 import { Ionicons } from '@expo/vector-icons';
 import AppButton from '../../components/ui/AppButton';
 import AppScreenHeader from '../../components/ui/AppScreenHeader';
-import styles from './HelpScreen.styles';
+import { useTheme } from '../../theme';
+import createStyles from './HelpScreen.styles';
 
 const FAQ_ITEMS = [
     {
@@ -36,6 +37,8 @@ const FAQ_ITEMS = [
 ];
 
 export default function HelpScreen({ navigation }) {
+    const { theme } = useTheme();
+    const styles = useMemo(() => createStyles(theme), [theme]);
     const [expandedId, setExpandedId] = useState(FAQ_ITEMS[0].id);
 
     const quickActions = useMemo(
@@ -83,7 +86,7 @@ export default function HelpScreen({ navigation }) {
                         style={styles.headerIconButton}
                         onPress={() => navigation.navigate('Legal')}
                     >
-                        <Ionicons name="document-text-outline" size={18} color="#c4b5fd" />
+                        <Ionicons name="document-text-outline" size={18} style={styles.iconAccent} />
                     </TouchableOpacity>
                 )}
             />
@@ -108,7 +111,7 @@ export default function HelpScreen({ navigation }) {
                                 onPress={() => handleQuickAction(item.title)}
                             >
                                 <View style={styles.quickActionIconWrap}>
-                                    <Ionicons name={item.icon} size={18} color="#c4b5fd" />
+                                    <Ionicons name={item.icon} size={18} style={styles.iconAccent} />
                                 </View>
                                 <Text style={styles.quickActionTitle}>{item.title}</Text>
                                 <Text style={styles.quickActionDescription}>{item.description}</Text>
@@ -134,7 +137,7 @@ export default function HelpScreen({ navigation }) {
                                         <Ionicons
                                             name={isExpanded ? 'chevron-up' : 'chevron-down'}
                                             size={18}
-                                            color="#9ca3af"
+                                            style={styles.iconMuted}
                                         />
                                     </View>
                                     {isExpanded ? <Text style={styles.faqAnswer}>{faq.answer}</Text> : null}
