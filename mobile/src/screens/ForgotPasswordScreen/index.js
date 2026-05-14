@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
     View,
     Text,
@@ -12,10 +12,11 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../../theme';
-import styles from './ForgotPasswordScreen.styles';
+import createStyles from './ForgotPasswordScreen.styles';
 
 export default function ForgotPasswordScreen({ navigation }) {
     const { theme } = useTheme();
+    const styles = useMemo(() => createStyles(theme), [theme]);
     const [email, setEmail] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isSuccess, setIsSuccess] = useState(false);
@@ -38,9 +39,9 @@ export default function ForgotPasswordScreen({ navigation }) {
 
     if (isSuccess) {
         return (
-            <View style={[styles.container, { backgroundColor: theme.colors.bg }]}>
-                <View style={[styles.header, { marginTop: 120 }]}>
-                    <MaterialCommunityIcons name="email-check-outline" size={64} color="#6366f1" style={{ marginBottom: 16 }} />
+            <View style={styles.container}>
+                <View style={[styles.header, styles.successHeader]}>
+                    <MaterialCommunityIcons name="email-check-outline" size={64} color={theme.colors.accent} style={styles.icon} />
                     <Text style={styles.title}>Check your email</Text>
                     <Text style={styles.subtitle}>
                         We have sent password reset instructions to {email}
@@ -58,11 +59,11 @@ export default function ForgotPasswordScreen({ navigation }) {
 
     return (
         <KeyboardAvoidingView
-            style={[styles.container, { backgroundColor: theme.colors.bg }]}
+            style={styles.container}
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
             <View style={styles.header}>
-                <MaterialCommunityIcons name="lock-reset" size={64} color="#6366f1" style={{ marginBottom: 16 }} />
+                <MaterialCommunityIcons name="lock-reset" size={64} color={theme.colors.accent} style={styles.icon} />
                 <Text style={styles.title}>Reset Password</Text>
                 <Text style={styles.subtitle}>
                     Enter your email to receive reset instructions
@@ -75,7 +76,7 @@ export default function ForgotPasswordScreen({ navigation }) {
                     <TextInput
                         style={styles.input}
                         placeholder="Enter your email"
-                        placeholderTextColor="#666"
+                        placeholderTextColor={theme.colors.iconSubtle}
                         value={email}
                         onChangeText={setEmail}
                         keyboardType="email-address"
@@ -91,7 +92,7 @@ export default function ForgotPasswordScreen({ navigation }) {
                     disabled={isSubmitting}
                 >
                     {isSubmitting ? (
-                        <ActivityIndicator color="#fff" />
+                        <ActivityIndicator color={theme.colors.accentContrast} />
                     ) : (
                         <Text style={styles.buttonText}>Send Reset Link</Text>
                     )}
