@@ -1,4 +1,5 @@
 import { StyleSheet } from 'react-native';
+import { darkTheme, lightTheme } from '../../theme';
 
 const createStyles = (theme) => StyleSheet.create({
     loadingWrap: {
@@ -161,16 +162,16 @@ const createStyles = (theme) => StyleSheet.create({
         borderColor: theme.colors.border,
     },
     themePreviewLight: {
-        backgroundColor: '#f3f4f6',
-        borderColor: '#d1d5db',
+        backgroundColor: lightTheme.colors.surfaceMuted,
+        borderColor: lightTheme.colors.borderStrong,
     },
     themePreviewDark: {
-        backgroundColor: '#1c1c1f',
-        borderColor: '#3f3f46',
+        backgroundColor: darkTheme.colors.surfaceAlt,
+        borderColor: darkTheme.colors.borderStrong,
     },
     themePreviewSystem: {
-        backgroundColor: '#111114',
-        borderColor: '#3f3f46',
+        backgroundColor: darkTheme.colors.bg,
+        borderColor: darkTheme.colors.borderStrong,
     },
     themePreviewSystemNoPadding: {
         paddingHorizontal: 0,
@@ -193,10 +194,10 @@ const createStyles = (theme) => StyleSheet.create({
         justifyContent: 'space-between',
     },
     themePreviewSystemPaneLight: {
-        backgroundColor: '#f3f4f6',
+        backgroundColor: lightTheme.colors.surfaceMuted,
     },
     themePreviewSystemPaneDark: {
-        backgroundColor: '#1c1c1f',
+        backgroundColor: darkTheme.colors.surfaceAlt,
     },
     themePreviewSystemPaneTop: {
         height: 7,
@@ -210,12 +211,12 @@ const createStyles = (theme) => StyleSheet.create({
     themePreviewSystemPaneAccentLight: {
         height: 6,
         borderRadius: 3,
-        backgroundColor: '#818cf8',
+        backgroundColor: lightTheme.colors.fieldEditingBorder,
     },
     themePreviewSystemPaneAccentDark: {
         height: 6,
         borderRadius: 3,
-        backgroundColor: '#6366f1',
+        backgroundColor: darkTheme.colors.accent,
     },
     themePreviewTop: {
         height: 8,
@@ -223,10 +224,10 @@ const createStyles = (theme) => StyleSheet.create({
         width: '74%',
     },
     themePreviewTopLight: {
-        backgroundColor: '#d4d4d8',
+        backgroundColor: lightTheme.colors.borderStrong,
     },
     themePreviewTopDark: {
-        backgroundColor: '#3f3f46',
+        backgroundColor: darkTheme.colors.borderStrong,
     },
     themePreviewDots: {
         flexDirection: 'row',
@@ -238,15 +239,15 @@ const createStyles = (theme) => StyleSheet.create({
         borderRadius: 3,
     },
     themePreviewDotLight: {
-        backgroundColor: '#d4d4d8',
+        backgroundColor: lightTheme.colors.borderStrong,
     },
     themePreviewDotDark: {
-        backgroundColor: '#3f3f46',
+        backgroundColor: darkTheme.colors.borderStrong,
     },
     themePreviewAccent: {
         height: 6,
         borderRadius: 3,
-        backgroundColor: '#6366f1',
+        backgroundColor: darkTheme.colors.accent,
     },
 });
 

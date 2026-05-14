@@ -3,7 +3,6 @@ import {
     ActivityIndicator,
     Alert,
     ScrollView,
-    Switch,
     Text,
     TouchableOpacity,
     View,
@@ -15,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { getAppSettings, updateAppSettings } from '../../services/appSettingsService';
 import { useTheme } from '../../theme';
 import AppScreenHeader from '../../components/ui/AppScreenHeader';
+import AppSwitch from '../../components/ui/AppSwitch';
 import createStyles from './SettingsScreen.styles';
 
 const PUSH_NOTIFICATION_ITEMS = [
@@ -52,14 +52,6 @@ const THEME_ITEMS = [
 export default function SettingsScreen({ navigation }) {
     const { themeMode, setThemeMode, theme } = useTheme();
     const styles = useMemo(() => createStyles(theme), [theme]);
-    const switchTrackColor = useMemo(
-        () => ({ false: theme.colors.borderStrong, true: theme.colors.accent }),
-        [theme],
-    );
-    const getSwitchThumbColor = useCallback(
-        (enabled) => (enabled ? theme.colors.accentContrast : theme.colors.surfaceAlt),
-        [theme],
-    );
     const [loading, setLoading] = useState(true);
     const [savingKey, setSavingKey] = useState(null);
     const [isPushSectionExpanded, setIsPushSectionExpanded] = useState(true);
@@ -194,12 +186,10 @@ export default function SettingsScreen({ navigation }) {
                     <Text style={styles.rowSubtitle}>{item.subtitle}</Text>
                 </View>
                 <View style={styles.switchSlot}>
-                    <Switch
+                    <AppSwitch
                         value={value}
                         onValueChange={(next) => handlePushToggle(item.id, next)}
                         disabled={!isPushEnabled || isSaving}
-                        trackColor={switchTrackColor}
-                        thumbColor={getSwitchThumbColor(value)}
                     />
                 </View>
             </View>
@@ -217,12 +207,10 @@ export default function SettingsScreen({ navigation }) {
                     <Text style={styles.rowSubtitle}>{item.subtitle}</Text>
                 </View>
                 <View style={styles.switchSlot}>
-                    <Switch
+                    <AppSwitch
                         value={value}
                         onValueChange={(next) => handleToggle(item.id, next)}
                         disabled={isSaving}
-                        trackColor={switchTrackColor}
-                        thumbColor={getSwitchThumbColor(value)}
                     />
                 </View>
             </View>
@@ -258,12 +246,10 @@ export default function SettingsScreen({ navigation }) {
                                     />
                                 </TouchableOpacity>
                                 <View style={styles.pushHeaderRight}>
-                                    <Switch
+                                    <AppSwitch
                                         value={Boolean(settings.pushNotificationsEnabled)}
                                         onValueChange={(next) => handleToggle('pushNotificationsEnabled', next)}
                                         disabled={savingKey === 'pushNotificationsEnabled'}
-                                        trackColor={switchTrackColor}
-                                        thumbColor={getSwitchThumbColor(Boolean(settings.pushNotificationsEnabled))}
                                     />
                                 </View>
                             </View>
