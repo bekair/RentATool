@@ -30,7 +30,7 @@ const BookingsScreen = ({ navigation }) => {
   const { initPaymentSheet, presentPaymentSheet, confirmPaymentSheetPayment } =
     useStripe();
   const { theme } = useTheme();
-  const { styles, C } = useMemo(() => createStyles(theme), [theme]);
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const [viewMode, setViewMode] = useState("rentals");
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -71,20 +71,20 @@ const BookingsScreen = ({ navigation }) => {
 
   const getStatusColor = (booking) => {
     if (booking.status === BookingStatus.APPROVED && !isBookingPaid(booking)) {
-      return C.warning;
+      return theme.colors.warning;
     }
 
     switch (booking.status) {
       case BookingStatus.PENDING:
-        return C.accent;
+        return theme.colors.accent;
       case BookingStatus.APPROVED:
-        return C.success;
+        return theme.colors.success;
       case BookingStatus.REJECTED:
-        return C.danger;
+        return theme.colors.danger;
       case BookingStatus.CANCELLED:
-        return C.muted;
+        return theme.colors.iconMuted;
       case BookingStatus.COMPLETED:
-        return C.success;
+        return theme.colors.success;
       default:
         return theme.colors.textPrimary;
     }
@@ -197,7 +197,7 @@ const BookingsScreen = ({ navigation }) => {
       <View style={styles.card}>
         <View style={styles.cardHeader}>
           <View style={styles.toolIcon}>
-            <Ionicons name="build-outline" size={24} color={C.accent} />
+            <Ionicons name="build-outline" size={24} color={theme.colors.accent} />
           </View>
           <View style={styles.headerInfo}>
             <Text style={styles.toolName}>{item.tool.name}</Text>
@@ -228,7 +228,7 @@ const BookingsScreen = ({ navigation }) => {
             </Text>
           </View>
           <View style={styles.dateArrow}>
-            <Text style={{ color: theme.colors.iconSubtle }}>?</Text>
+            <Text style={styles.dateArrowText}>?</Text>
           </View>
           <View style={styles.dateInfo}>
             <Text style={styles.dateLabel}>End</Text>
@@ -264,7 +264,7 @@ const BookingsScreen = ({ navigation }) => {
               onPress={() => handleUpdateStatus(item.id, BookingStatus.REJECTED)}
             >
               {actionLoadingId === `status-${item.id}-${BookingStatus.REJECTED}` ? (
-                <ActivityIndicator size="small" color={C.danger} />
+                <ActivityIndicator size="small" color={theme.colors.danger} />
               ) : (
                 <Text style={styles.rejectButtonText}>Decline</Text>
               )}
@@ -291,7 +291,7 @@ const BookingsScreen = ({ navigation }) => {
             onPress={() => handleUpdateStatus(item.id, BookingStatus.CANCELLED)}
           >
             {actionLoadingId === `status-${item.id}-${BookingStatus.CANCELLED}` ? (
-              <ActivityIndicator size="small" color={C.muted} />
+              <ActivityIndicator size="small" color={theme.colors.iconMuted} />
             ) : (
               <Text style={styles.cancelLinkText}>Cancel request</Text>
             )}
@@ -357,20 +357,20 @@ const BookingsScreen = ({ navigation }) => {
 
       {loading ? (
         <View style={styles.loaderContainer}>
-          <ActivityIndicator size="large" color={C.accent} />
+          <ActivityIndicator size="large" color={theme.colors.accent} />
         </View>
       ) : (
         <>
           {refreshing && (
             <View style={styles.topLoader}>
-              <ActivityIndicator size="small" color={C.accent} />
+              <ActivityIndicator size="small" color={theme.colors.accent} />
             </View>
           )}
           <FlatList
             data={bookings}
             renderItem={renderBookingItem}
             keyExtractor={(item) => item.id}
-            style={{ flex: 1 }}
+            style={styles.list}
             contentContainerStyle={styles.listContainer}
             refreshControl={
               <RefreshControl
@@ -379,8 +379,8 @@ const BookingsScreen = ({ navigation }) => {
                   setRefreshing(true);
                   fetchBookings(true);
                 }}
-                tintColor={C.accent}
-                colors={[C.accent]}
+                tintColor={theme.colors.accent}
+                colors={[theme.colors.accent]}
               />
             }
             ListEmptyComponent={
@@ -390,8 +390,8 @@ const BookingsScreen = ({ navigation }) => {
                     isRentalsMode ? "calendar-outline" : "construct-outline"
                   }
                   size={64}
-                  color={C.muted}
-                  style={{ marginBottom: 16 }}
+                  color={theme.colors.iconMuted}
+                  style={styles.emptyIcon}
                 />
                 <Text style={styles.emptyTitle}>
                   {isRentalsMode ? "No active rentals" : "No booking requests"}
