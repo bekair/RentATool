@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
     View,
     Text,
@@ -13,10 +13,11 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { InputField } from '../../components/form';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../theme';
-import styles from './SignupScreen.styles';
+import createStyles from './SignupScreen.styles';
 
 export default function SignupScreen({ navigation }) {
     const { theme } = useTheme();
+    const styles = useMemo(() => createStyles(theme), [theme]);
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');
     const [email, setEmail] = useState('');
@@ -60,12 +61,12 @@ export default function SignupScreen({ navigation }) {
 
     return (
         <KeyboardAvoidingView
-            style={[styles.container, { backgroundColor: theme.colors.bg }]}
+            style={styles.container}
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
             <ScrollView contentContainerStyle={styles.scrollContent}>
                 <View style={styles.header}>
-                    <MaterialCommunityIcons name="tools" size={64} color="#6366f1" style={styles.headerIcon} />
+                    <MaterialCommunityIcons name="tools" size={64} style={styles.headerIcon} />
                     <Text style={styles.title}>Create Account</Text>
                     <Text style={styles.subtitle}>Join the tool-sharing community</Text>
                 </View>
@@ -125,7 +126,7 @@ export default function SignupScreen({ navigation }) {
                         disabled={isSubmitting}
                     >
                         {isSubmitting ? (
-                            <ActivityIndicator color="#fff" />
+                            <ActivityIndicator color={theme.colors.buttonPrimaryText} />
                         ) : (
                             <Text style={styles.buttonText}>Create Account</Text>
                         )}
