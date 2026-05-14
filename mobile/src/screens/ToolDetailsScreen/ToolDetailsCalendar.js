@@ -1,10 +1,13 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, View, Text } from "react-native";
 import { toolsApi } from "../../api/client";
 import AvailabilityCalendar from "../../components/calendar/AvailabilityCalendar";
-import { COLORS as C, styles } from "./ToolDetailsScreen.styles";
+import { useTheme } from "../../theme";
+import createStyles from "./ToolDetailsScreen.styles";
 
 export default function ToolDetailsCalendar({ toolId }) {
+  const { theme } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const [bookedDates, setBookedDates] = useState(new Set());
   const [manualBlockedDates, setManualBlockedDates] = useState(new Set());
   const [loading, setLoading] = useState(false);
@@ -39,7 +42,7 @@ export default function ToolDetailsCalendar({ toolId }) {
       </Text>
       {loading ? (
         <View style={styles.availabilityLoading}>
-          <ActivityIndicator size="small" color={C.accent} />
+          <ActivityIndicator size="small" color={theme.colors.accent} />
         </View>
       ) : (
         <AvailabilityCalendar
@@ -50,11 +53,11 @@ export default function ToolDetailsCalendar({ toolId }) {
       )}
       <View style={styles.availabilityLegendRow}>
         <View style={styles.availabilityLegendItem}>
-          <View style={[styles.availabilityLegendDot, { backgroundColor: C.booked }]} />
+          <View style={[styles.availabilityLegendDot, styles.availabilityLegendBookedDot]} />
           <Text style={styles.availabilityLegendText}>Booked</Text>
         </View>
         <View style={styles.availabilityLegendItem}>
-          <View style={[styles.availabilityLegendDot, { backgroundColor: C.accent }]} />
+          <View style={[styles.availabilityLegendDot, styles.availabilityLegendBlockedDot]} />
           <Text style={styles.availabilityLegendText}>Blocked</Text>
         </View>
       </View>

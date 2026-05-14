@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -15,11 +15,14 @@ import api from "../../api/client";
 import ToolDetailsCalendar from "./ToolDetailsCalendar";
 import { useAuth } from "../../context/AuthContext";
 import { getToolConditionLabel } from "../../constants/toolConditions";
-import { COLORS as C, styles } from "./ToolDetailsScreen.styles";
+import { useTheme } from "../../theme";
+import createStyles from "./ToolDetailsScreen.styles";
 
 const ToolDetailsScreen = ({ route, navigation }) => {
   const { toolId } = route.params;
   const { user } = useAuth();
+  const { theme } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const [tool, setTool] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isFavorite, setIsFavorite] = useState(false);
@@ -53,7 +56,7 @@ const ToolDetailsScreen = ({ route, navigation }) => {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={C.accent} />
+        <ActivityIndicator size="large" color={theme.colors.accent} />
       </View>
     );
   }
@@ -96,18 +99,18 @@ const ToolDetailsScreen = ({ route, navigation }) => {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" />
+      <StatusBar barStyle={theme.id === "dark" ? "light-content" : "dark-content"} />
 
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.iconBtn}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name="chevron-back" size={22} color={C.text} />
+          <Ionicons name="chevron-back" size={22} style={styles.iconBtnIcon} />
         </TouchableOpacity>
         <View style={styles.headerRight}>
           <TouchableOpacity style={styles.iconBtn}>
-            <Ionicons name="share-outline" size={20} color={C.text} />
+            <Ionicons name="share-outline" size={20} style={styles.iconBtnIcon} />
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.iconBtn}
@@ -116,7 +119,7 @@ const ToolDetailsScreen = ({ route, navigation }) => {
             <Ionicons
               name={isFavorite ? "heart" : "heart-outline"}
               size={20}
-              color={isFavorite ? C.accent : C.text}
+              style={isFavorite ? styles.favoriteIconActive : styles.iconBtnIcon}
             />
           </TouchableOpacity>
         </View>
@@ -128,7 +131,7 @@ const ToolDetailsScreen = ({ route, navigation }) => {
       >
         <View style={styles.hero}>
           <View style={styles.heroPlaceholder}>
-            <Ionicons name="construct" size={64} color="#333" />
+            <Ionicons name="construct" size={64} style={styles.heroPlaceholderIcon} />
             <Text style={styles.heroPlaceholderText}>
               Professional Tool Imagery
             </Text>
@@ -143,7 +146,7 @@ const ToolDetailsScreen = ({ route, navigation }) => {
           <Text style={styles.toolName}>{tool.name}</Text>
 
           <View style={styles.ratingRow}>
-            <Ionicons name="star" size={14} color={C.gold} />
+            <Ionicons name="star" size={14} style={styles.ratingStar} />
             <Text style={styles.ratingScore}> 4.91 · </Text>
             <TouchableOpacity>
               <Text style={styles.reviewsLink}>98 reviews</Text>
@@ -164,7 +167,7 @@ const ToolDetailsScreen = ({ route, navigation }) => {
                   {tool.owner?.displayName?.[0] ?? "?"}
                 </Text>
                 <View style={styles.verifiedBadge}>
-                  <Ionicons name="checkmark" size={9} color="#fff" />
+                  <Ionicons name="checkmark" size={9} style={styles.verifiedBadgeIcon} />
                 </View>
               </View>
             </View>
@@ -175,17 +178,20 @@ const ToolDetailsScreen = ({ route, navigation }) => {
               icon="shield-checkmark-outline"
               title="Fully Insured"
               sub="Covered against damage and theft for peace of mind."
+              styles={styles}
             />
             <Highlight
               icon="location-outline"
               title="Great location"
               sub="95% of recent renters gave the location a 5-star rating."
+              styles={styles}
             />
             <Highlight
               icon="time-outline"
               title="Flexible pickup"
               sub="Arrange pickup and return details directly with the owner."
               isLast
+              styles={styles}
             />
           </View>
 
@@ -196,9 +202,9 @@ const ToolDetailsScreen = ({ route, navigation }) => {
 
           <View style={[styles.section, styles.sectionCard]}>
             <Text style={styles.sectionTitle}>Specifications</Text>
-            <SpecRow label="Category" value={tool.category?.name} />
-            <SpecRow label="Condition" value={toolCondition} />
-            <SpecRow label="Replacement value" value={replacementValue} />
+            <SpecRow label="Category" value={tool.category?.name} styles={styles} />
+            <SpecRow label="Condition" value={toolCondition} styles={styles} />
+            <SpecRow label="Replacement value" value={replacementValue} styles={styles} />
           </View>
 
           {isOwner ? <ToolDetailsCalendar toolId={tool.id} /> : null}
@@ -207,7 +213,7 @@ const ToolDetailsScreen = ({ route, navigation }) => {
             <Text style={styles.sectionTitle}>Location</Text>
             <View style={styles.locationCard}>
               <View style={styles.locationIcon}>
-                <Ionicons name="location-outline" size={20} color={C.accent} />
+                <Ionicons name="location-outline" size={20} style={styles.locationPinIcon} />
               </View>
               <View style={styles.locationInfo}>
                 <Text style={styles.locationPrimary}>{locationSummary}</Text>
@@ -253,10 +259,10 @@ const ToolDetailsScreen = ({ route, navigation }) => {
   );
 };
 
-const Highlight = ({ icon, title, sub, isLast = false }) => (
+const Highlight = ({ icon, title, sub, isLast = false, styles }) => (
   <View style={[styles.highlightRow, isLast && styles.highlightRowLast]}>
     <View style={styles.highlightIcon}>
-      <Ionicons name={icon} size={22} color={C.violet} />
+      <Ionicons name={icon} size={22} style={styles.highlightIconColor} />
     </View>
     <View style={styles.highlightContent}>
       <Text style={styles.highlightTitle}>{title}</Text>
@@ -265,7 +271,7 @@ const Highlight = ({ icon, title, sub, isLast = false }) => (
   </View>
 );
 
-const SpecRow = ({ label, value }) => (
+const SpecRow = ({ label, value, styles }) => (
   <View style={styles.specRow}>
     <Text style={styles.specLabel}>{label}</Text>
     <Text style={styles.specValue}>{value}</Text>
