@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
     View,
     Text,
@@ -12,9 +12,12 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../../api/client';
 import ThemedSafeAreaView from '../../components/layout/ThemedSafeAreaView';
-import styles from './MyToolsScreen.styles';
+import { useTheme } from '../../theme';
+import createStyles from './MyToolsScreen.styles';
 
 const MyToolsScreen = ({ navigation }) => {
+    const { theme } = useTheme();
+    const styles = useMemo(() => createStyles(theme), [theme]);
     const [tools, setTools] = useState([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
@@ -97,7 +100,7 @@ const MyToolsScreen = ({ navigation }) => {
     if (loading) {
         return (
             <View style={styles.centerContainer}>
-                <ActivityIndicator size="large" color="#6366f1" />
+                <ActivityIndicator size="large" color={theme.colors.accent} />
             </View>
         );
     }
@@ -115,7 +118,7 @@ const MyToolsScreen = ({ navigation }) => {
             </View>
             {refreshing && (
                 <View style={styles.topLoader}>
-                    <ActivityIndicator size="small" color="#6366f1" />
+                    <ActivityIndicator size="small" color={theme.colors.accent} />
                 </View>
             )}
             <FlatList
@@ -129,19 +132,19 @@ const MyToolsScreen = ({ navigation }) => {
                     <RefreshControl
                         refreshing={false}
                         onRefresh={onRefresh}
-                        tintColor="#6366f1"
-                        colors={['#6366f1']}
+                        tintColor={theme.colors.accent}
+                        colors={[theme.colors.accent]}
                     />
                 }
                 ListEmptyComponent={
                     <View style={styles.emptyContainer}>
                         <View style={styles.emptyIconContainer}>
-                            <Ionicons name="hardware-chip-outline" size={48} color="#6366f1" />
+                            <Ionicons name="hardware-chip-outline" size={48} color={theme.colors.accent} />
                         </View>
                         <Text style={styles.emptyTitle}>Nothing here yet</Text>
                         <Text style={styles.emptyText}>You haven't listed any tools yet.</Text>
                         <View style={styles.swipeDownToRefreshContainer}>
-                            <Ionicons name="arrow-down" size={16} color="#6366f1" style={styles.refreshIcon} />
+                            <Ionicons name="arrow-down" size={16} style={styles.refreshIcon} />
                             <Text style={styles.swipeDownToRefreshText}>Swipe down to refresh</Text>
                         </View>
                     </View>
