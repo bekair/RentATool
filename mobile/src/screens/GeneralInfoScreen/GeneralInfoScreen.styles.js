@@ -1,16 +1,30 @@
 import { StyleSheet } from 'react-native';
 
-const styles = StyleSheet.create({
-    saveButton: { padding: 5 },
-    saveButtonText: { fontSize: 16, fontWeight: '600', color: '#6366f1' },
-    keyboardContainer: {
-        flex: 1,
-    },
-    scrollContent: {
-        paddingHorizontal: 16,
-        paddingTop: 24,
-        paddingBottom: 50,
-    },
-});
+export default function createStyles(theme) {
+    const c = theme.colors;
 
-export default styles;
+    return StyleSheet.create({
+        saveButton: {
+            padding: 5,
+        },
+        saveButtonDisabled: {
+            opacity: 0.4,
+        },
+        saveButtonText: {
+            fontSize: 16,
+            fontWeight: '600',
+            color: c.accent,
+        },
+        saveButtonTextDisabled: {
+            color: c.iconMuted,
+        },
+        keyboardContainer: {
+            flex: 1,
+        },
+        scrollContent: {
+            paddingHorizontal: 16,
+            paddingTop: 24,
+            paddingBottom: 50,
+        },
+    });
+}

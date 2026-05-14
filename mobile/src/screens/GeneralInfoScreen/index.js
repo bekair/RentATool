@@ -1,8 +1,6 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
-    View,
     Text,
-    TextInput,
     TouchableOpacity,
     KeyboardAvoidingView,
     ScrollView,
@@ -11,16 +9,18 @@ import {
     ActivityIndicator,
 } from 'react-native';
 import ThemedSafeAreaView from '../../components/layout/ThemedSafeAreaView';
-import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../api/client';
 import { InputField, CountryField, DateField } from '../../components/form';
 import AppScreenHeader from '../../components/ui/AppScreenHeader';
-import styles from './GeneralInfoScreen.styles';
+import { useTheme } from '../../theme';
+import createStyles from './GeneralInfoScreen.styles';
 
 
 export default function GeneralInfoScreen({ navigation }) {
     const { user, updateCurrentUser } = useAuth();
+    const { theme } = useTheme();
+    const styles = useMemo(() => createStyles(theme), [theme]);
     const [loading, setLoading] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [hasAttemptedSave, setHasAttemptedSave] = useState(false);
@@ -78,12 +78,12 @@ export default function GeneralInfoScreen({ navigation }) {
                     <TouchableOpacity
                         onPress={isEditing ? handleSave : () => setIsEditing(true)}
                         disabled={loading || (isEditing && !isFormValid)}
-                        style={[styles.saveButton, (isEditing && !isFormValid) && { opacity: 0.4 }]}
+                        style={[styles.saveButton, (isEditing && !isFormValid) && styles.saveButtonDisabled]}
                     >
                         {loading ? (
-                            <ActivityIndicator size="small" color="#6366f1" />
+                            <ActivityIndicator size="small" color={theme.colors.accent} />
                         ) : (
-                            <Text style={[styles.saveButtonText, (isEditing && !isFormValid) && { color: '#444' }]}>
+                            <Text style={[styles.saveButtonText, (isEditing && !isFormValid) && styles.saveButtonTextDisabled]}>
                                 {isEditing ? 'Save' : 'Edit'}
                             </Text>
                         )}
