@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
@@ -18,7 +18,8 @@ import CardBrandMark from '../../components/payments/CardBrandMark';
 import AppButton from '../../components/ui/AppButton';
 import AppScreenHeader from '../../components/ui/AppScreenHeader';
 import { formatCardExpiry, formatCardMainLabel } from '../../utils/paymentCards';
-import styles from './PaymentDetailsScreen.styles';
+import { useTheme } from '../../theme';
+import createStyles from './PaymentDetailsScreen.styles';
 
 const PAYMENT_DETAILS_DEEP_LINK = 'shareatool://payment-details';
 
@@ -29,13 +30,44 @@ function toReadableStatus(status) {
     return status.toLowerCase().replace(/_/g, ' ');
 }
 
-function getStatusMeta(isReady) {
+function getStatusMeta(isReady, theme) {
     return {
-        color: isReady ? '#10b981' : '#f59e0b',
+        color: isReady ? theme.colors.success : theme.colors.warning,
+    };
+}
+
+function buildCustomerSheetAppearance(theme) {
+    const c = theme.colors;
+
+    return {
+        colors: {
+            primary: c.accent,
+            background: c.bg,
+            componentBackground: c.surface,
+            componentBorder: c.border,
+            componentDivider: c.borderStrong,
+            primaryText: c.textPrimary,
+            secondaryText: c.textSecondary,
+            componentText: c.textPrimary,
+            placeholderText: c.textMuted,
+            icon: c.iconMuted,
+            error: c.danger,
+        },
+        primaryButton: {
+            colors: {
+                background: c.buttonPrimary,
+                text: c.buttonPrimaryText,
+                border: c.buttonPrimary,
+                successBackgroundColor: c.success,
+                successTextColor: c.accentContrast,
+            },
+        },
     };
 }
 
 export default function PaymentDetailsScreen({ navigation }) {
+    const { theme } = useTheme();
+    const styles = useMemo(() => createStyles(theme), [theme]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [summary, setSummary] = useState(null);
@@ -147,6 +179,8 @@ export default function PaymentDetailsScreen({ navigation }) {
                 customerId: data.customerId,
                 customerEphemeralKeySecret: data.ephemeralKeySecret,
                 setupIntentClientSecret: data.clientSecret,
+                style: theme.id === 'dark' ? 'alwaysDark' : 'alwaysLight',
+                appearance: buildCustomerSheetAppearance(theme),
                 returnURL: PAYMENT_DETAILS_DEEP_LINK,
                 headerTextForSelectionScreen: 'Payment methods',
             });
@@ -256,7 +290,7 @@ export default function PaymentDetailsScreen({ navigation }) {
     const hasMethod = savedCards.length > 0;
     const hasPayout = summary?.hasConnectedPayoutAccount;
     const isPayoutReady = Boolean(summary?.isPayoutReady);
-    const payoutMeta = getStatusMeta(Boolean(isPayoutReady));
+    const payoutMeta = getStatusMeta(Boolean(isPayoutReady), theme);
     const payoutButtonTitle = isPayoutReady
         ? 'Manage payout account'
         : hasPayout
@@ -269,13 +303,13 @@ export default function PaymentDetailsScreen({ navigation }) {
             <AppScreenHeader title="Payment Details" onBack={() => navigation.goBack()} />
             {refreshing && (
                 <View style={styles.topLoader}>
-                    <ActivityIndicator size="small" color="#6366f1" />
+                    <ActivityIndicator size="small" color={theme.colors.accent} />
                 </View>
             )}
 
             {loading ? (
                 <View style={styles.loadingWrap}>
-                    <ActivityIndicator size="large" color="#6366f1" />
+                    <ActivityIndicator size="large" color={theme.colors.accent} />
                 </View>
             ) : (
                 <ScrollView
@@ -284,8 +318,8 @@ export default function PaymentDetailsScreen({ navigation }) {
                         <RefreshControl
                             refreshing={false}
                             onRefresh={handleRefreshStatus}
-                            tintColor="transparent"
-                            colors={['transparent']}
+                            tintColor={theme.colors.accent}
+                            colors={[theme.colors.accent]}
                         />
                     )}
                 >
@@ -317,7 +351,7 @@ export default function PaymentDetailsScreen({ navigation }) {
                                                     <View style={styles.defaultBadge}>
                                                         <Text style={styles.defaultBadgeText}>Default</Text>
                                                     </View>
-                                                    <Ionicons name="checkmark-circle" size={20} color="#6366f1" />
+                                                    <Ionicons name="checkmark-circle" size={20} style={styles.defaultCheckIcon} />
                                                 </View>
                                             ) : null}
                                         </View>
@@ -361,7 +395,7 @@ export default function PaymentDetailsScreen({ navigation }) {
                         <View style={styles.listCard}>
                             <View style={styles.listRow}>
                                 <View style={styles.rowIconWrap}>
-                                    <Ionicons name="cash-outline" size={18} color="#c4b5fd" />
+                                    <Ionicons name="cash-outline" size={18} style={styles.rowIcon} />
                                 </View>
                                 <View style={styles.rowTextWrap}>
                                     <Text style={styles.rowTitle}>Stripe Express account</Text>
@@ -374,7 +408,7 @@ export default function PaymentDetailsScreen({ navigation }) {
 
                             <View style={styles.listRow}>
                                 <View style={styles.rowIconWrap}>
-                                    <Ionicons name="swap-horizontal-outline" size={18} color="#c4b5fd" />
+                                    <Ionicons name="swap-horizontal-outline" size={18} style={styles.rowIcon} />
                                 </View>
                                 <View style={styles.rowTextWrap}>
                                     <Text style={styles.rowTitle}>Capabilities</Text>
