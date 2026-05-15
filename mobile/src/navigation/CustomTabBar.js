@@ -1,10 +1,9 @@
-import React from 'react';
-import { View, TouchableOpacity, Text, StyleSheet, Platform } from 'react-native';
+import React, { useMemo } from 'react';
+import { View, TouchableOpacity, Text, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../theme';
-
-const BAR_H = 70;
+import createStyles from './CustomTabBar.styles';
 
 const ICON_MAP = {
     Explore:  ['search',    'search-outline'],
@@ -19,6 +18,7 @@ export default function CustomTabBar({ state, descriptors, navigation }) {
     const insets = useSafeAreaInsets();
     const { theme } = useTheme();
     const c = theme.colors;
+    const styles = useMemo(() => createStyles(theme), [theme]);
 
     const tabBottom = Platform.OS === 'android' ? insets.bottom + 8 : 25;
     const routes    = state.routes;
@@ -62,40 +62,3 @@ export default function CustomTabBar({ state, descriptors, navigation }) {
         </View>
     );
 }
-
-const styles = StyleSheet.create({
-
-    wrapper: {
-        position: 'absolute',
-        left: 15,
-        right: 15,
-        alignItems: 'center',
-    },
-
-    tabBar: {
-        flexDirection: 'row',
-        width: '100%',
-        height: BAR_H,
-        borderRadius: 30,
-        borderWidth: 1,
-        alignItems: 'center',
-        overflow: 'visible',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.10,
-        shadowRadius: 12,
-        elevation: 5,
-    },
-
-    tab: {
-        flex: 1,
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 3,
-    },
-
-    label: {
-        fontSize: 10,
-        fontWeight: '700',
-    },
-});
