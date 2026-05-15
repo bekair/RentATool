@@ -35,10 +35,8 @@ export default function createStyles(theme) {
             justifyContent: 'center',
             alignItems: 'center',
         },
-        addButtonText: {
+        addButtonIcon: {
             color: c.accentContrast,
-            fontSize: 24,
-            fontWeight: 'bold',
         },
         list: {
             flex: 1,

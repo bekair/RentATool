@@ -113,7 +113,7 @@ const MyToolsScreen = ({ navigation }) => {
                     style={styles.addButton}
                     onPress={() => navigation.navigate('AddTool')}
                 >
-                    <Text style={styles.addButtonText}>+</Text>
+                    <Ionicons name="add" size={22} style={styles.addButtonIcon} />
                 </TouchableOpacity>
             </View>
             {refreshing && (
